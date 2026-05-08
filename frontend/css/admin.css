@@ -68,6 +68,7 @@
   z-index: 20;
   min-height: 72px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -83,7 +84,31 @@
 }
 
 .admin-sidebar nav {
-  display: none;
+  order: 3;
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 4px;
+  scrollbar-width: thin;
+}
+
+.admin-sidebar nav a {
+  flex: 0 0 auto;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  color: var(--color-muted);
+  font-size: 0.92rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.admin-sidebar nav a:hover,
+.admin-sidebar nav a:focus-visible,
+.admin-sidebar nav a.is-active,
+.admin-sidebar nav a[aria-current="page"] {
+  background: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-primary);
 }
 
 .sidebar-logout {
@@ -92,7 +117,27 @@
 }
 
 .admin-main {
-  padding: 96px 16px 32px;
+  padding: 148px 16px 32px;
+}
+
+[data-admin-page][hidden] {
+  display: none !important;
+}
+
+[data-admin-page] {
+  animation: adminPageIn 180ms ease both;
+}
+
+@keyframes adminPageIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .admin-topbar {
@@ -216,11 +261,11 @@
 }
 
 .table-panel {
-  margin-top: 16px;
+  margin-top: 0;
 }
 
 .manager-panel {
-  margin-top: 16px;
+  margin-top: 0;
 }
 
 .table-title {
@@ -629,12 +674,17 @@ td {
   }
 
   .admin-sidebar nav {
+    order: initial;
+    width: auto;
     margin-top: 28px;
     display: grid;
     gap: 8px;
+    overflow: visible;
+    padding: 0;
   }
 
   .admin-sidebar nav a {
+    flex: initial;
     border-radius: var(--radius);
     padding: 12px;
     color: var(--color-muted);

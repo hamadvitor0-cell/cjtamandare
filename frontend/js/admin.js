@@ -66,6 +66,21 @@ const editForm = document.querySelector("[data-edit-form]");
 const editFeedback = document.querySelector("[data-edit-feedback]");
 const documentsDialog = document.querySelector("[data-documents-dialog]");
 const documentsList = document.querySelector("[data-documents-list]");
+const pageTitle = document.querySelector("[data-page-title]");
+
+const pageTitles = {
+  dashboard: "Dashboard",
+  inscritos: "Inscritos",
+  oficinas: "Oficinas",
+  galeria: "Galeria",
+  alunos: "Alunos",
+  chamada: "Chamada"
+};
+
+const pageAliases = {
+  "gerenciar-oficinas": "oficinas",
+  "gerenciar-galeria": "galeria"
+};
 
 function showAdmin() {
   loginView.hidden = true;
@@ -75,6 +90,48 @@ function showAdmin() {
 function showLogin() {
   loginView.hidden = false;
   adminView.hidden = true;
+}
+
+function normalizePage(page) {
+  const normalized = pageAliases[page] || page;
+  return pageTitles[normalized] ? normalized : "dashboard";
+}
+
+function showAdminPage(page, updateHash = false) {
+  const activePage = normalizePage(page);
+  document.querySelectorAll("[data-admin-page]").forEach((section) => {
+    section.hidden = section.dataset.adminPage !== activePage;
+  });
+  document.querySelectorAll("[data-admin-page-link]").forEach((link) => {
+    const isActive = link.dataset.adminPageLink === activePage;
+    link.classList.toggle("is-active", isActive);
+    if (isActive) {
+      link.setAttribute("aria-current", "page");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  });
+  if (pageTitle) pageTitle.textContent = pageTitles[activePage];
+  if (updateHash && window.location.hash !== `#${activePage}`) {
+    history.pushState(null, "", `#${activePage}`);
+  }
+  if (adminView && !adminView.hidden) {
+    document.querySelector(".admin-main")?.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
+
+function setupAdminPages() {
+  showAdminPage(window.location.hash.replace("#", "") || "dashboard");
+  document.querySelectorAll("[data-admin-page-link]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      showAdminPage(link.dataset.adminPageLink, true);
+    });
+  });
+  window.addEventListener("hashchange", () => {
+    showAdminPage(window.location.hash.replace("#", ""));
+  });
 }
 
 function setupTheme() {
@@ -390,7 +447,7 @@ function editOffice(oficina) {
     ativo: oficina.ativo
   });
   setCheckedValues(form, "diasSemana", oficina.diasSemana || []);
-  document.querySelector("#gerenciar-oficinas")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  showAdminPage("oficinas", true);
 }
 
 async function deleteOffice(oficina) {
@@ -453,7 +510,7 @@ function editGallery(image) {
     ordem: image.ordem,
     ativo: image.ativo
   });
-  document.querySelector("#gerenciar-galeria")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  showAdminPage("galeria", true);
 }
 
 async function deleteGallery(image) {
@@ -513,7 +570,7 @@ function editStudent(aluno) {
     observacoes: aluno.observacoes
   });
   setSelectedValues(form.elements.oficinaIds, aluno.oficinaIds || []);
-  document.querySelector("#alunos")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  showAdminPage("alunos", true);
 }
 
 async function deleteStudent(aluno) {
@@ -905,6 +962,7 @@ function setupEvents() {
 function init() {
   applyLogoPalette();
   setupTheme();
+  setupAdminPages();
   populateSelects();
   setupPhoneMasks();
   const today = new Date().toISOString().slice(0, 10);

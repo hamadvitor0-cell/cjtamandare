@@ -12,6 +12,10 @@
   ],
   "routes": [
     {
+      "src": "/admin/(oficinas|galeria)(.*)",
+      "dest": "/api/index.js"
+    },
+    {
       "src": "/(inscricao|inscricoes|auth|csrf-token|dashboard|oficinas|galeria|alunos|chamadas|health)(.*)",
       "dest": "/api/index.js"
     },

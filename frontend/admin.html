@@ -47,13 +47,13 @@
               <small>ADM</small>
             </span>
           </a>
-          <nav>
-            <a href="#dashboard">Dashboard</a>
-            <a href="#inscritos">Inscritos</a>
-            <a href="#gerenciar-oficinas">Oficinas</a>
-            <a href="#gerenciar-galeria">Galeria</a>
-            <a href="#alunos">Alunos</a>
-            <a href="#chamada">Chamada</a>
+          <nav data-admin-nav>
+            <a href="#dashboard" data-admin-page-link="dashboard" aria-current="page">Dashboard</a>
+            <a href="#inscritos" data-admin-page-link="inscritos">Inscritos</a>
+            <a href="#oficinas" data-admin-page-link="oficinas">Oficinas</a>
+            <a href="#galeria" data-admin-page-link="galeria">Galeria</a>
+            <a href="#alunos" data-admin-page-link="alunos">Alunos</a>
+            <a href="#chamada" data-admin-page-link="chamada">Chamada</a>
             <a href="/admin-manual.html">Manual ADM</a>
             <a href="/">Site público</a>
           </nav>
@@ -63,7 +63,7 @@
         <div class="admin-main">
           <header class="admin-topbar">
             <div>
-              <h1>Dashboard</h1>
+              <h1 data-page-title>Dashboard</h1>
               <p data-admin-name>Gestão de inscrições</p>
             </div>
             <div class="topbar-actions">
@@ -74,7 +74,7 @@
             </div>
           </header>
 
-          <section class="metric-grid" id="dashboard" aria-label="Métricas principais">
+          <section class="metric-grid" id="dashboard" aria-label="Métricas principais" data-admin-page="dashboard">
             <article class="metric-card">
               <span>Total de inscritos</span>
               <strong data-total-inscritos>0</strong>
@@ -89,7 +89,7 @@
             </article>
           </section>
 
-          <section class="dashboard-grid">
+          <section class="dashboard-grid" data-admin-page="dashboard">
             <article class="admin-panel">
               <div class="panel-title">
                 <h2>Inscrições por oficina</h2>
@@ -104,7 +104,7 @@
             </article>
           </section>
 
-          <section class="admin-panel table-panel" id="inscritos">
+          <section class="admin-panel table-panel" id="inscritos" data-admin-page="inscritos" hidden>
             <div class="panel-title table-title">
               <div>
                 <h2>Inscritos</h2>
@@ -144,7 +144,7 @@
             </div>
           </section>
 
-          <section class="admin-panel manager-panel" id="gerenciar-oficinas">
+          <section class="admin-panel manager-panel" id="oficinas" data-admin-page="oficinas" hidden>
             <div class="panel-title table-title">
               <div>
                 <h2>Gerenciar oficinas</h2>
@@ -218,7 +218,7 @@
             <div class="content-list" data-office-list></div>
           </section>
 
-          <section class="admin-panel manager-panel" id="gerenciar-galeria">
+          <section class="admin-panel manager-panel" id="galeria" data-admin-page="galeria" hidden>
             <div class="panel-title table-title">
               <div>
                 <h2>Gerenciar galeria</h2>
@@ -264,7 +264,7 @@
             <div class="content-list gallery-manager-list" data-gallery-list></div>
           </section>
 
-          <section class="admin-panel manager-panel" id="alunos">
+          <section class="admin-panel manager-panel" id="alunos" data-admin-page="alunos" hidden>
             <div class="panel-title table-title">
               <div>
                 <h2>Alunos</h2>
@@ -333,7 +333,7 @@
             <div class="content-list" data-student-list></div>
           </section>
 
-          <section class="admin-panel manager-panel" id="chamada">
+          <section class="admin-panel manager-panel" id="chamada" data-admin-page="chamada" hidden>
             <div class="panel-title">
               <div>
                 <h2>Chamada</h2>
@@ -437,7 +437,7 @@
       <option value="Artes e Cultura"></option>
     </datalist>
 
-    <script src="/js/runtime-config.js?v=20260508-1" defer></script>
-    <script type="module" src="/js/admin.js?v=20260508-1"></script>
+    <script src="/js/runtime-config.js?v=20260508-2" defer></script>
+    <script type="module" src="/js/admin.js?v=20260508-2"></script>
   </body>
 </html>
