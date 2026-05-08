@@ -373,13 +373,14 @@ function validateSignup(data, files = []) {
 
 function getRecaptchaToken() {
   return new Promise((resolve, reject) => {
-    if (!window.grecaptcha?.ready || !window.grecaptcha?.execute) {
+    const recaptcha = window.grecaptcha?.enterprise || window.grecaptcha;
+    if (!recaptcha?.ready || !recaptcha?.execute) {
       reject(new Error("reCAPTCHA indisponível. Recarregue a página e tente novamente."));
       return;
     }
 
-    window.grecaptcha.ready(() => {
-      window.grecaptcha
+    recaptcha.ready(() => {
+      recaptcha
         .execute(recaptchaSiteKey, { action: "inscricao" })
         .then(resolve)
         .catch(() => reject(new Error("Não foi possível iniciar a verificação anti-robô.")));

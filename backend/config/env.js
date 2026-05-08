@@ -64,6 +64,8 @@ const config = {
   autoMigrate: bool(process.env.AUTO_MIGRATE, false),
   recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY || "",
   recaptchaSecretKey: process.env.RECAPTCHA_SECRET_KEY || "",
+  recaptchaEnterpriseProjectId: process.env.RECAPTCHA_ENTERPRISE_PROJECT_ID || "",
+  recaptchaEnterpriseApiKey: process.env.RECAPTCHA_ENTERPRISE_API_KEY || "",
   recaptchaMinScore,
   adminName: process.env.ADMIN_NAME || "Administrador",
   adminEmail: process.env.ADMIN_EMAIL || "",

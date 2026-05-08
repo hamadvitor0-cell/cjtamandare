@@ -97,7 +97,9 @@ Obrigatórias em produção:
 - `CORS_ORIGIN`: domínio autorizado do frontend.
 - `COOKIE_SAME_SITE`: use `strict` para mesmo domínio; use `none` somente se frontend e backend estiverem em domínios diferentes com HTTPS.
 - `RECAPTCHA_SITE_KEY`: chave de site do Google reCAPTCHA v3.
-- `RECAPTCHA_SECRET_KEY`: chave secreta correspondente do Google reCAPTCHA v3, usada somente no backend.
+- `RECAPTCHA_SECRET_KEY`: legacy secret key correspondente, usada somente no backend quando a validação for pelo `siteverify`.
+- `RECAPTCHA_ENTERPRISE_PROJECT_ID`: ID do projeto Google Cloud quando a validação for pela API Enterprise.
+- `RECAPTCHA_ENTERPRISE_API_KEY`: API key de servidor com acesso ao reCAPTCHA Enterprise, quando usada a API Enterprise.
 - `RECAPTCHA_MIN_SCORE`: score mínimo aceito no reCAPTCHA v3, por padrão `0.5`.
 - `NODE_ENV=production`.
 - `TRUST_PROXY=true` em Render, Railway, Vercel ou proxy HTTPS.
@@ -168,7 +170,7 @@ As rotas administrativas exigem cookie JWT válido. `PUT`, `DELETE` e logout exi
 - CSRF: double-submit token assinado para mutações administrativas.
 - Brute force: rate limit específico em login.
 - Spam: rate limit em inscrição, honeypot `website` e Google reCAPTCHA v3 validado no servidor.
-- Verificação humana: o frontend gera o token invisível do reCAPTCHA na ação `inscricao` e o backend confirma `success`, `action` e `score` diretamente com o Google antes de gravar a inscrição.
+- Verificação humana: o frontend gera o token invisível do reCAPTCHA na ação `inscricao` e o backend confirma `success`, `action` e `score` diretamente com o Google antes de gravar a inscrição. Para chaves Google Cloud reCAPTCHA Enterprise, configure `RECAPTCHA_ENTERPRISE_PROJECT_ID` e `RECAPTCHA_ENTERPRISE_API_KEY`; para integrações legadas, use a `RECAPTCHA_SECRET_KEY`.
 - Senhas: bcrypt com custo 12.
 - Sessão ADM: JWT assinado, com expiração, em cookie `httpOnly`, `SameSite=Strict` e `Secure` em produção.
 - Headers: Helmet com CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` e HSTS em produção.
@@ -206,6 +208,7 @@ Variáveis necessárias no painel da Vercel:
 - `COOKIE_SECRET`
 - `RECAPTCHA_SITE_KEY`
 - `RECAPTCHA_SECRET_KEY`
+- `RECAPTCHA_ENTERPRISE_PROJECT_ID` e `RECAPTCHA_ENTERPRISE_API_KEY` se estiver usando chave Enterprise sem legacy secret key
 - `RECAPTCHA_MIN_SCORE=0.5`
 - `COOKIE_SAME_SITE=strict`
 - `CORS_ORIGIN=https://seu-dominio.vercel.app`
