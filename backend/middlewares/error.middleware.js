@@ -22,6 +22,9 @@ function errorHandler(error, req, res, next) {
     status,
     path: req.originalUrl,
     method: req.method,
+    errorMessage: error.message,
+    errorCode: error.code,
+    constraint: error.constraint,
     stack: error.stack
   });
 
