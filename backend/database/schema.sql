@@ -41,7 +41,6 @@ CREATE TABLE IF NOT EXISTS admins (
 
 CREATE INDEX IF NOT EXISTS idx_inscricoes_oficina ON inscricoes (oficina);
 CREATE INDEX IF NOT EXISTS idx_inscricoes_created_at ON inscricoes (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_inscricoes_cpf ON inscricoes (cpf);
 CREATE INDEX IF NOT EXISTS idx_inscricao_documentos_inscricao ON inscricao_documentos (inscricao_id);
 CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);
 
@@ -56,6 +55,8 @@ BEGIN
     ALTER TABLE inscricoes ADD CONSTRAINT inscricoes_cpf_key UNIQUE (cpf);
   END IF;
 END $$;
+
+CREATE INDEX IF NOT EXISTS idx_inscricoes_cpf ON inscricoes (cpf);
 
 ALTER TABLE inscricao_documentos ADD COLUMN IF NOT EXISTS file_content BYTEA;
 
