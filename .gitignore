@@ -21,3 +21,5 @@ backend/uploads/documentos/*
 *.local
 Thumbs.db
 .DS_Store
+
+.vercel

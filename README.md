@@ -100,6 +100,7 @@ Obrigatórias em produção:
 - `RECAPTCHA_SECRET_KEY`: chave secreta do Google reCAPTCHA v2, usada somente no backend.
 - `NODE_ENV=production`.
 - `TRUST_PROXY=true` em Render, Railway, Vercel ou proxy HTTPS.
+- `AUTO_MIGRATE=true` pode ser usado na Vercel para aplicar schema e dados iniciais de forma idempotente no primeiro acesso da API.
 
 Administrador inicial:
 
@@ -208,6 +209,7 @@ Variáveis necessárias no painel da Vercel:
 - `CORS_ORIGIN=https://seu-dominio.vercel.app`
 - `NODE_ENV=production`
 - `TRUST_PROXY=true`
+- `AUTO_MIGRATE=true`
 
 Depois do deploy, valide:
 

@@ -56,6 +56,7 @@ const config = {
   corsOrigin: process.env.CORS_ORIGIN || "http://localhost:3000",
   trustProxy: bool(process.env.TRUST_PROXY, false),
   logToFile: bool(process.env.LOG_TO_FILE, false),
+  autoMigrate: bool(process.env.AUTO_MIGRATE, false),
   recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY || "",
   recaptchaSecretKey: process.env.RECAPTCHA_SECRET_KEY || "",
   adminName: process.env.ADMIN_NAME || "Administrador",

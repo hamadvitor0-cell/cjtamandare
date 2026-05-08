@@ -3,6 +3,7 @@ const express = require("express");
 const morgan = require("morgan");
 const applySecurity = require("./middlewares/security.middleware");
 const routes = require("./routes");
+const ensureDatabase = require("./database/ensure-database");
 const { notFound, errorHandler } = require("./middlewares/error.middleware");
 const logger = require("./utils/logger");
 const config = require("./config/env");
@@ -12,6 +13,14 @@ const frontendPath = path.resolve(__dirname, "..", "frontend");
 
 applySecurity(app);
 app.use(morgan(config.isProduction ? "combined" : "dev", { stream: logger.morganStream }));
+app.use(async (req, res, next) => {
+  try {
+    await ensureDatabase();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.use("/api", routes);
 app.use("/api", notFound);
