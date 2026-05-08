@@ -104,7 +104,12 @@ async function runSetup() {
 
 function ensureDatabase() {
   if (!config.autoMigrate || !db.hasDatabase) return Promise.resolve();
-  if (!setupPromise) setupPromise = runSetup();
+  if (!setupPromise) {
+    setupPromise = runSetup().catch((error) => {
+      setupPromise = null;
+      throw error;
+    });
+  }
   return setupPromise;
 }
 
