@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Centro da Juventude Almirante Tamandaré</title>
+    <meta name="description" content="Portal oficial do Centro da Juventude Almirante Tamandaré para oficinas, inscrições online, agenda, galeria e contato.">
+    <meta name="theme-color" content="#0b4f91">
+    <meta property="og:title" content="Centro da Juventude Almirante Tamandaré">
+    <meta property="og:description" content="Oficinas gratuitas, convivência, cultura, esporte, tecnologia e oportunidades para jovens.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/img/logo.jpg">
+    <link rel="icon" href="/img/logo.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+
+    <header class="site-header" data-header>
+      <nav class="nav-shell" aria-label="Navegação principal">
+        <a class="brand" href="#inicio" aria-label="Centro da Juventude Almirante Tamandaré">
+          <img src="/img/logo.jpg" alt="Logo oficial do Centro da Juventude Almirante Tamandaré" width="54" height="54" data-logo>
+          <span>
+            <strong>Centro da Juventude</strong>
+            <small>Almirante Tamandaré</small>
+          </span>
+        </a>
+
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="menu-principal" data-menu-toggle>
+          <span class="sr-only">Abrir menu</span>
+          <span aria-hidden="true"></span>
+        </button>
+
+        <div class="nav-links" id="menu-principal" data-menu>
+          <a href="#sobre">Sobre</a>
+          <a href="#oficinas">Oficinas</a>
+          <a href="#agenda">Agenda</a>
+          <a href="#galeria">Galeria</a>
+          <a href="#inscricao">Inscrições</a>
+          <a href="#contato">Contato</a>
+          <a class="nav-admin" href="/admin.html">ADM</a>
+          <button class="theme-toggle" type="button" aria-label="Alternar modo escuro" data-theme-toggle>
+            <span aria-hidden="true">◐</span>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main id="conteudo">
+      <section class="hero section-block" id="inicio">
+        <div class="container hero-grid">
+          <div class="hero-copy reveal">
+            <h1>Centro da Juventude Almirante Tamandaré</h1>
+            <p>Um espaço público de oportunidades para aprender, criar, conviver e construir novos caminhos com esporte, cultura, educação e tecnologia.</p>
+            <div class="hero-actions" aria-label="Ações principais">
+              <a class="button button-primary" href="#oficinas">Ver Oficinas</a>
+              <a class="button button-secondary" href="#inscricao">Inscreva-se</a>
+            </div>
+          </div>
+
+          <div class="hero-media reveal" aria-label="Identidade visual e oficinas do Centro da Juventude">
+            <img class="hero-logo" src="/img/logo.jpg" alt="Logo oficial do Centro da Juventude" width="220" height="220">
+            <img class="hero-oficinas" src="/img/oficinas.png" alt="Quadro oficial de oficinas disponíveis" width="1070" height="419">
+          </div>
+        </div>
+      </section>
+
+      <section class="section-block about" id="sobre" aria-labelledby="sobre-titulo">
+        <div class="container split-layout">
+          <div class="section-heading reveal">
+            <h2 id="sobre-titulo">Formação, convivência e inclusão</h2>
+            <p>O Centro da Juventude fortalece vínculos comunitários e oferece atividades gratuitas para adolescentes, jovens e famílias, com foco em cidadania, expressão, cuidado e desenvolvimento social.</p>
+          </div>
+
+          <div class="about-cards reveal" aria-label="Pilares institucionais">
+            <article class="info-card">
+              <span class="info-icon" aria-hidden="true">01</span>
+              <h3>Missão</h3>
+              <p>Ampliar oportunidades de aprendizagem e convivência para jovens de Almirante Tamandaré.</p>
+            </article>
+            <article class="info-card">
+              <span class="info-icon" aria-hidden="true">02</span>
+              <h3>Impacto</h3>
+              <p>Promover inclusão, autonomia, cultura de paz e participação ativa na comunidade.</p>
+            </article>
+            <article class="info-card">
+              <span class="info-icon" aria-hidden="true">03</span>
+              <h3>Público</h3>
+              <p>Atendimento gratuito para jovens, adolescentes e comunidade em geral.</p>
+            </article>
+          </div>
+        </div>
+
+        <div class="container stats-grid reveal" aria-label="Indicadores do portal">
+          <div>
+            <strong data-stat-oficinas>21</strong>
+            <span>oficinas cadastradas</span>
+          </div>
+          <div>
+            <strong>5</strong>
+            <span>áreas de formação</span>
+          </div>
+          <div>
+            <strong>2026</strong>
+            <span>inscrições online preparadas</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-block workshops" id="oficinas" aria-labelledby="oficinas-titulo">
+        <div class="container section-heading reveal">
+          <h2 id="oficinas-titulo">Oficinas</h2>
+          <p>Escolha uma atividade e faça a pré-inscrição online. A confirmação depende da disponibilidade de turma e validação da documentação pela equipe.</p>
+        </div>
+
+        <div class="container workshop-tools reveal" aria-label="Filtros de oficinas">
+          <label class="search-field" for="busca-oficinas">
+            <span>Buscar oficinas</span>
+            <input id="busca-oficinas" type="search" placeholder="Nome ou categoria" autocomplete="off" data-workshop-search>
+          </label>
+          <div class="filter-row" role="list" data-category-filters></div>
+        </div>
+
+        <div class="container workshop-grid" data-workshop-grid aria-live="polite"></div>
+      </section>
+
+      <section class="section-block agenda" id="agenda" aria-labelledby="agenda-titulo">
+        <div class="container section-heading reveal">
+          <h2 id="agenda-titulo">Agenda</h2>
+          <p>Calendário visual com os principais períodos de atendimento e organização das atividades.</p>
+        </div>
+        <div class="container calendar-grid reveal" data-agenda-grid></div>
+      </section>
+
+      <section class="section-block gallery" id="galeria" aria-labelledby="galeria-titulo">
+        <div class="container section-heading reveal">
+          <h2 id="galeria-titulo">Galeria</h2>
+          <p>Materiais visuais oficiais do Centro da Juventude e das oficinas disponíveis.</p>
+        </div>
+        <div class="container gallery-grid reveal" data-gallery-grid></div>
+      </section>
+
+      <section class="section-block signup" id="inscricao" aria-labelledby="inscricao-titulo">
+        <div class="container signup-layout">
+          <div class="section-heading reveal">
+            <h2 id="inscricao-titulo">Inscrição online</h2>
+            <p>Preencha os dados com atenção. A equipe entrará em contato pelos canais informados para orientar a confirmação.</p>
+            <div class="notice-box">
+              <strong>Documentação</strong>
+              <span>Maiores de 18 anos: RG, CPF e comprovante de residência. Menores: documentos do aluno e responsável, declaração escolar e comprovante.</span>
+            </div>
+          </div>
+
+          <form class="signup-form reveal" id="form-inscricao" enctype="multipart/form-data" novalidate data-signup-form>
+            <div class="form-grid">
+              <label>
+                <span>Nome completo</span>
+                <input name="nome" type="text" autocomplete="name" required minlength="3" maxlength="120">
+              </label>
+              <label>
+                <span>Idade</span>
+                <input name="idade" type="number" inputmode="numeric" min="10" max="99" required>
+              </label>
+              <label>
+                <span>Telefone</span>
+                <input name="telefone" type="tel" autocomplete="tel" placeholder="(41) 99999-9999" required data-phone-mask>
+              </label>
+              <label>
+                <span>Responsável</span>
+                <input name="responsavel" type="text" autocomplete="name" maxlength="120">
+              </label>
+              <label>
+                <span>E-mail</span>
+                <input name="email" type="email" autocomplete="email" maxlength="160">
+              </label>
+              <label>
+                <span>Oficina</span>
+                <select name="oficina" required data-office-select>
+                  <option value="">Selecione</option>
+                </select>
+              </label>
+              <label>
+                <span>Documentos</span>
+                <input name="documentos" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp">
+                <small>RG, CPF, comprovante e declaração escolar em PDF ou imagem. Limite de 5 MB por arquivo.</small>
+              </label>
+              <label class="full-field">
+                <span>Observações</span>
+                <textarea name="observacoes" rows="4" maxlength="500"></textarea>
+              </label>
+              <div class="recaptcha-wrap full-field">
+                <span>Verificação anti-robô</span>
+                <div class="g-recaptcha" data-sitekey="6LeD1d4sAAAAAPmZhzXX5heGXk_1eijqs5K8NYpg"></div>
+              </div>
+              <label class="honeypot" aria-hidden="true">
+                <span>Website</span>
+                <input name="website" type="text" tabindex="-1" autocomplete="off">
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="button button-primary" type="submit">Enviar inscrição</button>
+              <p class="form-feedback" role="status" aria-live="polite" data-form-feedback></p>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="section-block contact" id="contato" aria-labelledby="contato-titulo">
+        <div class="container contact-layout">
+          <div class="section-heading reveal">
+            <h2 id="contato-titulo">Contato</h2>
+            <p>Rua Deputado Max Rosemann, 100, Almirante Tamandaré, PR. Acompanhe os canais oficiais para informações, inscrições, WhatsApp e oportunidades como o Bolsa Agente de Cidadania.</p>
+            <div class="contact-list">
+              <a href="https://www.instagram.com/cj_tamandare" target="_blank" rel="noopener noreferrer">Instagram CJ</a>
+              <a href="https://wa.me/554136572117" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+              <a href="https://forms.gle/TJz8KHLGCGfgMRat9" target="_blank" rel="noopener noreferrer">Bolsa Agente 14-17</a>
+              <a href="https://linktr.ee/centrojuventude" target="_blank" rel="noopener noreferrer">Linktree oficial</a>
+            </div>
+          </div>
+          <div class="map-frame reveal">
+            <iframe
+              title="Mapa do Centro da Juventude Almirante Tamandaré"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              src="https://www.google.com/maps?q=Rua%20Deputado%20Max%20Rosemann%20100%20Almirante%20Tamandar%C3%A9%20PR&output=embed">
+            </iframe>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <a class="brand footer-brand" href="#inicio">
+          <img src="/img/logo.jpg" alt="Logo oficial do Centro da Juventude" width="54" height="54">
+          <span>
+            <strong>Centro da Juventude</strong>
+            <small>Almirante Tamandaré</small>
+          </span>
+        </a>
+        <nav aria-label="Links rápidos">
+          <a href="#oficinas">Oficinas</a>
+          <a href="#inscricao">Inscrições</a>
+          <a href="/admin.html">ADM</a>
+        </nav>
+        <p>© <span data-year></span> Centro da Juventude Almirante Tamandaré. Portal institucional seguro.</p>
+      </div>
+    </footer>
+
+    <div class="lightbox" hidden data-lightbox>
+      <button class="lightbox-close" type="button" aria-label="Fechar galeria" data-lightbox-close>×</button>
+      <img src="" alt="" data-lightbox-image>
+      <p data-lightbox-caption></p>
+    </div>
+
+    <dialog class="workshop-dialog" data-workshop-dialog>
+      <button class="dialog-close" type="button" aria-label="Fechar detalhes" data-workshop-dialog-close>×</button>
+      <div data-workshop-dialog-content></div>
+    </dialog>
+
+    <div class="toast-region" aria-live="polite" aria-label="Notificações" data-toast-region></div>
+
+    <div vw class="enabled">
+      <div vw-access-button class="active"></div>
+      <div vw-plugin-wrapper>
+        <div class="vw-plugin-top-wrapper"></div>
+      </div>
+    </div>
+
+    <script src="/js/runtime-config.js" defer></script>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js" defer></script>
+    <script type="module" src="/js/main.js"></script>
+  </body>
+</html>

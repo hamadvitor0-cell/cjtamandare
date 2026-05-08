@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Manual ADM | Centro da Juventude Almirante Tamandaré</title>
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="theme-color" content="#0b4f91">
+    <link rel="icon" href="/img/logo.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/admin.css">
+  </head>
+  <body class="manual-body">
+    <a class="skip-link" href="#manual-conteudo">Ir para o manual</a>
+
+    <main class="manual-shell" id="manual-conteudo" hidden data-manual-content>
+      <header class="manual-header">
+        <a class="brand" href="/admin.html">
+          <img src="/img/logo.jpg" alt="Logo oficial do Centro da Juventude" width="54" height="54">
+          <span>
+            <strong>Manual ADM</strong>
+            <small>Centro da Juventude</small>
+          </span>
+        </a>
+        <div class="topbar-actions">
+          <button class="theme-toggle" type="button" aria-label="Alternar modo escuro" data-theme-toggle>
+            <span aria-hidden="true">◐</span>
+          </button>
+          <a class="button button-secondary" href="/admin.html">Voltar ao painel</a>
+        </div>
+      </header>
+
+      <section class="section-heading">
+        <h1>Passo a passo para administrar o site</h1>
+        <p>Use este guia para operar inscrições, oficinas, galeria, alunos, chamada e documentos com segurança.</p>
+      </section>
+
+      <div class="manual-grid">
+        <article class="manual-card">
+          <h2>1. Entrar no painel</h2>
+          <ol>
+            <li>Acesse <strong>/admin.html</strong> pelo mesmo endereço do servidor do site.</li>
+            <li>Informe e-mail e senha do administrador cadastrado.</li>
+            <li>Ao terminar, clique em <strong>Sair</strong> para encerrar a sessão.</li>
+          </ol>
+        </article>
+
+        <article class="manual-card">
+          <h2>2. Conferir inscrições</h2>
+          <ol>
+            <li>Abra a seção <strong>Inscritos</strong>.</li>
+            <li>Use a busca para localizar por nome, e-mail ou telefone.</li>
+            <li>Use o filtro de oficina para reduzir a lista.</li>
+            <li>Clique em <strong>Editar</strong> para corrigir dados ou em <strong>Excluir</strong> quando o registro for inválido.</li>
+            <li>Quando houver anexos, clique no botão de documentos para baixar os arquivos enviados na matrícula.</li>
+          </ol>
+        </article>
+
+        <article class="manual-card">
+          <h2>3. Gerenciar oficinas</h2>
+          <ol>
+            <li>Na seção <strong>Oficinas</strong>, clique em <strong>Nova oficina</strong> para limpar o formulário.</li>
+            <li>Preencha nome, categoria, faixa etária, período, horário e descrição.</li>
+            <li>Marque os dias da semana em que a oficina acontece.</li>
+            <li>Use uma URL de imagem segura, preferencialmente da própria pasta <strong>/img</strong>.</li>
+            <li>Desmarque <strong>Oficina ativa no site</strong> quando quiser ocultar sem excluir.</li>
+          </ol>
+        </article>
+
+        <article class="manual-card">
+          <h2>4. Atualizar galeria</h2>
+          <ol>
+            <li>Na seção <strong>Galeria</strong>, cadastre título, URL da imagem, ordem e texto alternativo.</li>
+            <li>Use imagens leves, nítidas e relacionadas ao espaço ou às atividades.</li>
+            <li>Edite a legenda quando precisar ajustar o texto público.</li>
+            <li>Remova imagens antigas ou desative itens que não devem aparecer no site.</li>
+          </ol>
+        </article>
+
+        <article class="manual-card">
+          <h2>5. Cadastrar alunos em várias oficinas</h2>
+          <ol>
+            <li>Abra <strong>Alunos</strong> e clique em <strong>Novo aluno</strong>.</li>
+            <li>Preencha os dados básicos do aluno e responsável.</li>
+            <li>No campo <strong>Oficinas</strong>, selecione uma ou mais turmas.</li>
+            <li>Para adicionar o mesmo aluno em outra oficina depois, edite o aluno e marque mais opções.</li>
+          </ol>
+        </article>
+
+        <article class="manual-card">
+          <h2>6. Fazer chamada</h2>
+          <ol>
+            <li>Na seção <strong>Chamada</strong>, escolha a oficina e a data.</li>
+            <li>Clique em <strong>Carregar chamada</strong>.</li>
+            <li>Marque cada aluno como presente, ausente ou justificado.</li>
+            <li>Adicione observações quando necessário e clique em <strong>Salvar chamada</strong>.</li>
+          </ol>
+        </article>
+
+        <article class="manual-card">
+          <h2>7. Segurança operacional</h2>
+          <ul>
+            <li>Não compartilhe senha de ADM por WhatsApp ou redes sociais.</li>
+            <li>Baixe documentos apenas em computadores autorizados.</li>
+            <li>Confira arquivos antes de abrir se o nome parecer suspeito.</li>
+            <li>Mantenha reCAPTCHA e variáveis de ambiente configuradas no servidor de produção.</li>
+          </ul>
+        </article>
+      </div>
+    </main>
+
+    <script src="/js/runtime-config.js" defer></script>
+    <script type="module" src="/js/admin-manual.js"></script>
+  </body>
+</html>
