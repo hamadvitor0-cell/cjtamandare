@@ -4,8 +4,10 @@ import {
   createElement,
   debounce,
   getFormData,
+  isValidCpf,
   showToast,
   setFeedback,
+  setupCpfMasks,
   setupPhoneMasks
 } from "./utils.js";
 import { applyLogoPalette } from "./palette.js";
@@ -280,8 +282,10 @@ function setupWorkshopSearch() {
 
 function populateOfficeSelects() {
   document.querySelectorAll("[data-office-select], [data-edit-office-select], [data-admin-office-filter]").forEach((select) => {
-    const current = select.value;
-    const keepFirst = select.querySelector("option")?.value === "";
+    const current = select.multiple
+      ? Array.from(select.selectedOptions).map((option) => option.value)
+      : select.value;
+    const keepFirst = !select.multiple && select.querySelector("option")?.value === "";
     const first = keepFirst ? select.querySelector("option").cloneNode(true) : null;
     select.replaceChildren();
     if (first) select.append(first);
@@ -291,7 +295,13 @@ function populateOfficeSelects() {
         attrs: { value: workshop.nome }
       }));
     });
-    select.value = current;
+    if (select.multiple) {
+      Array.from(select.options).forEach((option) => {
+        option.selected = current.includes(option.value);
+      });
+    } else {
+      select.value = current;
+    }
   });
 }
 
@@ -370,10 +380,11 @@ function renderGallery() {
 
 function validateSignup(data, files = []) {
   if (!data.nome || data.nome.trim().length < 3) return "Informe o nome completo.";
+  if (!isValidCpf(data.cpf)) return "Informe um CPF valido.";
   const idade = Number(data.idade);
   if (!Number.isInteger(idade) || idade < 10 || idade > 99) return "Informe uma idade válida.";
   if (!/^[0-9()+\-\s]{10,20}$/.test(data.telefone || "")) return "Informe um telefone válido.";
-  if (!data.oficina) return "Selecione uma oficina.";
+  if (!data.oficinas?.length) return "Selecione pelo menos uma oficina.";
   if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return "Informe um e-mail válido.";
   if (files.length > 8) return "Envie no máximo 8 documentos.";
   const invalidFile = files.find((file) => !allowedDocumentTypes.has(file.type) || file.size > 5 * 1024 * 1024);
@@ -504,6 +515,7 @@ function setupSignupForm() {
 
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
+    data.oficinas = formData.getAll("oficina").filter(Boolean);
     const files = formData.getAll("documentos").filter((file) => file && file.name);
     const validation = validateSignup(data, files);
     if (validation) {
@@ -517,6 +529,9 @@ function setupSignupForm() {
 
     try {
       setCaptchaHiddenFields();
+      formData.delete("oficinas");
+      data.oficinas.forEach((oficina) => formData.append("oficinas", oficina));
+      formData.set("oficina", data.oficinas[0] || "");
       formData.set("captchaToken", captchaState.token);
       formData.set("captchaX", document.querySelector("[data-captcha-slider]")?.value || "");
       formData.set("captchaMoves", String(captchaState.moves));
@@ -596,6 +611,7 @@ async function init() {
   setupWorkshopDialog();
   setupVLibras();
   setupPhoneMasks();
+  setupCpfMasks();
   await setupPuzzleCaptcha();
   setupSignupForm();
   setupYearAndStats();

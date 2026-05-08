@@ -116,7 +116,7 @@
             <div class="admin-filters">
               <label>
                 <span>Pesquisar</span>
-                <input type="search" placeholder="Nome, e-mail ou telefone" data-admin-search>
+                <input type="search" placeholder="Nome, CPF, e-mail ou telefone" data-admin-search>
               </label>
               <label>
                 <span>Oficina</span>
@@ -131,6 +131,7 @@
                 <thead>
                   <tr>
                     <th>Nome</th>
+                    <th>CPF</th>
                     <th>Idade</th>
                     <th>Telefone</th>
                     <th>Oficina</th>
@@ -288,6 +289,10 @@
                   <input name="nome" type="text" required maxlength="120">
                 </label>
                 <label>
+                  <span>CPF</span>
+                  <input name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" data-cpf-mask>
+                </label>
+                <label>
                   <span>Idade</span>
                   <input name="idade" type="number" min="10" max="99">
                 </label>
@@ -328,7 +333,7 @@
             <div class="admin-filters compact-filters">
               <label>
                 <span>Buscar aluno</span>
-                <input type="search" placeholder="Nome, e-mail ou telefone" data-student-search>
+                <input type="search" placeholder="Nome, CPF, e-mail ou telefone" data-student-search>
               </label>
               <label>
                 <span>Filtrar oficina</span>
@@ -393,6 +398,10 @@
             <input name="nome" type="text" required minlength="3" maxlength="120">
           </label>
           <label>
+            <span>CPF</span>
+            <input name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" data-cpf-mask>
+          </label>
+          <label>
             <span>Idade</span>
             <input name="idade" type="number" min="10" max="99" required>
           </label>
@@ -409,8 +418,8 @@
             <input name="email" type="email" maxlength="160">
           </label>
           <label>
-            <span>Oficina</span>
-            <select name="oficina" required data-edit-office-select></select>
+            <span>Oficinas</span>
+            <select name="oficina" required multiple size="6" data-edit-office-select></select>
           </label>
           <label class="full-field">
             <span>Observações</span>
@@ -444,7 +453,7 @@
       <option value="Artes e Cultura"></option>
     </datalist>
 
-    <script src="/js/runtime-config.js?v=20260508-2" defer></script>
-    <script type="module" src="/js/admin.js?v=20260508-2"></script>
+    <script src="/js/runtime-config.js?v=20260508-3" defer></script>
+    <script type="module" src="/js/admin.js?v=20260508-3"></script>
   </body>
 </html>

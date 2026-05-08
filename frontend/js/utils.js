@@ -28,10 +28,42 @@ export function maskPhoneValue(value) {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
+export function normalizeCpf(value) {
+  return String(value || "").replace(/\D/g, "").slice(0, 11);
+}
+
+export function maskCpfValue(value) {
+  const digits = normalizeCpf(value);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+export function isValidCpf(value) {
+  const cpf = normalizeCpf(value);
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  const digits = cpf.split("").map(Number);
+  const first = digits.slice(0, 9).reduce((sum, digit, index) => sum + digit * (10 - index), 0);
+  const firstCheck = (first * 10) % 11 % 10;
+  if (firstCheck !== digits[9]) return false;
+  const second = digits.slice(0, 10).reduce((sum, digit, index) => sum + digit * (11 - index), 0);
+  const secondCheck = (second * 10) % 11 % 10;
+  return secondCheck === digits[10];
+}
+
 export function setupPhoneMasks(root = document) {
   root.querySelectorAll("[data-phone-mask]").forEach((input) => {
     input.addEventListener("input", () => {
       input.value = maskPhoneValue(input.value);
+    });
+  });
+}
+
+export function setupCpfMasks(root = document) {
+  root.querySelectorAll("[data-cpf-mask]").forEach((input) => {
+    input.addEventListener("input", () => {
+      input.value = maskCpfValue(input.value);
     });
   });
 }

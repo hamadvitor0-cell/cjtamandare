@@ -1,27 +1,44 @@
 const Joi = require("joi");
+const { isValidCpf, normalizeCpf } = require("./cpf");
 const phonePattern = /^[0-9()+\-\s]{10,20}$/;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const safeImageUrlPattern = /^(\/|https?:\/\/)/i;
+
+const cpfField = Joi.string().custom((value, helpers) => {
+  const cpf = normalizeCpf(value);
+  if (!isValidCpf(cpf)) return helpers.message("CPF invalido.");
+  return cpf;
+});
+
+const optionalCpfField = Joi.string().allow("").custom((value, helpers) => {
+  if (!value) return "";
+  const cpf = normalizeCpf(value);
+  if (!isValidCpf(cpf)) return helpers.message("CPF invalido.");
+  return cpf;
+});
 
 const inscriptionSchema = Joi.object({
   nome: Joi.string().min(3).max(120).required().messages({
     "any.required": "Nome completo é obrigatório.",
     "string.min": "Informe o nome completo."
   }),
+  cpf: cpfField.required(),
   idade: Joi.number().integer().min(10).max(99).required(),
   telefone: Joi.string().pattern(phonePattern).required(),
   responsavel: Joi.string().allow("").max(120),
   email: Joi.string().email({ tlds: { allow: false } }).allow("").max(160),
-  oficina: Joi.string().min(2).max(100).required(),
+  oficina: Joi.string().min(2).max(100),
+  oficinas: Joi.array().items(Joi.string().min(2).max(100)).single().min(1).max(20),
   observacoes: Joi.string().allow("").max(500),
   website: Joi.string().allow("").max(120),
   captchaToken: Joi.string().required().max(2048),
   captchaX: Joi.number().min(0).max(1000).required(),
   captchaMoves: Joi.number().integer().min(1).max(5000).required()
-});
+}).or("oficina", "oficinas");
 
 const updateInscriptionSchema = inscriptionSchema
-  .fork(["website", "captchaToken", "captchaX", "captchaMoves"], (field) => field.optional())
+  .keys({ cpf: optionalCpfField })
+  .fork(["cpf", "website", "captchaToken", "captchaX", "captchaMoves"], (field) => field.optional())
   .unknown(false);
 
 const loginSchema = Joi.object({
@@ -77,6 +94,7 @@ const galeriaSchema = Joi.object({
 
 const alunoSchema = Joi.object({
   nome: Joi.string().min(3).max(120).required(),
+  cpf: optionalCpfField,
   idade: Joi.number().integer().min(10).max(99).allow("", null),
   telefone: Joi.string().allow("").pattern(phonePattern),
   responsavel: Joi.string().allow("").max(120),

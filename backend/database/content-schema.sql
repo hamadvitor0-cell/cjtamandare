@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS inscricao_documentos (
 CREATE TABLE IF NOT EXISTS alunos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome TEXT NOT NULL CHECK (char_length(nome) BETWEEN 3 AND 120),
+  cpf TEXT CHECK (cpf IS NULL OR cpf ~ '^[0-9]{11}$'),
   idade INTEGER CHECK (idade IS NULL OR idade BETWEEN 10 AND 99),
   telefone TEXT CHECK (telefone IS NULL OR char_length(telefone) <= 20),
   responsavel TEXT CHECK (responsavel IS NULL OR char_length(responsavel) <= 120),
@@ -60,10 +61,22 @@ CREATE TABLE IF NOT EXISTS alunos (
 
 ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS dias_semana TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS periodo TEXT NOT NULL DEFAULT 'a definir';
+ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS cpf TEXT;
+ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficinas TEXT[] NOT NULL DEFAULT '{}';
+UPDATE inscricoes SET oficinas = ARRAY[oficina] WHERE oficinas = '{}' AND oficina IS NOT NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'inscricoes_cpf_key'
+  ) THEN
+    ALTER TABLE inscricoes ADD CONSTRAINT inscricoes_cpf_key UNIQUE (cpf);
+  END IF;
+END $$;
 ALTER TABLE galeria ADD COLUMN IF NOT EXISTS original_name TEXT;
 ALTER TABLE galeria ADD COLUMN IF NOT EXISTS mime_type TEXT;
 ALTER TABLE galeria ADD COLUMN IF NOT EXISTS size_bytes INTEGER;
 ALTER TABLE galeria ADD COLUMN IF NOT EXISTS file_content BYTEA;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS oficina_id UUID REFERENCES oficinas(id) ON DELETE SET NULL;
 ALTER TABLE inscricao_documentos ADD COLUMN IF NOT EXISTS file_content BYTEA;
 
@@ -98,6 +111,8 @@ CREATE TABLE IF NOT EXISTS presencas (
 CREATE INDEX IF NOT EXISTS idx_oficinas_categoria ON oficinas (categoria);
 CREATE INDEX IF NOT EXISTS idx_galeria_ordem ON galeria (ordem ASC);
 CREATE INDEX IF NOT EXISTS idx_inscricao_documentos_inscricao ON inscricao_documentos (inscricao_id);
+CREATE INDEX IF NOT EXISTS idx_inscricoes_cpf ON inscricoes (cpf);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_alunos_cpf_unique ON alunos (cpf) WHERE cpf IS NOT NULL AND cpf <> '';
 CREATE INDEX IF NOT EXISTS idx_alunos_oficina ON alunos (oficina_id);
 CREATE INDEX IF NOT EXISTS idx_aluno_oficinas_oficina ON aluno_oficinas (oficina_id);
 CREATE INDEX IF NOT EXISTS idx_chamadas_oficina_data ON chamadas (oficina_id, data_chamada DESC);

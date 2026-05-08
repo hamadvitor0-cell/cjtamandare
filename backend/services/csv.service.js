@@ -8,11 +8,13 @@ function inscricoesToCsv(rows) {
   const headers = [
     "id",
     "nome",
+    "cpf",
     "idade",
     "telefone",
     "responsavel",
     "email",
     "oficina",
+    "oficinas",
     "source",
     "sourceId",
     "documentosCount",

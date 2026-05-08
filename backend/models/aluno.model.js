@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const db = require("../database/pool");
+const { normalizeCpf } = require("../utils/cpf");
 
 const memory = [];
 
@@ -24,6 +25,7 @@ function toPublic(row) {
   return {
     id: row.id,
     nome: row.nome,
+    cpf: row.cpf || "",
     idade: row.idade === null || row.idade === undefined ? "" : Number(row.idade),
     telefone: row.telefone || "",
     responsavel: row.responsavel || "",
@@ -60,6 +62,7 @@ async function findAll(filters = {}) {
       .filter((item) => {
         const matchesSearch = !search
           || item.nome.toLowerCase().includes(search)
+          || (normalizedSearchPhone && String(item.cpf || "").includes(normalizedSearchPhone))
           || (normalizedSearchPhone && item.telefone.replace(/\D/g, "").includes(normalizedSearchPhone))
           || item.email.toLowerCase().includes(search);
         const matchesOficina = !oficinaId || item.oficina_ids.includes(oficinaId);
@@ -77,6 +80,7 @@ async function findAll(filters = {}) {
     const index = params.length;
     where.push(`(
       LOWER(a.nome) LIKE $${index}
+      OR a.cpf LIKE REGEXP_REPLACE($${index}, '\\D', '', 'g')
       OR LOWER(COALESCE(a.email, '')) LIKE $${index}
       OR REGEXP_REPLACE(COALESCE(a.telefone, ''), '\\D', '', 'g') LIKE REGEXP_REPLACE($${index}, '\\D', '', 'g')
     )`);
@@ -92,7 +96,7 @@ async function findAll(filters = {}) {
 
   const result = await db.query(
     `SELECT a.id, a.nome, a.idade, a.telefone, a.responsavel, a.email, a.oficina_id,
-            a.status, a.observacoes, a.created_at, a.updated_at,
+            a.cpf, a.status, a.observacoes, a.created_at, a.updated_at,
             COALESCE(
               ARRAY_AGG(ao.oficina_id ORDER BY o.nome) FILTER (WHERE ao.oficina_id IS NOT NULL),
               ARRAY[]::uuid[]
@@ -116,13 +120,35 @@ async function findAll(filters = {}) {
 
 async function create(payload) {
   const oficinaIds = normalizeOfficeIds(payload);
+  const cpf = normalizeCpf(payload.cpf);
 
   if (!db.hasDatabase) {
+    const existingIndex = cpf ? memory.findIndex((item) => item.cpf === cpf) : -1;
+    if (existingIndex !== -1) {
+      const oficinas = await officeNamesForMemory(oficinaIds);
+      memory[existingIndex] = {
+        ...memory[existingIndex],
+        nome: payload.nome,
+        idade: payload.idade || null,
+        telefone: payload.telefone || "",
+        responsavel: payload.responsavel || "",
+        email: payload.email || "",
+        oficina_id: oficinaIds[0] || memory[existingIndex].oficina_id || "",
+        oficina_ids: Array.from(new Set([...(memory[existingIndex].oficina_ids || []), ...oficinaIds])),
+        oficinas: Array.from(new Set([...(memory[existingIndex].oficinas || []), ...oficinas])),
+        status: payload.status || "ativo",
+        observacoes: payload.observacoes || "",
+        updated_at: new Date().toISOString()
+      };
+      return toPublic(memory[existingIndex]);
+    }
+
     const now = new Date().toISOString();
     const oficinas = await officeNamesForMemory(oficinaIds);
     const record = {
       id: crypto.randomUUID(),
       nome: payload.nome,
+      cpf,
       idade: payload.idade || null,
       telefone: payload.telefone || "",
       responsavel: payload.responsavel || "",
@@ -143,11 +169,23 @@ async function create(payload) {
   try {
     await client.query("BEGIN");
     const result = await client.query(
-      `INSERT INTO alunos (nome, idade, telefone, responsavel, email, oficina_id, status, observacoes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO alunos (nome, cpf, idade, telefone, responsavel, email, oficina_id, status, observacoes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (cpf)
+       WHERE cpf IS NOT NULL AND cpf <> ''
+       DO UPDATE SET
+         nome = EXCLUDED.nome,
+         idade = EXCLUDED.idade,
+         telefone = EXCLUDED.telefone,
+         responsavel = EXCLUDED.responsavel,
+         email = EXCLUDED.email,
+         status = EXCLUDED.status,
+         observacoes = EXCLUDED.observacoes,
+         updated_at = NOW()
        RETURNING id`,
       [
         payload.nome,
+        cpf || null,
         payload.idade || null,
         payload.telefone || null,
         payload.responsavel || null,
@@ -162,6 +200,11 @@ async function create(payload) {
     return (await findAll({ search: payload.nome })).find((item) => item.id === result.rows[0].id);
   } catch (error) {
     await client.query("ROLLBACK");
+    if (error.code === "23505" && String(error.constraint || "").includes("cpf")) {
+      const conflict = new Error("Este CPF ja esta vinculado a outro aluno.");
+      conflict.statusCode = 409;
+      throw conflict;
+    }
     throw error;
   } finally {
     client.release();
@@ -170,14 +213,21 @@ async function create(payload) {
 
 async function update(id, payload) {
   const oficinaIds = normalizeOfficeIds(payload);
+  const cpf = normalizeCpf(payload.cpf);
 
   if (!db.hasDatabase) {
     const index = memory.findIndex((item) => item.id === id);
     if (index === -1) return null;
+    if (cpf && memory.some((item) => item.id !== id && item.cpf === cpf)) {
+      const error = new Error("Este CPF ja esta vinculado a outro aluno.");
+      error.statusCode = 409;
+      throw error;
+    }
     const oficinas = await officeNamesForMemory(oficinaIds);
     memory[index] = {
       ...memory[index],
       nome: payload.nome,
+      cpf,
       idade: payload.idade || null,
       telefone: payload.telefone || "",
       responsavel: payload.responsavel || "",
@@ -198,18 +248,20 @@ async function update(id, payload) {
     const result = await client.query(
       `UPDATE alunos
        SET nome = $1,
-           idade = $2,
-           telefone = $3,
-           responsavel = $4,
-           email = $5,
-           oficina_id = $6,
-           status = $7,
-           observacoes = $8,
+           cpf = $2,
+           idade = $3,
+           telefone = $4,
+           responsavel = $5,
+           email = $6,
+           oficina_id = $7,
+           status = $8,
+           observacoes = $9,
            updated_at = NOW()
-       WHERE id = $9
+       WHERE id = $10
        RETURNING id`,
       [
         payload.nome,
+        cpf || null,
         payload.idade || null,
         payload.telefone || null,
         payload.responsavel || null,
@@ -229,6 +281,11 @@ async function update(id, payload) {
     return (await findAll({ search: payload.nome })).find((item) => item.id === id);
   } catch (error) {
     await client.query("ROLLBACK");
+    if (error.code === "23505" && String(error.constraint || "").includes("cpf")) {
+      const conflict = new Error("Este CPF ja esta vinculado a outro aluno.");
+      conflict.statusCode = 409;
+      throw conflict;
+    }
     throw error;
   } finally {
     client.release();

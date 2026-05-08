@@ -161,6 +161,10 @@
                 <input name="nome" type="text" autocomplete="name" required minlength="3" maxlength="120">
               </label>
               <label>
+                <span>CPF</span>
+                <input name="cpf" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" required maxlength="14" data-cpf-mask>
+              </label>
+              <label>
                 <span>Idade</span>
                 <input name="idade" type="number" inputmode="numeric" min="10" max="99" required>
               </label>
@@ -177,10 +181,11 @@
                 <input name="email" type="email" autocomplete="email" maxlength="160">
               </label>
               <label>
-                <span>Oficina</span>
-                <select name="oficina" required data-office-select>
+                <span>Oficinas</span>
+                <select name="oficina" required multiple size="6" data-office-select>
                   <option value="">Selecione</option>
                 </select>
+                <small>Selecione uma ou mais oficinas para o mesmo cadastro.</small>
               </label>
               <label>
                 <span>Documentos</span>
@@ -286,8 +291,8 @@
       </div>
     </div>
 
-    <script src="/js/runtime-config.js?v=20260508-4" defer></script>
+    <script src="/js/runtime-config.js?v=20260508-5" defer></script>
     <script src="https://vlibras.gov.br/app/vlibras-plugin.js" defer></script>
-    <script type="module" src="/js/main.js?v=20260508-4"></script>
+    <script type="module" src="/js/main.js?v=20260508-5"></script>
   </body>
 </html>

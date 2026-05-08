@@ -585,6 +585,10 @@ textarea {
   resize: vertical;
 }
 
+select[multiple] {
+  min-height: 160px;
+}
+
 input[type="file"] {
   padding: 10px;
 }

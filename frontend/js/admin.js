@@ -5,7 +5,10 @@ import {
   debounce,
   formatDate,
   getFormData,
+  isValidCpf,
+  maskCpfValue,
   setFeedback,
+  setupCpfMasks,
   setupPhoneMasks
 } from "./utils.js";
 import { applyLogoPalette } from "./palette.js";
@@ -157,8 +160,10 @@ function setupTheme() {
 
 function populateSelects() {
   document.querySelectorAll("[data-admin-office-filter], [data-edit-office-select]").forEach((select) => {
-    const current = select.value;
-    const first = select.querySelector("option[value='']")?.cloneNode(true);
+    const current = select.multiple
+      ? Array.from(select.selectedOptions).map((option) => option.value)
+      : select.value;
+    const first = !select.multiple ? select.querySelector("option[value='']")?.cloneNode(true) : null;
     select.replaceChildren();
     if (first) select.append(first);
     state.oficinas.forEach((workshop) => {
@@ -167,7 +172,11 @@ function populateSelects() {
         attrs: { value: workshop.nome }
       }));
     });
-    select.value = current;
+    if (select.multiple) {
+      setSelectedValues(select, current);
+    } else {
+      select.value = current;
+    }
   });
 
   document.querySelectorAll("[data-student-office-select], [data-student-office-filter], [data-attendance-office]").forEach((select) => {
@@ -304,7 +313,7 @@ function renderTable() {
     const row = createElement("tr");
     const cell = createElement("td", {
       text: "Nenhum inscrito encontrado.",
-      attrs: { colspan: "8" }
+      attrs: { colspan: "9" }
     });
     row.append(cell);
     tableBody.append(row);
@@ -315,6 +324,7 @@ function renderTable() {
     const row = createElement("tr");
     row.append(
       createElement("td", { text: item.nome }),
+      createElement("td", { text: maskCpfValue(item.cpf || "") || "-" }),
       createElement("td", { text: String(item.idade) }),
       createElement("td", { text: item.telefone }),
       createElement("td", { text: item.oficina }),
@@ -565,7 +575,8 @@ function renderStudentList() {
     const main = createElement("div", { className: "content-item-main" });
     main.append(
       createElement("strong", { text: aluno.nome }),
-      createElement("span", { text: `${(aluno.oficinas || []).join(", ") || "Sem oficina"} · ${aluno.telefone || "sem telefone"} · ${aluno.status}` }),
+      createElement("span", { text: `${(aluno.oficinas || []).join(", ") || "Sem oficina"} · CPF: ${maskCpfValue(aluno.cpf || "") || "sem CPF"} · ${aluno.status}` }),
+      createElement("span", { text: aluno.telefone || "sem telefone" }),
       createElement("span", { text: aluno.responsavel ? `Responsável: ${aluno.responsavel}` : aluno.email || "" })
     );
     const actions = createElement("div", { className: "content-actions" });
@@ -593,6 +604,7 @@ function editStudent(aluno) {
   setFormValues(form, {
     id: aluno.id,
     nome: aluno.nome,
+    cpf: maskCpfValue(aluno.cpf || ""),
     idade: aluno.idade,
     telefone: aluno.telefone,
     responsavel: aluno.responsavel,
@@ -706,21 +718,23 @@ function openEdit(item) {
   setFeedback(editFeedback, "");
   editForm.elements.id.value = item.id;
   editForm.elements.nome.value = item.nome;
+  editForm.elements.cpf.value = maskCpfValue(item.cpf || "");
   editForm.elements.idade.value = item.idade;
   editForm.elements.telefone.value = item.telefone;
   editForm.elements.responsavel.value = item.responsavel || "";
   editForm.elements.email.value = item.email || "";
-  editForm.elements.oficina.value = item.oficina;
+  setSelectedValues(editForm.elements.oficina, item.oficinas || [item.oficina].filter(Boolean));
   editForm.elements.observacoes.value = item.observacoes || "";
   editDialog.showModal();
 }
 
 function validateInscricao(data) {
   if (!data.nome || data.nome.trim().length < 3) return "Informe o nome completo.";
+  if (data.cpf && !isValidCpf(data.cpf)) return "Informe um CPF valido.";
   const idade = Number(data.idade);
   if (!Number.isInteger(idade) || idade < 10 || idade > 99) return "Informe uma idade válida.";
   if (!/^[0-9()+\-\s]{10,20}$/.test(data.telefone || "")) return "Informe um telefone válido.";
-  if (!data.oficina) return "Selecione uma oficina.";
+  if (!data.oficinas?.length) return "Selecione pelo menos uma oficina.";
   if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return "Informe um e-mail válido.";
   return "";
 }
@@ -897,6 +911,8 @@ function setupEvents() {
   editForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = getFormData(editForm);
+    data.oficinas = selectedValues(editForm.elements.oficina);
+    data.oficina = data.oficinas[0] || "";
     const validation = validateInscricao(data);
     if (validation) {
       setFeedback(editFeedback, validation, "error");
@@ -984,6 +1000,10 @@ function setupEvents() {
     const data = getFormData(form);
     data.oficinaIds = selectedValues(form.elements.oficinaIds);
     data.oficinaId = data.oficinaIds[0] || "";
+    if (data.cpf && !isValidCpf(data.cpf)) {
+      setFeedback(feedback, "Informe um CPF valido.", "error");
+      return;
+    }
     const id = data.id;
     delete data.id;
     try {
@@ -1006,6 +1026,7 @@ function init() {
   setupAdminPages();
   populateSelects();
   setupPhoneMasks();
+  setupCpfMasks();
   const today = new Date().toISOString().slice(0, 10);
   const dateInput = document.querySelector("[data-attendance-date]");
   if (dateInput && !dateInput.value) dateInput.value = today;

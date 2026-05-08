@@ -1,20 +1,43 @@
 const crypto = require("crypto");
 const path = require("path");
 const db = require("../database/pool");
+const { normalizeCpf } = require("../utils/cpf");
 
 const memory = [];
 
+function normalizeOficinas(payload = {}) {
+  const values = Array.isArray(payload.oficinas)
+    ? payload.oficinas
+    : [payload.oficinas || payload.oficina];
+  return Array.from(new Set(values.map((item) => String(item || "").trim()).filter(Boolean)));
+}
+
+function mergeOficinas(current = [], incoming = []) {
+  return Array.from(new Set([...current, ...incoming].map((item) => String(item || "").trim()).filter(Boolean)));
+}
+
+function duplicateCpfError() {
+  const error = new Error("Este CPF ja possui cadastro para a(s) oficina(s) selecionada(s). Para alterar dados, procure a equipe do Centro da Juventude.");
+  error.statusCode = 409;
+  return error;
+}
+
 function toPublic(row) {
   const documentosCount = Number(row.documentos_count ?? row.documentosCount ?? (row.documentos || []).length ?? 0);
+  const oficinas = Array.isArray(row.oficinas) && row.oficinas.length
+    ? row.oficinas
+    : [row.oficina].filter(Boolean);
 
   return {
     id: row.id,
     nome: row.nome,
+    cpf: row.cpf || "",
     idade: Number(row.idade),
     telefone: row.telefone,
     responsavel: row.responsavel || "",
     email: row.email || "",
-    oficina: row.oficina,
+    oficina: oficinas.join(", "),
+    oficinas,
     observacoes: row.observacoes || "",
     documentosCount,
     created_at: row.created_at,
@@ -52,13 +75,41 @@ function toDocument(row) {
 }
 
 async function create(payload, files = []) {
+  const cpf = normalizeCpf(payload.cpf);
+  const oficinas = normalizeOficinas(payload);
+
   if (!db.hasDatabase) {
     const now = new Date().toISOString();
+    const existing = memory.find((item) => item.cpf === cpf);
+
+    if (existing) {
+      const currentOficinas = existing.oficinas || [existing.oficina].filter(Boolean);
+      const newOficinas = oficinas.filter((oficina) => !currentOficinas.includes(oficina));
+      if (!newOficinas.length) throw duplicateCpfError();
+
+      existing.oficinas = mergeOficinas(currentOficinas, oficinas);
+      existing.oficina = existing.oficinas.join(", ");
+      existing.nome = payload.nome;
+      existing.idade = payload.idade;
+      existing.telefone = payload.telefone;
+      existing.responsavel = payload.responsavel || "";
+      existing.email = payload.email || "";
+      existing.observacoes = payload.observacoes || existing.observacoes || "";
+      existing.updated_at = now;
+      const documentos = files.map((file) => documentFromFile(file, existing.id, now));
+      existing.documentos = [...(existing.documentos || []), ...documentos];
+      existing.documentosCount = existing.documentos.length;
+      return toPublic(existing);
+    }
+
     const id = crypto.randomUUID();
     const documentos = files.map((file) => documentFromFile(file, id, now));
     const record = toPublic({
       id,
       ...payload,
+      cpf,
+      oficina: oficinas[0],
+      oficinas,
       documentos,
       created_at: now,
       updated_at: now
@@ -72,23 +123,70 @@ async function create(payload, files = []) {
 
   try {
     await client.query("BEGIN");
-    const result = await client.query(
-      `INSERT INTO inscricoes
-        (nome, idade, telefone, responsavel, email, oficina, observacoes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, nome, idade, telefone, responsavel, email, oficina, observacoes, created_at, updated_at`,
-      [
-        payload.nome,
-        payload.idade,
-        payload.telefone,
-        payload.responsavel || null,
-        payload.email || null,
-        payload.oficina,
-        payload.observacoes || null
-      ]
+    const existing = await client.query(
+      `SELECT id, oficinas, oficina
+       FROM inscricoes
+       WHERE cpf = $1
+       FOR UPDATE`,
+      [cpf]
     );
 
-    const row = result.rows[0];
+    let row;
+    if (existing.rows[0]) {
+      const currentOficinas = existing.rows[0].oficinas?.length
+        ? existing.rows[0].oficinas
+        : [existing.rows[0].oficina].filter(Boolean);
+      const newOficinas = oficinas.filter((oficina) => !currentOficinas.includes(oficina));
+      if (!newOficinas.length) throw duplicateCpfError();
+
+      const mergedOficinas = mergeOficinas(currentOficinas, oficinas);
+      const result = await client.query(
+        `UPDATE inscricoes
+         SET nome = $1,
+             idade = $2,
+             telefone = $3,
+             responsavel = $4,
+             email = $5,
+             oficina = $6,
+             oficinas = $7,
+             observacoes = $8,
+             updated_at = NOW()
+         WHERE id = $9
+         RETURNING id, nome, cpf, idade, telefone, responsavel, email, oficina, oficinas, observacoes, created_at, updated_at`,
+        [
+          payload.nome,
+          payload.idade,
+          payload.telefone,
+          payload.responsavel || null,
+          payload.email || null,
+          mergedOficinas[0],
+          mergedOficinas,
+          payload.observacoes || null,
+          existing.rows[0].id
+        ]
+      );
+      row = result.rows[0];
+    } else {
+      const result = await client.query(
+        `INSERT INTO inscricoes
+          (nome, cpf, idade, telefone, responsavel, email, oficina, oficinas, observacoes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING id, nome, cpf, idade, telefone, responsavel, email, oficina, oficinas, observacoes, created_at, updated_at`,
+        [
+          payload.nome,
+          cpf,
+          payload.idade,
+          payload.telefone,
+          payload.responsavel || null,
+          payload.email || null,
+          oficinas[0],
+          oficinas,
+          payload.observacoes || null
+        ]
+      );
+      row = result.rows[0];
+    }
+
     for (const file of files) {
       const storedName = `${crypto.randomUUID()}${path.extname(file.originalname || "").toLowerCase()}`;
       await client.query(
@@ -108,9 +206,16 @@ async function create(payload, files = []) {
     }
 
     await client.query("COMMIT");
-    return toPublic({ ...row, documentos_count: files.length });
+    const documentosCount = await db.query(
+      "SELECT COUNT(*)::int AS total FROM inscricao_documentos WHERE inscricao_id = $1",
+      [row.id]
+    );
+    return toPublic({ ...row, documentos_count: documentosCount.rows[0].total });
   } catch (error) {
     await client.query("ROLLBACK");
+    if (error.code === "23505" && String(error.constraint || "").includes("cpf")) {
+      throw duplicateCpfError();
+    }
     throw error;
   } finally {
     client.release();
@@ -127,9 +232,10 @@ async function findAll(filters = {}) {
       .filter((item) => {
         const matchesSearch = !search
           || item.nome.toLowerCase().includes(search)
+          || (normalizedSearchPhone && String(item.cpf || "").includes(normalizedSearchPhone))
           || item.email.toLowerCase().includes(search)
           || (normalizedSearchPhone && item.telefone.replace(/\D/g, "").includes(normalizedSearchPhone));
-        const matchesOficina = !oficina || item.oficina === oficina;
+        const matchesOficina = !oficina || (item.oficinas || [item.oficina]).includes(oficina);
         return matchesSearch && matchesOficina;
       })
       .map(toPublic);
@@ -143,6 +249,7 @@ async function findAll(filters = {}) {
     const index = params.length;
     where.push(`(
       LOWER(nome) LIKE $${index}
+      OR cpf LIKE REGEXP_REPLACE($${index}, '\\D', '', 'g')
       OR LOWER(COALESCE(email, '')) LIKE $${index}
       OR REGEXP_REPLACE(telefone, '\\D', '', 'g') LIKE REGEXP_REPLACE($${index}, '\\D', '', 'g')
     )`);
@@ -150,18 +257,20 @@ async function findAll(filters = {}) {
 
   if (oficina) {
     params.push(oficina);
-    where.push(`oficina = $${params.length}`);
+    where.push(`($${params.length} = ANY(oficinas) OR oficina = $${params.length})`);
   }
 
   const sql = `
     SELECT
       id,
       nome,
+      cpf,
       idade,
       telefone,
       responsavel,
       email,
       oficina,
+      oficinas,
       observacoes,
       created_at,
       updated_at,
@@ -181,56 +290,79 @@ async function findAll(filters = {}) {
 }
 
 async function update(id, payload) {
+  const cpf = payload.cpf === undefined ? undefined : normalizeCpf(payload.cpf);
+  const oficinas = normalizeOficinas(payload);
+
   if (!db.hasDatabase) {
     const index = memory.findIndex((item) => item.id === id);
     if (index === -1) return null;
+    if (cpf && memory.some((item) => item.id !== id && item.cpf === cpf)) {
+      throw duplicateCpfError();
+    }
     memory[index] = toPublic({
       ...memory[index],
       ...payload,
+      cpf: cpf || memory[index].cpf || "",
+      oficina: oficinas[0] || memory[index].oficina,
+      oficinas: oficinas.length ? oficinas : memory[index].oficinas,
       documentosCount: memory[index].documentosCount || 0,
       updated_at: new Date().toISOString()
     });
     return memory[index];
   }
 
-  const result = await db.query(
-    `UPDATE inscricoes
-     SET nome = $1,
-         idade = $2,
-         telefone = $3,
-         responsavel = $4,
-         email = $5,
-         oficina = $6,
-         observacoes = $7,
-         updated_at = NOW()
-     WHERE id = $8
-     RETURNING
-       id,
-       nome,
-       idade,
-       telefone,
-       responsavel,
-       email,
-       oficina,
-       observacoes,
-       created_at,
-       updated_at,
-       COALESCE((
-         SELECT COUNT(*)::int
-         FROM inscricao_documentos documentos
-         WHERE documentos.inscricao_id = inscricoes.id
-       ), 0) AS documentos_count`,
-    [
-      payload.nome,
-      payload.idade,
-      payload.telefone,
-      payload.responsavel || null,
-      payload.email || null,
-      payload.oficina,
-      payload.observacoes || null,
-      id
-    ]
-  );
+  let result;
+  try {
+    result = await db.query(
+      `UPDATE inscricoes
+       SET nome = $1,
+           cpf = COALESCE($2, cpf),
+           idade = $3,
+           telefone = $4,
+           responsavel = $5,
+           email = $6,
+           oficina = $7,
+           oficinas = $8,
+           observacoes = $9,
+           updated_at = NOW()
+       WHERE id = $10
+       RETURNING
+         id,
+         nome,
+         cpf,
+         idade,
+         telefone,
+         responsavel,
+         email,
+         oficina,
+         oficinas,
+         observacoes,
+         created_at,
+         updated_at,
+         COALESCE((
+           SELECT COUNT(*)::int
+           FROM inscricao_documentos documentos
+           WHERE documentos.inscricao_id = inscricoes.id
+         ), 0) AS documentos_count`,
+      [
+        payload.nome,
+        cpf || null,
+        payload.idade,
+        payload.telefone,
+        payload.responsavel || null,
+        payload.email || null,
+        oficinas[0] || payload.oficina,
+        oficinas.length ? oficinas : [payload.oficina].filter(Boolean),
+        payload.observacoes || null,
+        id
+      ]
+    );
+  } catch (error) {
+    if (error.code === "23505" && String(error.constraint || "").includes("cpf")) {
+      throw duplicateCpfError();
+    }
+    throw error;
+  }
 
   return result.rows[0] ? toPublic(result.rows[0]) : null;
 }
@@ -323,11 +455,13 @@ async function stats() {
     db.query(`SELECT
                 id,
                 nome,
+                cpf,
                 idade,
                 telefone,
                 responsavel,
                 email,
                 oficina,
+                oficinas,
                 observacoes,
                 created_at,
                 updated_at,
