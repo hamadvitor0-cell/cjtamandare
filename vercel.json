@@ -12,6 +12,16 @@
   ],
   "routes": [
     {
+      "src": "/(.*)",
+      "headers": {
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
+        "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-eval' https://www.google.com https://www.gstatic.com https://recaptcha.google.com https://www.recaptcha.net https://vlibras.gov.br; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://vlibras.gov.br; img-src 'self' data: https:; connect-src 'self' https://www.google.com https://www.gstatic.com https://recaptcha.google.com https://www.recaptcha.net https://recaptchaenterprise.googleapis.com https://vlibras.gov.br; frame-src 'self' https://www.google.com https://www.gstatic.com https://recaptcha.google.com https://www.recaptcha.net https://maps.google.com https://vlibras.gov.br; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+      },
+      "continue": true
+    },
+    {
       "src": "/admin/(oficinas|galeria)(.*)",
       "dest": "/api/index.js"
     },
@@ -34,29 +44,6 @@
     {
       "src": "/(.*)",
       "dest": "/frontend/index.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=(self)"
-        },
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' https://www.google.com https://www.gstatic.com https://recaptcha.google.com https://www.recaptcha.net https://vlibras.gov.br; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://vlibras.gov.br; img-src 'self' data: https:; connect-src 'self' https://www.google.com https://www.gstatic.com https://recaptcha.google.com https://www.recaptcha.net https://recaptchaenterprise.googleapis.com https://vlibras.gov.br; frame-src 'self' https://www.google.com https://www.gstatic.com https://recaptcha.google.com https://www.recaptcha.net https://maps.google.com https://vlibras.gov.br; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
-        }
-      ]
     }
   ]
 }
