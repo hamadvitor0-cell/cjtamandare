@@ -21,7 +21,17 @@ const state = {
 let revealObserver;
 
 const allowedDocumentTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
-const recaptchaSiteKey = "6Lcw9t4sAAAAAPYyOHKlvCUTfbVUjMldHLUnjbND";
+const captchaState = {
+  loaded: false,
+  solved: false,
+  token: "",
+  target: 0,
+  y: 48,
+  max: 1000,
+  tolerance: 42,
+  pieceSize: 46,
+  moves: 0
+};
 
 const dayNames = {
   segunda: "Segunda",
@@ -368,24 +378,119 @@ function validateSignup(data, files = []) {
   if (files.length > 8) return "Envie no máximo 8 documentos.";
   const invalidFile = files.find((file) => !allowedDocumentTypes.has(file.type) || file.size > 5 * 1024 * 1024);
   if (invalidFile) return "Os documentos devem ser PDF, JPG, PNG ou WEBP com até 5 MB por arquivo.";
+  if (!captchaState.loaded) return "Aguarde o carregamento do puzzle anti-robô.";
+  if (!captchaState.solved) return "Arraste a peça até encaixar no puzzle anti-robô.";
   return "";
 }
 
-function getRecaptchaToken() {
-  return new Promise((resolve, reject) => {
-    const recaptcha = window.grecaptcha?.enterprise || window.grecaptcha;
-    if (!recaptcha?.ready || !recaptcha?.execute) {
-      reject(new Error("reCAPTCHA indisponível. Recarregue a página e tente novamente."));
-      return;
-    }
+function setCaptchaStatus(message, type = "") {
+  const status = document.querySelector("[data-captcha-status]");
+  if (!status) return;
+  status.textContent = message;
+  status.classList.remove("is-success", "is-error");
+  if (type) status.classList.add(`is-${type}`);
+}
 
-    recaptcha.ready(() => {
-      recaptcha
-        .execute(recaptchaSiteKey, { action: "inscricao" })
-        .then(resolve)
-        .catch(() => reject(new Error("Não foi possível iniciar a verificação anti-robô.")));
-    });
+function setCaptchaHiddenFields() {
+  const token = document.querySelector("[data-captcha-token]");
+  const x = document.querySelector("[data-captcha-x]");
+  const moves = document.querySelector("[data-captcha-moves]");
+  if (token) token.value = captchaState.token;
+  if (x) x.value = document.querySelector("[data-captcha-slider]")?.value || "";
+  if (moves) moves.value = String(captchaState.moves);
+}
+
+function positionPuzzle() {
+  const board = document.querySelector("[data-puzzle-board]");
+  const slot = document.querySelector("[data-puzzle-slot]");
+  const piece = document.querySelector("[data-puzzle-piece]");
+  const slider = document.querySelector("[data-captcha-slider]");
+  if (!board || !slot || !piece || !slider) return;
+
+  const boardWidth = board.clientWidth || 320;
+  const pieceSize = captchaState.pieceSize;
+  const maxLeft = Math.max(boardWidth - pieceSize, 1);
+  const current = Number(slider.value || 0);
+  const pieceLeft = (current / captchaState.max) * maxLeft;
+  const targetLeft = (captchaState.target / captchaState.max) * maxLeft;
+
+  [slot, piece].forEach((node) => {
+    node.style.width = `${pieceSize}px`;
+    node.style.height = `${pieceSize}px`;
+    node.style.top = `${captchaState.y}px`;
   });
+  slot.style.left = `${targetLeft}px`;
+  piece.style.left = `${pieceLeft}px`;
+  piece.style.setProperty("--piece-offset", `${pieceLeft}px`);
+}
+
+function updatePuzzlePosition(countMove = true) {
+  const slider = document.querySelector("[data-captcha-slider]");
+  const puzzle = document.querySelector("[data-captcha]");
+  if (!slider || !captchaState.loaded) return;
+
+  if (countMove) captchaState.moves += 1;
+
+  const current = Number(slider.value || 0);
+  const isSolved = Math.abs(current - captchaState.target) <= captchaState.tolerance;
+  captchaState.solved = isSolved;
+  puzzle?.classList.toggle("is-solved", isSolved);
+
+  if (isSolved) {
+    slider.value = String(captchaState.target);
+    setCaptchaStatus("Puzzle encaixado. Pode enviar a inscrição.", "success");
+  } else {
+    setCaptchaStatus("Arraste a peça até alinhar com o encaixe.", "");
+  }
+
+  setCaptchaHiddenFields();
+  positionPuzzle();
+}
+
+async function loadPuzzleCaptcha() {
+  const slider = document.querySelector("[data-captcha-slider]");
+  const puzzle = document.querySelector("[data-captcha]");
+  if (!slider || !puzzle) return;
+
+  captchaState.loaded = false;
+  captchaState.solved = false;
+  captchaState.token = "";
+  captchaState.moves = 0;
+  slider.value = "0";
+  slider.disabled = true;
+  puzzle.classList.remove("is-solved");
+  setCaptchaStatus("Carregando puzzle anti-robô...");
+  setCaptchaHiddenFields();
+
+  try {
+    const data = await apiRequest("/captcha/challenge", { timeout: 8000 });
+    const challenge = data.captcha || {};
+    captchaState.loaded = true;
+    captchaState.token = challenge.token;
+    captchaState.target = Number(challenge.target || 0);
+    captchaState.y = Number(challenge.y || 48);
+    captchaState.max = Number(challenge.max || 1000);
+    captchaState.tolerance = Number(challenge.tolerance || 42);
+    captchaState.pieceSize = Number(challenge.pieceSize || 46);
+    slider.max = String(captchaState.max);
+    slider.disabled = false;
+    setCaptchaStatus("Arraste a peça até encaixar no espaço marcado.");
+    setCaptchaHiddenFields();
+    positionPuzzle();
+  } catch (error) {
+    setCaptchaStatus("Não foi possível carregar o puzzle. Tente atualizar.", "error");
+  }
+}
+
+async function setupPuzzleCaptcha() {
+  const slider = document.querySelector("[data-captcha-slider]");
+  const refresh = document.querySelector("[data-captcha-refresh]");
+  if (!slider) return;
+
+  slider.addEventListener("input", () => updatePuzzlePosition(true));
+  refresh?.addEventListener("click", () => loadPuzzleCaptcha());
+  window.addEventListener("resize", debounce(positionPuzzle, 120), { passive: true });
+  await loadPuzzleCaptcha();
 }
 
 function setupSignupForm() {
@@ -411,18 +516,24 @@ function setupSignupForm() {
     submit.textContent = "Enviando...";
 
     try {
-      const token = await getRecaptchaToken();
-      formData.set("g-recaptcha-response", token);
+      setCaptchaHiddenFields();
+      formData.set("captchaToken", captchaState.token);
+      formData.set("captchaX", document.querySelector("[data-captcha-slider]")?.value || "");
+      formData.set("captchaMoves", String(captchaState.moves));
       await apiRequest("/inscricao", {
         method: "POST",
         body: formData
       });
       form.reset();
+      await loadPuzzleCaptcha();
       setFeedback(feedback, "Inscrição enviada com sucesso. A equipe entrará em contato.", "success");
       showToast("Inscrição enviada com sucesso.", "success");
     } catch (error) {
       setFeedback(feedback, error.message, "error");
       showToast(error.message, "error");
+      if (error.status === 403) {
+        await loadPuzzleCaptcha();
+      }
     } finally {
       submit.disabled = false;
       submit.textContent = "Enviar inscrição";
@@ -485,6 +596,7 @@ async function init() {
   setupWorkshopDialog();
   setupVLibras();
   setupPhoneMasks();
+  await setupPuzzleCaptcha();
   setupSignupForm();
   setupYearAndStats();
 }

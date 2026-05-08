@@ -1,6 +1,6 @@
 const InscricaoService = require("../services/inscricao.service");
 const CsvService = require("../services/csv.service");
-const Recaptcha = require("../services/recaptcha.service");
+const Captcha = require("../services/captcha.service");
 
 async function create(req, res) {
   const payload = { ...req.validated.body };
@@ -11,10 +11,16 @@ async function create(req, res) {
     });
   }
 
-  await Recaptcha.verify(payload["g-recaptcha-response"], req.ip, "inscricao");
+  await Captcha.verify({
+    token: payload.captchaToken,
+    position: payload.captchaX,
+    moves: payload.captchaMoves
+  }, req);
 
   delete payload.website;
-  delete payload["g-recaptcha-response"];
+  delete payload.captchaToken;
+  delete payload.captchaX;
+  delete payload.captchaMoves;
   const inscricao = await InscricaoService.create(payload, req.files || []);
 
   return res.status(201).json({

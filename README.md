@@ -96,11 +96,6 @@ Obrigatórias em produção:
 - `COOKIE_SECRET`: segredo forte diferente do JWT.
 - `CORS_ORIGIN`: domínio autorizado do frontend.
 - `COOKIE_SAME_SITE`: use `strict` para mesmo domínio; use `none` somente se frontend e backend estiverem em domínios diferentes com HTTPS.
-- `RECAPTCHA_SITE_KEY`: chave de site do Google reCAPTCHA v3.
-- `RECAPTCHA_SECRET_KEY`: legacy secret key correspondente, usada somente no backend quando a validação for pelo `siteverify`.
-- `RECAPTCHA_ENTERPRISE_PROJECT_ID`: ID do projeto Google Cloud quando a validação for pela API Enterprise.
-- `RECAPTCHA_ENTERPRISE_API_KEY`: API key de servidor com acesso ao reCAPTCHA Enterprise, quando usada a API Enterprise.
-- `RECAPTCHA_MIN_SCORE`: score mínimo aceito no reCAPTCHA v3, por padrão `0.5`.
 - `NODE_ENV=production`.
 - `TRUST_PROXY=true` em Render, Railway, Vercel ou proxy HTTPS.
 - `AUTO_MIGRATE=true` pode ser usado na Vercel para aplicar schema e dados iniciais de forma idempotente no primeiro acesso da API.
@@ -111,7 +106,7 @@ Administrador inicial:
 - `ADMIN_EMAIL`
 - `ADMIN_PASSWORD`
 
-No painel do Google reCAPTCHA, autorize os domínios em que o site será aberto, incluindo `localhost` e `127.0.0.1` para teste local e o domínio final de produção.
+O formulário público usa um puzzle CAPTCHA próprio, assinado no backend, sem dependência de chaves externas.
 
 ## Banco de dados
 
@@ -130,7 +125,8 @@ Público:
 - `GET /health`
 - `GET /oficinas`
 - `GET /galeria`
-- `POST /inscricao` com `multipart/form-data`, reCAPTCHA e anexos opcionais em `documentos`
+- `GET /captcha/challenge`
+- `POST /inscricao` com `multipart/form-data`, puzzle CAPTCHA e anexos opcionais em `documentos`
 
 Administrativo:
 
@@ -169,8 +165,8 @@ As rotas administrativas exigem cookie JWT válido. `PUT`, `DELETE` e logout exi
 - XSS: sanitização no backend e renderização segura no frontend com DOM APIs e `textContent`.
 - CSRF: double-submit token assinado para mutações administrativas.
 - Brute force: rate limit específico em login.
-- Spam: rate limit em inscrição, honeypot `website` e Google reCAPTCHA v3 validado no servidor.
-- Verificação humana: o frontend gera o token invisível do reCAPTCHA na ação `inscricao` e o backend confirma `success`, `action` e `score` diretamente com o Google antes de gravar a inscrição. Para chaves Google Cloud reCAPTCHA Enterprise, configure `RECAPTCHA_ENTERPRISE_PROJECT_ID` e `RECAPTCHA_ENTERPRISE_API_KEY`; para integrações legadas, use a `RECAPTCHA_SECRET_KEY`.
+- Spam: rate limit em inscrição, honeypot `website` e puzzle CAPTCHA validado no servidor.
+- Verificação humana: o frontend carrega um desafio visual de encaixe, envia a posição resolvida e o backend valida assinatura, expiração, fingerprint do navegador, tempo mínimo e margem de erro antes de gravar a inscrição.
 - Senhas: bcrypt com custo 12.
 - Sessão ADM: JWT assinado, com expiração, em cookie `httpOnly`, `SameSite=Strict` e `Secure` em produção.
 - Headers: Helmet com CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` e HSTS em produção.
@@ -206,10 +202,6 @@ Variáveis necessárias no painel da Vercel:
 - `PGSSL=true`
 - `JWT_SECRET`
 - `COOKIE_SECRET`
-- `RECAPTCHA_SITE_KEY`
-- `RECAPTCHA_SECRET_KEY`
-- `RECAPTCHA_ENTERPRISE_PROJECT_ID` e `RECAPTCHA_ENTERPRISE_API_KEY` se estiver usando chave Enterprise sem legacy secret key
-- `RECAPTCHA_MIN_SCORE=0.5`
 - `COOKIE_SAME_SITE=strict`
 - `CORS_ORIGIN=https://seu-dominio.vercel.app`
 - `NODE_ENV=production`

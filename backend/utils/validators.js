@@ -15,10 +15,14 @@ const inscriptionSchema = Joi.object({
   oficina: Joi.string().min(2).max(100).required(),
   observacoes: Joi.string().allow("").max(500),
   website: Joi.string().allow("").max(120),
-  "g-recaptcha-response": Joi.string().allow("").max(4096)
+  captchaToken: Joi.string().required().max(2048),
+  captchaX: Joi.number().min(0).max(1000).required(),
+  captchaMoves: Joi.number().integer().min(1).max(5000).required()
 });
 
-const updateInscriptionSchema = inscriptionSchema.fork(["website"], (field) => field.optional()).unknown(false);
+const updateInscriptionSchema = inscriptionSchema
+  .fork(["website", "captchaToken", "captchaX", "captchaMoves"], (field) => field.optional())
+  .unknown(false);
 
 const loginSchema = Joi.object({
   email: Joi.string().email({ tlds: { allow: false } }).max(160).required(),

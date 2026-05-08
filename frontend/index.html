@@ -15,7 +15,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/styles.css">
-    <script src="https://www.google.com/recaptcha/enterprise.js?render=6Lcw9t4sAAAAAPYyOHKlvCUTfbVUjMldHLUnjbND" async defer></script>
   </head>
   <body>
     <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
@@ -192,10 +191,25 @@
                 <span>Observações</span>
                 <textarea name="observacoes" rows="4" maxlength="500"></textarea>
               </label>
-              <div class="recaptcha-wrap full-field">
-                <span>Verificação anti-robô</span>
-                <input type="hidden" name="g-recaptcha-response" data-recaptcha-token>
-                <small>Proteção automática ativa no envio do formulário.</small>
+              <div class="captcha-puzzle full-field" data-captcha>
+                <div class="captcha-heading">
+                  <span>Verificação anti-robô</span>
+                  <button class="captcha-refresh" type="button" aria-label="Gerar novo puzzle" data-captcha-refresh>↻</button>
+                </div>
+                <div class="puzzle-board" aria-hidden="true" data-puzzle-board>
+                  <div class="puzzle-slot" data-puzzle-slot></div>
+                  <div class="puzzle-piece" data-puzzle-piece>
+                    <span></span>
+                  </div>
+                </div>
+                <label class="puzzle-control" for="captcha-slider">
+                  <span>Arraste até encaixar a peça</span>
+                  <input id="captcha-slider" type="range" min="0" max="1000" value="0" step="1" aria-describedby="captcha-status" data-captcha-slider>
+                </label>
+                <input type="hidden" name="captchaToken" data-captcha-token>
+                <input type="hidden" name="captchaX" data-captcha-x>
+                <input type="hidden" name="captchaMoves" data-captcha-moves>
+                <small id="captcha-status" data-captcha-status>Carregando verificação...</small>
               </div>
               <label class="honeypot" aria-hidden="true">
                 <span>Website</span>
@@ -272,8 +286,8 @@
       </div>
     </div>
 
-    <script src="/js/runtime-config.js?v=20260508-3" defer></script>
+    <script src="/js/runtime-config.js?v=20260508-4" defer></script>
     <script src="https://vlibras.gov.br/app/vlibras-plugin.js" defer></script>
-    <script type="module" src="/js/main.js?v=20260508-3"></script>
+    <script type="module" src="/js/main.js?v=20260508-4"></script>
   </body>
 </html>

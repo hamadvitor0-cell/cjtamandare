@@ -12,6 +12,7 @@ const OficinaController = require("../controllers/oficina.controller");
 const GaleriaController = require("../controllers/galeria.controller");
 const AlunoController = require("../controllers/aluno.controller");
 const ChamadaController = require("../controllers/chamada.controller");
+const CaptchaController = require("../controllers/captcha.controller");
 const {
   inscriptionSchema,
   updateInscriptionSchema,
@@ -38,6 +39,7 @@ router.get("/health", (req, res) => {
 });
 
 router.get("/csrf-token", issueCsrfToken);
+router.get("/captcha/challenge", asyncHandler(CaptchaController.challenge));
 
 router.get("/oficinas", asyncHandler(OficinaController.list));
 router.get("/galeria", asyncHandler(GaleriaController.list));
