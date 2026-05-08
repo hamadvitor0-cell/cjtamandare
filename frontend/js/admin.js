@@ -29,6 +29,8 @@ const state = {
   studentOffice: ""
 };
 
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const dayLabels = {
   segunda: "Segunda",
   terca: "Terça",
@@ -134,8 +136,7 @@ async function checkSession() {
     state.admin = data.admin;
     document.querySelector("[data-admin-name]").textContent = `${data.admin.name} · ${data.admin.email}`;
     showAdmin();
-    await loadManagedContent();
-    await refreshAll();
+    await loadAdminData();
   } catch (error) {
     showLogin();
   }
@@ -143,6 +144,11 @@ async function checkSession() {
 
 async function refreshAll() {
   await Promise.all([loadDashboard(), loadInscricoes(), loadAlunos(), loadAttendanceHistory()]);
+}
+
+async function loadAdminData() {
+  await loadManagedContent();
+  await refreshAll();
 }
 
 async function loadDashboard() {
@@ -182,6 +188,7 @@ async function loadAlunos() {
 
 async function loadAttendanceHistory() {
   const officeId = document.querySelector("[data-attendance-office]")?.value || "";
+  if (officeId && !uuidPattern.test(officeId)) return;
   const params = new URLSearchParams();
   if (officeId) params.set("oficinaId", officeId);
   const data = await apiRequest(`/chamadas/historico?${params.toString()}`);
@@ -695,10 +702,14 @@ function setupEvents() {
       document.querySelector("[data-admin-name]").textContent = `${result.admin.name} · ${result.admin.email}`;
       showAdmin();
       try {
-        await refreshAll();
+        await loadAdminData();
       } catch (error) {
+        if (error.status !== 401 && error.status !== 403) {
+          setFeedback(loginFeedback, `Login realizado, mas alguns dados do painel não carregaram: ${error.message}`, "error");
+          return;
+        }
         showLogin();
-        setFeedback(loginFeedback, "Login aceito, mas a sessão não foi mantida. Acesse pelo mesmo domínio da API, por exemplo http://localhost:3000/admin.html.", "error");
+        setFeedback(loginFeedback, "Login aceito, mas a sessão não foi mantida. Acesse pelo mesmo domínio da API e tente novamente.", "error");
       }
     } catch (error) {
       setFeedback(loginFeedback, error.message, "error");
