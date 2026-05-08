@@ -69,7 +69,7 @@ const oficinaSchema = Joi.object({
 const galeriaSchema = Joi.object({
   titulo: Joi.string().min(2).max(120).required(),
   descricao: Joi.string().allow("").max(300),
-  imagemUrl: Joi.string().pattern(safeImageUrlPattern).max(500).required(),
+  imagemUrl: Joi.string().allow("").pattern(safeImageUrlPattern).max(500),
   alt: Joi.string().allow("").max(180),
   ordem: Joi.number().integer().min(0).max(9999),
   ativo: Joi.boolean().truthy("true").falsy("false")

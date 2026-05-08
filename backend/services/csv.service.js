@@ -13,6 +13,8 @@ function inscricoesToCsv(rows) {
     "responsavel",
     "email",
     "oficina",
+    "source",
+    "sourceId",
     "documentosCount",
     "observacoes",
     "created_at",

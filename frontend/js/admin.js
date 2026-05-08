@@ -304,7 +304,7 @@ function renderTable() {
     const row = createElement("tr");
     const cell = createElement("td", {
       text: "Nenhum inscrito encontrado.",
-      attrs: { colspan: "7" }
+      attrs: { colspan: "8" }
     });
     row.append(cell);
     tableBody.append(row);
@@ -317,7 +317,8 @@ function renderTable() {
       createElement("td", { text: item.nome }),
       createElement("td", { text: String(item.idade) }),
       createElement("td", { text: item.telefone }),
-      createElement("td", { text: item.oficina })
+      createElement("td", { text: item.oficina }),
+      createElement("td", { text: item.source === "aluno" ? "Aluno ADM" : "Inscricao online" })
     );
 
     const docsCell = createElement("td");
@@ -347,8 +348,15 @@ function renderTable() {
       text: "Excluir",
       attrs: { type: "button" }
     });
-    edit.addEventListener("click", () => openEdit(item));
-    del.addEventListener("click", () => removeInscricao(item));
+    if (item.source === "aluno") {
+      edit.textContent = "Editar aluno";
+      del.textContent = "Excluir aluno";
+      edit.addEventListener("click", () => openStudentFromEnrollment(item));
+      del.addEventListener("click", () => removeStudentFromEnrollment(item));
+    } else {
+      edit.addEventListener("click", () => openEdit(item));
+      del.addEventListener("click", () => removeInscricao(item));
+    }
     actions.append(edit, del);
     actionsCell.append(actions);
     row.append(actionsCell);
@@ -454,7 +462,27 @@ async function deleteOffice(oficina) {
   if (!window.confirm(`Excluir a oficina ${oficina.nome}? Alunos vinculados ficarão sem oficina.`)) return;
   await secureRequest(`/admin/oficinas/${oficina.id}`, { method: "DELETE" });
   await loadManagedContent();
-  await loadAlunos();
+  await refreshAll();
+}
+
+async function openStudentFromEnrollment(item) {
+  if (!state.alunos.some((aluno) => aluno.id === item.sourceId)) {
+    await loadAlunos();
+  }
+  const aluno = state.alunos.find((record) => record.id === item.sourceId);
+  if (aluno) {
+    editStudent(aluno);
+  } else {
+    showAdminPage("alunos", true);
+  }
+}
+
+async function removeStudentFromEnrollment(item) {
+  const aluno = state.alunos.find((record) => record.id === item.sourceId) || {
+    id: item.sourceId,
+    nome: item.nome
+  };
+  await deleteStudent(aluno);
 }
 
 function renderGalleryList() {
@@ -477,6 +505,7 @@ function renderGalleryList() {
     main.append(
       createElement("strong", { text: image.titulo }),
       createElement("span", { text: image.descricao || image.imagemUrl }),
+      createElement("span", { text: image.hasUploadedFile ? `Arquivo: ${image.originalName || "imagem enviada"}` : "Origem: URL" }),
       createElement("span", { text: image.ativo ? `Ativa · ordem ${image.ordem}` : `Inativa · ordem ${image.ordem}` })
     );
     const actions = createElement("div", { className: "content-actions" });
@@ -496,6 +525,7 @@ function resetGalleryForm() {
   form.elements.id.value = "";
   form.elements.ordem.value = String(state.galeria.length + 1);
   form.elements.ativo.checked = true;
+  if (form.elements.imagemArquivo) form.elements.imagemArquivo.value = "";
   setFeedback(document.querySelector("[data-gallery-feedback]"), "");
 }
 
@@ -510,6 +540,7 @@ function editGallery(image) {
     ordem: image.ordem,
     ativo: image.ativo
   });
+  if (form.elements.imagemArquivo) form.elements.imagemArquivo.value = "";
   showAdminPage("galeria", true);
 }
 
@@ -576,7 +607,7 @@ function editStudent(aluno) {
 async function deleteStudent(aluno) {
   if (!window.confirm(`Excluir o aluno ${aluno.nome}?`)) return;
   await secureRequest(`/alunos/${aluno.id}`, { method: "DELETE" });
-  await loadAlunos();
+  await refreshAll();
 }
 
 function renderAttendanceRows(payload) {
@@ -909,6 +940,7 @@ function setupEvents() {
       setFeedback(feedback, "Oficina salva com sucesso.", "success");
       resetOfficeForm();
       await loadManagedContent();
+      await refreshAll();
     } catch (error) {
       setFeedback(feedback, error.message, "error");
     }
@@ -918,15 +950,24 @@ function setupEvents() {
     event.preventDefault();
     const form = event.currentTarget;
     const feedback = document.querySelector("[data-gallery-feedback]");
-    const data = getFormData(form);
-    data.ativo = activeFromForm(form);
-    data.ordem = Number(data.ordem || 0);
-    const id = data.id;
-    delete data.id;
+    const formData = new FormData(form);
+    const id = formData.get("id");
+    const imageFile = form.elements.imagemArquivo?.files?.[0];
+
+    formData.set("ativo", String(activeFromForm(form)));
+    formData.set("ordem", String(Number(formData.get("ordem") || 0)));
+    formData.delete("id");
+    if (!imageFile) formData.delete("imagemArquivo");
+
+    if (!String(formData.get("imagemUrl") || "").trim() && !imageFile) {
+      setFeedback(feedback, "Informe uma URL ou envie um arquivo de imagem.", "error");
+      return;
+    }
+
     try {
       await secureRequest(id ? `/admin/galeria/${id}` : "/admin/galeria", {
         method: id ? "PUT" : "POST",
-        body: data
+        body: formData
       });
       setFeedback(feedback, "Imagem salva com sucesso.", "success");
       resetGalleryForm();
@@ -952,7 +993,7 @@ function setupEvents() {
       });
       setFeedback(feedback, "Aluno salvo com sucesso.", "success");
       resetStudentForm();
-      await loadAlunos();
+      await refreshAll();
     } catch (error) {
       setFeedback(feedback, error.message, "error");
     }

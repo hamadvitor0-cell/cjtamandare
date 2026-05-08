@@ -9,6 +9,15 @@ function normalizeOfficeIds(payload = {}) {
   return Array.from(new Set(ids.filter(Boolean)));
 }
 
+async function officeNamesForMemory(oficinaIds) {
+  if (!oficinaIds.length) return [];
+  const Oficina = require("./oficina.model");
+  const oficinas = await Oficina.findAll({ includeInactive: true });
+  return oficinaIds
+    .map((oficinaId) => oficinas.find((oficina) => oficina.id === oficinaId)?.nome)
+    .filter(Boolean);
+}
+
 function toPublic(row) {
   const oficinaIds = row.oficina_ids || row.oficinaIds || (row.oficina_id ? [row.oficina_id] : []);
   const oficinas = row.oficinas || (row.oficina_nome ? [row.oficina_nome] : []);
@@ -110,6 +119,7 @@ async function create(payload) {
 
   if (!db.hasDatabase) {
     const now = new Date().toISOString();
+    const oficinas = await officeNamesForMemory(oficinaIds);
     const record = {
       id: crypto.randomUUID(),
       nome: payload.nome,
@@ -119,7 +129,7 @@ async function create(payload) {
       email: payload.email || "",
       oficina_id: oficinaIds[0] || "",
       oficina_ids: oficinaIds,
-      oficinas: [],
+      oficinas,
       status: payload.status || "ativo",
       observacoes: payload.observacoes || "",
       created_at: now,
@@ -164,6 +174,7 @@ async function update(id, payload) {
   if (!db.hasDatabase) {
     const index = memory.findIndex((item) => item.id === id);
     if (index === -1) return null;
+    const oficinas = await officeNamesForMemory(oficinaIds);
     memory[index] = {
       ...memory[index],
       nome: payload.nome,
@@ -173,6 +184,7 @@ async function update(id, payload) {
       email: payload.email || "",
       oficina_id: oficinaIds[0] || "",
       oficina_ids: oficinaIds,
+      oficinas,
       status: payload.status || "ativo",
       observacoes: payload.observacoes || "",
       updated_at: new Date().toISOString()

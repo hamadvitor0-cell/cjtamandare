@@ -24,6 +24,10 @@ CREATE TABLE IF NOT EXISTS galeria (
   alt TEXT CHECK (alt IS NULL OR char_length(alt) <= 180),
   ordem INTEGER NOT NULL DEFAULT 0,
   ativo BOOLEAN NOT NULL DEFAULT TRUE,
+  original_name TEXT CHECK (original_name IS NULL OR char_length(original_name) <= 240),
+  mime_type TEXT CHECK (mime_type IS NULL OR mime_type IN ('image/jpeg', 'image/png', 'image/webp')),
+  size_bytes INTEGER CHECK (size_bytes IS NULL OR (size_bytes > 0 AND size_bytes <= 5242880)),
+  file_content BYTEA,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -56,6 +60,10 @@ CREATE TABLE IF NOT EXISTS alunos (
 
 ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS dias_semana TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS periodo TEXT NOT NULL DEFAULT 'a definir';
+ALTER TABLE galeria ADD COLUMN IF NOT EXISTS original_name TEXT;
+ALTER TABLE galeria ADD COLUMN IF NOT EXISTS mime_type TEXT;
+ALTER TABLE galeria ADD COLUMN IF NOT EXISTS size_bytes INTEGER;
+ALTER TABLE galeria ADD COLUMN IF NOT EXISTS file_content BYTEA;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS oficina_id UUID REFERENCES oficinas(id) ON DELETE SET NULL;
 ALTER TABLE inscricao_documentos ADD COLUMN IF NOT EXISTS file_content BYTEA;
 

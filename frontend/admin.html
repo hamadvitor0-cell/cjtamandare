@@ -134,6 +134,7 @@
                     <th>Idade</th>
                     <th>Telefone</th>
                     <th>Oficina</th>
+                    <th>Origem</th>
                     <th>Docs</th>
                     <th>Data</th>
                     <th>Ações</th>
@@ -222,12 +223,12 @@
             <div class="panel-title table-title">
               <div>
                 <h2>Gerenciar galeria</h2>
-                <p>Adicione imagens por URL, edite legendas e remova itens do site.</p>
+                <p>Adicione imagens por arquivo ou URL, edite legendas e remova itens do site.</p>
               </div>
               <button class="button button-secondary" type="button" data-reset-gallery-form>Nova imagem</button>
             </div>
 
-            <form class="manager-form" data-gallery-form novalidate>
+            <form class="manager-form" enctype="multipart/form-data" data-gallery-form novalidate>
               <input type="hidden" name="id">
               <div class="form-grid">
                 <label>
@@ -236,7 +237,13 @@
                 </label>
                 <label>
                   <span>URL da imagem</span>
-                  <input name="imagemUrl" type="text" required maxlength="500" placeholder="/img/oficinas.png">
+                  <input name="imagemUrl" type="text" maxlength="500" placeholder="https://... ou /img/oficinas.png">
+                  <small>Use uma URL direta de imagem ou envie um arquivo abaixo.</small>
+                </label>
+                <label>
+                  <span>Arquivo da imagem</span>
+                  <input name="imagemArquivo" type="file" accept=".jpg,.jpeg,.png,.webp">
+                  <small>JPG, PNG ou WEBP atÃ© 5 MB. Se enviado, substitui a URL.</small>
                 </label>
                 <label>
                   <span>Ordem</span>

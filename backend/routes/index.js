@@ -43,6 +43,11 @@ router.get("/captcha/challenge", asyncHandler(CaptchaController.challenge));
 
 router.get("/oficinas", asyncHandler(OficinaController.list));
 router.get("/galeria", asyncHandler(GaleriaController.list));
+router.get(
+  "/galeria/:id/imagem",
+  validate(idParamSchema, "params"),
+  asyncHandler(GaleriaController.image)
+);
 
 router.post(
   "/inscricao",
@@ -148,6 +153,7 @@ router.post(
   "/admin/galeria",
   ...adminOnly,
   requireCsrf,
+  upload.imageUpload.single("imagemArquivo"),
   validate(galeriaSchema),
   asyncHandler(GaleriaController.create)
 );
@@ -163,6 +169,7 @@ router.put(
   "/admin/galeria/:id",
   ...adminOnly,
   requireCsrf,
+  upload.imageUpload.single("imagemArquivo"),
   validate(idParamSchema, "params"),
   validate(galeriaSchema),
   asyncHandler(GaleriaController.update)
