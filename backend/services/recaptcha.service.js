@@ -1,7 +1,7 @@
 const config = require("../config/env");
 const logger = require("../utils/logger");
 
-async function verify(token, remoteIp) {
+async function verify(token, remoteIp, expectedAction = "inscricao") {
   if (!config.recaptchaSecretKey) {
     if (config.isProduction) {
       const error = new Error("reCAPTCHA não configurado.");
@@ -42,6 +42,27 @@ async function verify(token, remoteIp) {
       errors: result["error-codes"] || []
     });
     const error = new Error("Não foi possível validar o reCAPTCHA. Tente novamente.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (result.action && result.action !== expectedAction) {
+    logger.warn("Ação inesperada no reCAPTCHA", {
+      expectedAction,
+      action: result.action
+    });
+    const error = new Error("Não foi possível validar a verificação anti-robô. Tente novamente.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (typeof result.score === "number" && result.score < config.recaptchaMinScore) {
+    logger.warn("Score baixo no reCAPTCHA", {
+      score: result.score,
+      threshold: config.recaptchaMinScore,
+      action: result.action
+    });
+    const error = new Error("Não foi possível confirmar que o envio é humano. Tente novamente.");
     error.statusCode = 403;
     throw error;
   }

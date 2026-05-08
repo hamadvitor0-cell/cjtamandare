@@ -43,6 +43,11 @@ if (!["strict", "lax", "none"].includes(cookieSameSite)) {
   throw new Error("COOKIE_SAME_SITE deve ser strict, lax ou none.");
 }
 
+const recaptchaMinScore = Number(process.env.RECAPTCHA_MIN_SCORE || 0.5);
+if (!Number.isFinite(recaptchaMinScore) || recaptchaMinScore < 0 || recaptchaMinScore > 1) {
+  throw new Error("RECAPTCHA_MIN_SCORE deve ser um número entre 0 e 1.");
+}
+
 const config = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT || 3000),
@@ -59,6 +64,7 @@ const config = {
   autoMigrate: bool(process.env.AUTO_MIGRATE, false),
   recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY || "",
   recaptchaSecretKey: process.env.RECAPTCHA_SECRET_KEY || "",
+  recaptchaMinScore,
   adminName: process.env.ADMIN_NAME || "Administrador",
   adminEmail: process.env.ADMIN_EMAIL || "",
   adminPassword: process.env.ADMIN_PASSWORD || ""

@@ -11,7 +11,7 @@ async function create(req, res) {
     });
   }
 
-  await Recaptcha.verify(payload["g-recaptcha-response"], req.ip);
+  await Recaptcha.verify(payload["g-recaptcha-response"], req.ip, "inscricao");
 
   delete payload.website;
   delete payload["g-recaptcha-response"];

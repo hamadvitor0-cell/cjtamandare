@@ -21,6 +21,7 @@ const state = {
 let revealObserver;
 
 const allowedDocumentTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
+const recaptchaSiteKey = "6Lcw9t4sAAAAAPYyOHKlvCUTfbVUjMldHLUnjbND";
 
 const dayNames = {
   segunda: "Segunda",
@@ -363,12 +364,27 @@ function validateSignup(data, files = []) {
   if (!Number.isInteger(idade) || idade < 10 || idade > 99) return "Informe uma idade válida.";
   if (!/^[0-9()+\-\s]{10,20}$/.test(data.telefone || "")) return "Informe um telefone válido.";
   if (!data.oficina) return "Selecione uma oficina.";
-  if (!data["g-recaptcha-response"]) return "Confirme o reCAPTCHA antes de enviar.";
   if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return "Informe um e-mail válido.";
   if (files.length > 8) return "Envie no máximo 8 documentos.";
   const invalidFile = files.find((file) => !allowedDocumentTypes.has(file.type) || file.size > 5 * 1024 * 1024);
   if (invalidFile) return "Os documentos devem ser PDF, JPG, PNG ou WEBP com até 5 MB por arquivo.";
   return "";
+}
+
+function getRecaptchaToken() {
+  return new Promise((resolve, reject) => {
+    if (!window.grecaptcha?.ready || !window.grecaptcha?.execute) {
+      reject(new Error("reCAPTCHA indisponível. Recarregue a página e tente novamente."));
+      return;
+    }
+
+    window.grecaptcha.ready(() => {
+      window.grecaptcha
+        .execute(recaptchaSiteKey, { action: "inscricao" })
+        .then(resolve)
+        .catch(() => reject(new Error("Não foi possível iniciar a verificação anti-robô.")));
+    });
+  });
 }
 
 function setupSignupForm() {
@@ -394,18 +410,18 @@ function setupSignupForm() {
     submit.textContent = "Enviando...";
 
     try {
+      const token = await getRecaptchaToken();
+      formData.set("g-recaptcha-response", token);
       await apiRequest("/inscricao", {
         method: "POST",
         body: formData
       });
       form.reset();
-      window.grecaptcha?.reset();
       setFeedback(feedback, "Inscrição enviada com sucesso. A equipe entrará em contato.", "success");
       showToast("Inscrição enviada com sucesso.", "success");
     } catch (error) {
       setFeedback(feedback, error.message, "error");
       showToast(error.message, "error");
-      window.grecaptcha?.reset();
     } finally {
       submit.disabled = false;
       submit.textContent = "Enviar inscrição";
