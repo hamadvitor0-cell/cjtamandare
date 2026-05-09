@@ -3,9 +3,19 @@ const config = require("../config/env");
 
 let pool = null;
 
+function connectionStringWithoutSslMode(connectionString) {
+  try {
+    const parsedUrl = new URL(connectionString);
+    parsedUrl.searchParams.delete("sslmode");
+    return parsedUrl.toString();
+  } catch (error) {
+    return connectionString;
+  }
+}
+
 if (config.hasDatabase) {
   pool = new Pool({
-    connectionString: config.databaseUrl,
+    connectionString: connectionStringWithoutSslMode(config.databaseUrl),
     ssl: config.pgssl === "require" ? { rejectUnauthorized: false } : false,
     max: 10,
     idleTimeoutMillis: 30000,

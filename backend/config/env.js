@@ -18,7 +18,12 @@ function parsePgSsl(value, databaseUrl) {
   if (!databaseUrl) return "disable";
 
   try {
-    const host = new URL(databaseUrl).hostname;
+    const parsedUrl = new URL(databaseUrl);
+    const sslMode = parsedUrl.searchParams.get("sslmode");
+    if (sslMode === "disable") return "disable";
+    if (sslMode) return "require";
+
+    const host = parsedUrl.hostname;
     const localHosts = new Set(["localhost", "127.0.0.1", "::1"]);
     return localHosts.has(host) ? "disable" : "require";
   } catch (error) {
