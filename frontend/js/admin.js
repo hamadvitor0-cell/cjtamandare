@@ -1,5 +1,5 @@
 import { workshops as fallbackWorkshops } from "./data.js";
-import { apiRequest, secureRequest, apiUrl } from "./api.js";
+import { apiRequest, secureRequest, apiUrl } from "./api.js?v=20260509-2";
 import {
   createElement,
   debounce,

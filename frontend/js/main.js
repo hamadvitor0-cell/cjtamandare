@@ -1,5 +1,5 @@
 import { workshops as fallbackWorkshops, categories as fallbackCategories, categoryColors, agenda, galleryItems as fallbackGalleryItems } from "./data.js";
-import { apiRequest } from "./api.js";
+import { apiRequest } from "./api.js?v=20260509-2";
 import {
   createElement,
   debounce,
