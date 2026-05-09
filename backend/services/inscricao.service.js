@@ -1,5 +1,7 @@
 const Inscricao = require("../models/inscricao.model");
 const Aluno = require("../models/aluno.model");
+const Oficina = require("../models/oficina.model");
+const db = require("../database/pool");
 
 function asTimestamp(value) {
   return value ? new Date(value).getTime() : 0;
@@ -197,8 +199,45 @@ function uniquePersonRows(rows) {
   });
 }
 
+async function syncCreatedInscricaoToAluno(inscricao) {
+  if (!inscricao?.cpf) return;
+
+  const confirmadas = inscricao.confirmadas?.length
+    ? inscricao.confirmadas
+    : (inscricao.oficinas || [inscricao.oficina].filter(Boolean))
+      .filter((oficina) => !(inscricao.listaEspera || []).includes(oficina));
+  if (!confirmadas.length) return;
+
+  if (db.hasDatabase) {
+    await Aluno.syncFromInscricoes({ cpf: inscricao.cpf });
+    return;
+  }
+
+  const oficinas = await Oficina.findAll({ includeInactive: true });
+  const oficinaIds = oficinas
+    .filter((oficina) => confirmadas.includes(oficina.nome))
+    .map((oficina) => oficina.id);
+  if (!oficinaIds.length) return;
+
+  await Aluno.create({
+    nome: inscricao.nome,
+    cpf: inscricao.cpf,
+    idade: inscricao.idade || "",
+    telefone: inscricao.telefone || "",
+    responsavel: inscricao.responsavel || "",
+    email: inscricao.email || "",
+    oficinaIds,
+    oficinaId: oficinaIds[0],
+    status: "ativo",
+    documentosPendentes: Number(inscricao.documentosCount || 0) === 0,
+    observacoes: inscricao.observacoes || ""
+  });
+}
+
 async function create(data, documentos = []) {
-  return Inscricao.create(data, documentos);
+  const inscricao = await Inscricao.create(data, documentos);
+  await syncCreatedInscricaoToAluno(inscricao);
+  return inscricao;
 }
 
 async function list(filters) {
