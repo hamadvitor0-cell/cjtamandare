@@ -78,6 +78,7 @@ const pageTitle = document.querySelector("[data-page-title]");
 
 const pageTitles = {
   dashboard: "Dashboard",
+  automacao: "Automacao",
   inscritos: "Inscritos",
   oficinas: "Oficinas",
   galeria: "Galeria",
@@ -234,6 +235,7 @@ async function loadInscricoes() {
   const data = await apiRequest(`/inscricoes?${params.toString()}`);
   state.inscricoes = data.inscricoes;
   renderTable();
+  renderAutomation();
 }
 
 async function loadManagedContent() {
@@ -255,6 +257,7 @@ async function loadAlunos() {
   const data = await apiRequest(`/alunos?${params.toString()}`);
   state.alunos = data.alunos || [];
   renderStudentList();
+  renderAutomation();
 }
 
 async function loadAttendanceHistory() {
@@ -310,6 +313,146 @@ function renderDashboard(dashboard) {
       recent.append(node);
     });
   }
+}
+
+function firstName(person) {
+  return String(person?.nome || "aluno").trim().split(/\s+/)[0] || "aluno";
+}
+
+function waitlistOficinas(person) {
+  return Array.from(new Set([
+    ...(Array.isArray(person.listaEspera) ? person.listaEspera : []),
+    ...(Array.isArray(person.oficinaDetalhes) ? person.oficinaDetalhes : [])
+      .filter((detail) => detail.status === "lista_espera")
+      .map((detail) => detail.oficina)
+  ].filter(Boolean)));
+}
+
+function hasPhone(person) {
+  return String(person.telefone || "").replace(/\D/g, "").length >= 10;
+}
+
+function automationMessages(person) {
+  const name = firstName(person);
+  const oficinas = (person.oficinas || [person.oficina].filter(Boolean)).join(", ") || "suas oficinas";
+  const lista = waitlistOficinas(person).join(", ");
+  const faltas = Number(person.faltasUltimos30Dias || 0);
+
+  return {
+    documentos: `Ola, ${name}! Para concluir sua matricula no Centro da Juventude, precisamos regularizar documentos pendentes do cadastro. Em caso de duvida, responda esta mensagem.`,
+    faltas: `Ola, ${name}! Identificamos ${faltas} falta(s) recente(s) em ${oficinas}. Procure a equipe para justificar ou regularizar a frequencia.`,
+    listaEspera: `Ola, ${name}! Voce esta em lista de espera para ${lista || oficinas}. A equipe avisara quando houver vaga disponivel.`,
+    contato: `Ola, ${name}! Estamos entrando em contato pelo Centro da Juventude sobre seu cadastro em ${oficinas}.`
+  };
+}
+
+function actionPeople() {
+  return state.inscricoes || [];
+}
+
+function automationQueues() {
+  const people = actionPeople();
+  return [
+    {
+      key: "documentos",
+      title: "Documentos pendentes",
+      description: "Cadastros sem documentos anexados ou com pendencia marcada.",
+      people: people.filter((person) => Boolean(person.documentosPendentes || Number(person.documentosCount || 0) === 0)),
+      message: (person) => automationMessages(person).documentos
+    },
+    {
+      key: "faltas",
+      title: "Alerta de faltas",
+      description: "Alunos com mais de duas faltas nos ultimos 30 dias.",
+      people: people.filter((person) => Number(person.faltasUltimos30Dias || 0) > 2),
+      message: (person) => automationMessages(person).faltas
+    },
+    {
+      key: "listaEspera",
+      title: "Lista de espera",
+      description: "Inscricoes aguardando vaga em uma ou mais oficinas.",
+      people: people.filter((person) => waitlistOficinas(person).length > 0),
+      message: (person) => automationMessages(person).listaEspera
+    },
+    {
+      key: "semTelefone",
+      title: "Sem telefone valido",
+      description: "Cadastros que precisam de revisao antes do contato por WhatsApp.",
+      people: people.filter((person) => !hasPhone(person)),
+      message: (person) => automationMessages(person).contato
+    }
+  ];
+}
+
+function automationDetail(person, queueKey) {
+  if (queueKey === "faltas") return `${person.faltasUltimos30Dias || 0} faltas nos ultimos 30 dias`;
+  if (queueKey === "listaEspera") return `Lista: ${waitlistOficinas(person).join(", ")}`;
+  if (queueKey === "documentos") return Number(person.documentosCount || 0) ? "Pendencia marcada na ficha" : "Sem documento anexado";
+  return "Revisar telefone antes do contato";
+}
+
+function renderAutomationCard(person, queue) {
+  const card = createElement("article", { className: `automation-card${hasPhone(person) ? "" : " is-muted"}` });
+  const main = createElement("div", { className: "automation-card-main" });
+  main.append(
+    createElement("strong", { text: person.nome || "Sem nome" }),
+    createElement("span", { text: person.oficina || (person.oficinas || []).join(", ") || "Sem oficina" }),
+    createElement("span", { text: automationDetail(person, queue.key) })
+  );
+
+  const actions = createElement("div", { className: "automation-actions" });
+  const ficha = createElement("button", { className: "icon-action", text: "Ficha", attrs: { type: "button" } });
+  ficha.addEventListener("click", () => openStudentProfile(person));
+  const resumo = createElement("button", { className: "icon-action", text: "IA", attrs: { type: "button" } });
+  resumo.addEventListener("click", () => openAiAssist(person));
+  const message = queue.message(person);
+  const url = whatsappUrl(person.telefone, message);
+  const whats = createElement(url ? "a" : "button", {
+    className: "icon-action",
+    text: url ? "Whats" : "Sem tel.",
+    attrs: url
+      ? { href: url, target: "_blank", rel: "noopener noreferrer" }
+      : { type: "button", disabled: "disabled" }
+  });
+  actions.append(ficha, resumo, whats);
+  card.append(main, actions);
+  return card;
+}
+
+function renderAutomation() {
+  const summary = document.querySelector("[data-automation-summary]");
+  const board = document.querySelector("[data-automation-board]");
+  if (!summary || !board) return;
+
+  const queues = automationQueues();
+  summary.replaceChildren();
+  board.replaceChildren();
+  queues.forEach((queue) => {
+    const metric = createElement("article", { className: "automation-metric" });
+    metric.append(
+      createElement("span", { text: queue.title }),
+      createElement("strong", { text: String(queue.people.length) })
+    );
+    summary.append(metric);
+
+    const column = createElement("section", { className: "automation-column" });
+    column.append(
+      createElement("h3", { text: queue.title }),
+      createElement("p", { text: queue.description })
+    );
+
+    const list = createElement("div", { className: "automation-list" });
+    if (!queue.people.length) {
+      list.append(createElement("p", { className: "form-feedback", text: "Nenhum cadastro nesta fila." }));
+    } else {
+      queue.people.slice(0, 12).forEach((person) => list.append(renderAutomationCard(person, queue)));
+      if (queue.people.length > 12) {
+        list.append(createElement("p", { className: "form-feedback", text: `Mostrando 12 de ${queue.people.length}. Use a aba Inscritos para filtrar.` }));
+      }
+    }
+    column.append(list);
+    board.append(column);
+  });
 }
 
 function renderTable() {
@@ -1294,6 +1437,7 @@ function setupEvents() {
   });
 
   document.querySelector("[data-refresh]")?.addEventListener("click", refreshAll);
+  document.querySelector("[data-render-automation]")?.addEventListener("click", renderAutomation);
 
   document.querySelector("[data-reset-office-form]")?.addEventListener("click", resetOfficeForm);
   document.querySelector("[data-reset-gallery-form]")?.addEventListener("click", resetGalleryForm);

@@ -238,6 +238,107 @@
   background: linear-gradient(90deg, var(--color-primary), var(--color-secondary), var(--color-accent));
 }
 
+.automation-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.automation-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.automation-metric {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-soft);
+  padding: 14px;
+}
+
+.automation-metric span,
+.automation-card span,
+.automation-column p {
+  color: var(--color-muted);
+}
+
+.automation-metric span,
+.automation-card span {
+  display: block;
+  font-weight: 800;
+}
+
+.automation-metric strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--color-primary);
+  font-family: var(--font-title);
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.automation-board {
+  display: grid;
+  gap: 14px;
+}
+
+.automation-column {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-soft);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.automation-column h3 {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 1rem;
+}
+
+.automation-column p {
+  margin: 0;
+  font-weight: 700;
+}
+
+.automation-list {
+  display: grid;
+  gap: 10px;
+}
+
+.automation-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.automation-card.is-muted {
+  border-style: dashed;
+}
+
+.automation-card-main strong {
+  color: var(--color-ink);
+}
+
+.automation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.automation-actions .icon-action {
+  min-height: 38px;
+  min-width: 38px;
+  padding: 7px 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+}
+
 .recent-list {
   display: grid;
   gap: 10px;
@@ -783,12 +884,15 @@ td {
 :root[data-theme="dark"] .content-item,
 :root[data-theme="dark"] .attendance-row,
 :root[data-theme="dark"] .recent-item,
+:root[data-theme="dark"] .automation-card,
 :root[data-theme="dark"] .edit-dialog,
 :root[data-theme="dark"] .manual-card {
   background: #0c1728;
 }
 
 :root[data-theme="dark"] .bar-track,
+:root[data-theme="dark"] .automation-column,
+:root[data-theme="dark"] .automation-metric,
 :root[data-theme="dark"] .day-picker label,
 :root[data-theme="dark"] .content-thumb,
 :root[data-theme="dark"] .profile-field,
@@ -806,6 +910,14 @@ td {
 @media (min-width: 720px) {
   .metric-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .automation-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .automation-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .dashboard-grid {
@@ -895,5 +1007,9 @@ td {
 
   .admin-main {
     padding: 36px;
+  }
+
+  .automation-board {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }

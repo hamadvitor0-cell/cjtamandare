@@ -1025,6 +1025,23 @@ textarea:focus {
   color: #7a3b00;
 }
 
+.ai-chat-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.ai-chat-prompts button {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-soft);
+  color: var(--color-primary);
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
 .ai-chat-form {
   display: grid;
   grid-template-columns: 1fr auto;

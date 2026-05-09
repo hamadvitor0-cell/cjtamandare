@@ -826,6 +826,7 @@ function setupAiChat() {
   const panel = document.querySelector("[data-ai-panel]");
   const close = document.querySelector("[data-ai-close]");
   const form = document.querySelector("[data-ai-form]");
+  const prompts = document.querySelector("[data-ai-prompts]");
   if (!toggle || !panel || !form) return;
 
   function openPanel(open) {
@@ -840,11 +841,8 @@ function setupAiChat() {
   toggle.addEventListener("click", () => openPanel(panel.hidden));
   close?.addEventListener("click", () => openPanel(false));
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  async function sendAiMessage(text) {
     const input = form.elements.message;
-    const text = String(input?.value || "").trim();
-    if (!text) return;
     input.value = "";
     pushAiMessage("user", text);
     pushAiMessage("assistant", "Consultando...");
@@ -867,6 +865,21 @@ function setupAiChat() {
       state.aiMessages.pop();
       pushAiMessage("assistant", error.message);
     }
+  }
+
+  prompts?.querySelectorAll("[data-ai-prompt]").forEach((button) => {
+    button.addEventListener("click", () => {
+      openPanel(true);
+      sendAiMessage(button.dataset.aiPrompt || button.textContent || "");
+    });
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const input = form.elements.message;
+    const text = String(input?.value || "").trim();
+    if (!text) return;
+    await sendAiMessage(text);
   });
 }
 
