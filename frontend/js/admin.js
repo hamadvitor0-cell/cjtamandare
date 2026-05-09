@@ -382,20 +382,20 @@ function renderTable() {
     actions.append(ficha, edit);
 
     const isGrouped = item.source === "pessoa" && (item.sources || []).length > 1;
-    if (!isGrouped) {
-      const del = createElement("button", {
-        className: "icon-action danger",
-        text: "Excluir",
-        attrs: { type: "button" }
-      });
-      if (item.source === "aluno" || item.primarySource === "aluno") {
-        del.textContent = "Excluir aluno";
-        del.addEventListener("click", () => removeStudentFromEnrollment(item));
-      } else {
-        del.addEventListener("click", () => removeInscricao({ ...item, id: item.sourceId || item.id }));
-      }
-      actions.append(del);
+    const del = createElement("button", {
+      className: "icon-action danger",
+      text: "Excluir",
+      attrs: { type: "button" }
+    });
+    if (isGrouped) {
+      del.addEventListener("click", () => deletePersonRecords(item));
+    } else if (item.source === "aluno" || item.primarySource === "aluno") {
+      del.textContent = "Excluir aluno";
+      del.addEventListener("click", () => removeStudentFromEnrollment(item));
+    } else {
+      del.addEventListener("click", () => removeInscricao({ ...item, id: item.sourceId || item.id }));
     }
+    actions.append(del);
     actionsCell.append(actions);
     row.append(actionsCell);
     tableBody.append(row);
@@ -809,6 +809,42 @@ async function removeStudentFromEnrollment(item) {
     nome: item.nome
   };
   await deleteStudent(aluno);
+}
+
+function linkedDeleteSources(person) {
+  const sources = person.sources?.length
+    ? person.sources
+    : [{ source: person.primarySource || person.source, sourceId: person.primarySourceId || person.sourceId || person.id }];
+  const seen = new Set();
+  return sources
+    .map((source) => ({
+      source: source.source,
+      sourceId: source.sourceId || source.id
+    }))
+    .filter((source) => {
+      if (!source.source || !source.sourceId) return false;
+      const key = `${source.source}:${source.sourceId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+async function deletePersonRecords(person) {
+  const sources = linkedDeleteSources(person);
+  if (!sources.length) return;
+  const confirmed = window.confirm(`Excluir todos os registros vinculados de ${person.nome}?`);
+  if (!confirmed) return;
+
+  for (const source of sources) {
+    if (source.source === "aluno") {
+      await secureRequest(`/alunos/${source.sourceId}`, { method: "DELETE" });
+    } else if (source.source === "inscricao") {
+      await secureRequest(`/inscricoes/${source.sourceId}`, { method: "DELETE" });
+    }
+  }
+
+  await refreshAll();
 }
 
 function renderGalleryList() {
