@@ -7,6 +7,7 @@ const Admin = require("../models/admin.model");
 const { defaultOficinas } = require("../services/oficina.service");
 
 let setupPromise = null;
+const setupLockId = 20260509;
 
 function initials(nome) {
   return nome
@@ -104,10 +105,24 @@ async function runSetup() {
   await seedAdmin();
 }
 
+async function runSetupWithLock() {
+  const client = await db.pool.connect();
+  try {
+    await client.query("SELECT pg_advisory_lock($1)", [setupLockId]);
+    await runSetup();
+  } finally {
+    try {
+      await client.query("SELECT pg_advisory_unlock($1)", [setupLockId]);
+    } finally {
+      client.release();
+    }
+  }
+}
+
 function ensureDatabase() {
   if (!config.autoMigrate || !db.hasDatabase) return Promise.resolve();
   if (!setupPromise) {
-    setupPromise = runSetup().catch((error) => {
+    setupPromise = runSetupWithLock().catch((error) => {
       setupPromise = null;
       throw error;
     });
