@@ -8,7 +8,7 @@ export function apiUrl(path) {
 export async function apiRequest(path, options = {}) {
   const headers = new Headers(options.headers || {});
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), options.timeout || 10000);
+  const timeout = window.setTimeout(() => controller.abort(), options.timeout || 20000);
   const requestOptions = {
     credentials: "include",
     ...options,
@@ -27,7 +27,7 @@ export async function apiRequest(path, options = {}) {
     response = await fetch(apiUrl(path), requestOptions);
   } catch (error) {
     if (error.name === "AbortError") {
-      throw new Error("A API demorou demais para responder. Verifique o banco de dados e reinicie o servidor.");
+      throw new Error("A API demorou demais para responder. Atualize a pagina e tente novamente em alguns segundos.");
     }
     throw new Error("Não foi possível conectar à API. Acesse pelo servidor Express, por exemplo http://localhost:3000/admin.html, e confirme se npm run dev está rodando.");
   } finally {

@@ -181,6 +181,24 @@ function extractJson(text) {
   }
 }
 
+function aiTimeout() {
+  const value = Number(config.aiRequestTimeoutMs || 6500);
+  return Number.isFinite(value) && value > 1000 ? value : 6500;
+}
+
+function withAiTimeout(work) {
+  const timeoutMs = aiTimeout();
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error("AI request timeout")), timeoutMs);
+  });
+
+  return Promise.race([
+    Promise.resolve().then(work),
+    timeout
+  ]).finally(() => clearTimeout(timer));
+}
+
 async function createAgent(tools = {}) {
   const { ToolLoopAgent, stepCountIs } = await import("ai");
   return new ToolLoopAgent({
@@ -203,28 +221,30 @@ async function chat({ messages, cpf }) {
   }
 
   try {
-    const { tool } = await import("ai");
-    const { z } = await import("zod");
-    const agent = await createAgent({
-      listarOficinas: tool({
-        description: "Lista oficinas publicas, horarios e situacao de vagas.",
-        inputSchema: z.object({
-          busca: z.string().optional().describe("Nome, categoria ou termo de busca opcional.")
+    const result = await withAiTimeout(async () => {
+      const { tool } = await import("ai");
+      const { z } = await import("zod");
+      const agent = await createAgent({
+        listarOficinas: tool({
+          description: "Lista oficinas publicas, horarios e situacao de vagas.",
+          inputSchema: z.object({
+            busca: z.string().optional().describe("Nome, categoria ou termo de busca opcional.")
+          }),
+          execute: async ({ busca }) => workshopSummaries(busca)
         }),
-        execute: async ({ busca }) => workshopSummaries(busca)
-      }),
-      consultarStatusCpf: tool({
-        description: "Consulta status publico e minimo de uma inscricao por CPF.",
-        inputSchema: z.object({
-          cpf: z.string().describe("CPF com ou sem mascara.")
-        }),
-        execute: async ({ cpf: inputCpf }) => InscricaoService.publicStatusByCpf(inputCpf)
-      })
-    });
-    const result = await agent.generate({
-      messages: normalizeMessages(messages),
-      timeout: 15000,
-      maxOutputTokens: 700
+        consultarStatusCpf: tool({
+          description: "Consulta status publico e minimo de uma inscricao por CPF.",
+          inputSchema: z.object({
+            cpf: z.string().describe("CPF com ou sem mascara.")
+          }),
+          execute: async ({ cpf: inputCpf }) => InscricaoService.publicStatusByCpf(inputCpf)
+        })
+      });
+      return agent.generate({
+        messages: normalizeMessages(messages),
+        timeout: aiTimeout(),
+        maxOutputTokens: 700
+      });
     });
 
     return {
@@ -256,17 +276,19 @@ async function adminStudentAssist({ student }) {
   }
 
   try {
-    const agent = await createAgent();
-    const result = await agent.generate({
-      prompt: [
-        "Voce esta ajudando um administrador do Centro da Juventude.",
-        "Com base nos dados abaixo, gere um resumo operacional curto, alertas e mensagens prontas para WhatsApp.",
-        "Nao invente informacoes. Nao diga que enviou mensagem. Retorne somente JSON valido no formato:",
-        '{"summary":"texto","alerts":["texto"],"messages":{"confirmacao":"texto","documentos":"texto","faltas":"texto","listaEspera":"texto"}}',
-        `Dados: ${JSON.stringify({ student, base }).slice(0, 9000)}`
-      ].join("\n"),
-      timeout: 15000,
-      maxOutputTokens: 900
+    const result = await withAiTimeout(async () => {
+      const agent = await createAgent();
+      return agent.generate({
+        prompt: [
+          "Voce esta ajudando um administrador do Centro da Juventude.",
+          "Com base nos dados abaixo, gere um resumo operacional curto, alertas e mensagens prontas para WhatsApp.",
+          "Nao invente informacoes. Nao diga que enviou mensagem. Retorne somente JSON valido no formato:",
+          '{"summary":"texto","alerts":["texto"],"messages":{"confirmacao":"texto","documentos":"texto","faltas":"texto","listaEspera":"texto"}}',
+          `Dados: ${JSON.stringify({ student, base }).slice(0, 9000)}`
+        ].join("\n"),
+        timeout: aiTimeout(),
+        maxOutputTokens: 900
+      });
     });
     const parsed = extractJson(result.text);
 

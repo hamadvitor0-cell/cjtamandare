@@ -900,7 +900,7 @@ async function openAiAssist(person) {
   try {
     const result = await secureRequest("/ai/admin/student-assist", {
       method: "POST",
-      timeout: 22000,
+      timeout: 30000,
       body: {
         mode: "full",
         student: person
@@ -927,7 +927,7 @@ async function generateAdminAiSummary() {
   try {
     const result = await secureRequest("/ai/admin/student-assist", {
       method: "POST",
-      timeout: 22000,
+      timeout: 30000,
       body: {
         mode: "full",
         student: person
