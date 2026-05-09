@@ -405,9 +405,173 @@ async function remove(id) {
   return result.rowCount > 0;
 }
 
+async function syncFromInscricoes(filters = {}) {
+  const oficinaId = String(filters.oficinaId || "");
+  const cpf = normalizeCpf(filters.cpf || "");
+
+  if (!db.hasDatabase) {
+    return { alunosCriados: 0, vinculosCriados: 0, fichasAtualizadas: 0 };
+  }
+
+  const params = ["lista_espera"];
+  const where = ["NULLIF(REGEXP_REPLACE(COALESCE(i.cpf, ''), '\\D', '', 'g'), '') IS NOT NULL"];
+
+  if (oficinaId) {
+    params.push(oficinaId);
+    where.push(`o.id = $${params.length}`);
+  }
+
+  if (cpf) {
+    params.push(cpf);
+    where.push(`REGEXP_REPLACE(COALESCE(i.cpf, ''), '\\D', '', 'g') = $${params.length}`);
+  }
+
+  const client = await db.pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await client.query(
+      `WITH inscricao_oficinas AS (
+         SELECT DISTINCT
+                i.id AS inscricao_id,
+                i.nome,
+                REGEXP_REPLACE(COALESCE(i.cpf, ''), '\\D', '', 'g') AS cpf,
+                i.idade,
+                i.telefone,
+                i.responsavel,
+                i.email,
+                i.observacoes,
+                i.created_at,
+                o.id AS oficina_id,
+                o.nome AS oficina_nome,
+                COALESCE((
+                  SELECT COUNT(*)::int
+                  FROM inscricao_documentos documentos
+                  WHERE documentos.inscricao_id = i.id
+                ), 0) AS documentos_count
+         FROM inscricoes i
+         CROSS JOIN LATERAL unnest(
+           CASE
+             WHEN cardinality(COALESCE(i.oficinas, ARRAY[]::text[])) > 0 THEN i.oficinas
+             ELSE ARRAY[i.oficina]
+           END
+         ) AS oficina_nome(nome)
+         INNER JOIN oficinas o ON o.nome = oficina_nome.nome
+         WHERE ${where.join(" AND ")}
+           AND NOT EXISTS (
+             SELECT 1
+             FROM jsonb_array_elements(COALESCE(i.oficina_detalhes, '[]'::jsonb)) AS detalhe
+             WHERE detalhe->>'oficina' = o.nome
+               AND detalhe->>'status' = $1
+           )
+       ),
+       candidate_students AS (
+         SELECT DISTINCT ON (cpf)
+                nome,
+                cpf,
+                idade,
+                telefone,
+                responsavel,
+                email,
+                oficina_id,
+                observacoes,
+                documentos_count,
+                created_at
+         FROM inscricao_oficinas
+         ORDER BY cpf, created_at ASC, inscricao_id
+       ),
+       new_students AS (
+         INSERT INTO alunos (
+           nome,
+           cpf,
+           idade,
+           telefone,
+           responsavel,
+           email,
+           oficina_id,
+           status,
+           documentos_pendentes,
+           observacoes
+         )
+         SELECT
+           nome,
+           cpf,
+           idade,
+           telefone,
+           responsavel,
+           email,
+           oficina_id,
+           'ativo',
+           documentos_count = 0,
+           observacoes
+         FROM candidate_students candidate
+         WHERE NOT EXISTS (
+           SELECT 1
+           FROM alunos existing
+           WHERE existing.cpf = candidate.cpf
+         )
+         RETURNING id, cpf
+       ),
+       all_students AS (
+         SELECT a.id, a.cpf
+         FROM alunos a
+         WHERE a.cpf IN (SELECT cpf FROM inscricao_oficinas)
+         UNION ALL
+         SELECT id, cpf
+         FROM new_students
+       ),
+       links AS (
+         INSERT INTO aluno_oficinas (aluno_id, oficina_id)
+         SELECT DISTINCT all_students.id, inscricao_oficinas.oficina_id
+         FROM inscricao_oficinas
+         INNER JOIN all_students ON all_students.cpf = inscricao_oficinas.cpf
+         ON CONFLICT DO NOTHING
+         RETURNING aluno_id
+       ),
+       primary_updates AS (
+         UPDATE alunos a
+         SET oficina_id = linked.oficina_id
+         FROM (
+           SELECT DISTINCT ON (all_students.id)
+                  all_students.id AS aluno_id,
+                  inscricao_oficinas.oficina_id
+           FROM inscricao_oficinas
+           INNER JOIN all_students ON all_students.cpf = inscricao_oficinas.cpf
+           WHERE EXISTS (
+             SELECT 1
+             FROM links
+             WHERE links.aluno_id = all_students.id
+           )
+           ORDER BY all_students.id, inscricao_oficinas.created_at ASC, inscricao_oficinas.oficina_nome ASC
+         ) linked
+         WHERE a.id = linked.aluno_id
+           AND a.oficina_id IS NULL
+         RETURNING a.id
+       )
+       SELECT
+         (SELECT COUNT(*)::int FROM new_students) AS alunos_criados,
+         (SELECT COUNT(*)::int FROM links) AS vinculos_criados,
+         (SELECT COUNT(*)::int FROM primary_updates) AS fichas_atualizadas`,
+      params
+    );
+    await client.query("COMMIT");
+    const row = result.rows[0] || {};
+    return {
+      alunosCriados: Number(row.alunos_criados || 0),
+      vinculosCriados: Number(row.vinculos_criados || 0),
+      fichasAtualizadas: Number(row.fichas_atualizadas || 0)
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   findAll,
   create,
   update,
-  remove
+  remove,
+  syncFromInscricoes
 };
