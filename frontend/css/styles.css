@@ -634,6 +634,30 @@ textarea:focus {
   gap: 16px;
 }
 
+.workshop-more {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.workshop-more-button {
+  min-width: min(100%, 260px);
+}
+
+.workshop-more-button::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 180ms ease;
+}
+
+.workshop-more-button[aria-expanded="true"]::after {
+  transform: rotate(225deg) translateY(-2px);
+}
+
 .workshop-card {
   overflow: hidden;
   transition: transform 180ms ease, box-shadow 180ms ease;
