@@ -33,6 +33,8 @@ async function getByOficinaAndDate(oficinaId, data) {
     };
   }
 
+  await Aluno.syncFromInscricoes({ oficinaId });
+
   const chamadaResult = await db.query(
     `SELECT c.id, c.oficina_id, o.nome AS oficina_nome, c.data_chamada, c.observacoes, c.created_at, c.updated_at
      FROM chamadas c
