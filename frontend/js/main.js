@@ -15,12 +15,14 @@ import { applyLogoPalette } from "./palette.js";
 const state = {
   category: "Todas",
   search: "",
+  showAllWorkshops: false,
   workshops: [...fallbackWorkshops],
   categories: [...fallbackCategories],
   galleryItems: [...fallbackGalleryItems]
 };
 
 let revealObserver;
+const initialWorkshopRatio = 0.3;
 
 const allowedDocumentTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
 const captchaState = {
@@ -139,6 +141,7 @@ function renderCategoryFilters() {
     });
     button.addEventListener("click", () => {
       state.category = category;
+      state.showAllWorkshops = false;
       renderCategoryFilters();
       renderWorkshops();
     });
@@ -164,15 +167,19 @@ function renderWorkshops() {
   grid.replaceChildren();
 
   const items = filteredWorkshops();
+  const canCollapse = state.category === "Todas" && !state.search;
+  const initialCount = Math.max(1, Math.ceil(items.length * initialWorkshopRatio));
+  const visibleItems = canCollapse && !state.showAllWorkshops ? items.slice(0, initialCount) : items;
   if (!items.length) {
     grid.append(createElement("p", {
       className: "form-feedback is-error",
       text: "Nenhuma oficina encontrada para o filtro informado."
     }));
+    renderWorkshopMore(0, 0, false);
     return;
   }
 
-  items.forEach((workshop) => {
+  visibleItems.forEach((workshop) => {
     const card = createElement("article", { className: "workshop-card reveal" });
     card.style.setProperty("--category-color", categoryColors[workshop.categoria] || "var(--color-primary)");
 
@@ -232,7 +239,35 @@ function renderWorkshops() {
     grid.append(card);
   });
 
+  renderWorkshopMore(items.length, initialCount, canCollapse);
   observeReveal(grid);
+}
+
+function renderWorkshopMore(total, initialCount, canCollapse) {
+  const container = document.querySelector("[data-workshop-more]");
+  if (!container) return;
+  container.replaceChildren();
+
+  if (!canCollapse || total <= initialCount) return;
+
+  const button = createElement("button", {
+    className: "button button-secondary workshop-more-button",
+    text: state.showAllWorkshops ? "Ver menos oficinas" : `Ver todas as oficinas (${total})`,
+    attrs: {
+      type: "button",
+      "aria-expanded": String(state.showAllWorkshops),
+      "aria-controls": "oficinas-lista"
+    }
+  });
+  button.addEventListener("click", () => {
+    state.showAllWorkshops = !state.showAllWorkshops;
+    renderWorkshops();
+    if (!state.showAllWorkshops) {
+      document.querySelector("#oficinas")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+
+  container.append(button);
 }
 
 function openWorkshopDialog(workshop) {
@@ -278,6 +313,7 @@ function setupWorkshopSearch() {
   const input = document.querySelector("[data-workshop-search]");
   input?.addEventListener("input", debounce(() => {
     state.search = input.value.trim();
+    state.showAllWorkshops = false;
     renderWorkshops();
   }, 120));
 }
@@ -564,11 +600,28 @@ function setupSignupForm() {
 }
 
 function setupVLibras() {
-  window.addEventListener("load", () => {
+  let attempts = 0;
+
+  function initWidget() {
     if (window.VLibras?.Widget) {
-      new window.VLibras.Widget("https://vlibras.gov.br/app");
+      if (!document.documentElement.dataset.vlibrasReady) {
+        new window.VLibras.Widget("https://vlibras.gov.br/app");
+        document.documentElement.dataset.vlibrasReady = "true";
+      }
+      return;
     }
-  });
+
+    attempts += 1;
+    if (attempts < 20) {
+      window.setTimeout(initWidget, 250);
+    }
+  }
+
+  if (document.readyState === "complete") {
+    initWidget();
+  } else {
+    window.addEventListener("load", initWidget, { once: true });
+  }
 }
 
 function setupYearAndStats() {
