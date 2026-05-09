@@ -78,6 +78,7 @@ const pageTitle = document.querySelector("[data-page-title]");
 
 const pageTitles = {
   dashboard: "Dashboard",
+  "ia-adm": "IA ADM",
   automacao: "Automacao",
   inscritos: "Inscritos",
   oficinas: "Oficinas",
@@ -87,6 +88,8 @@ const pageTitles = {
 };
 
 const pageAliases = {
+  ia: "ia-adm",
+  assistente: "ia-adm",
   "gerenciar-oficinas": "oficinas",
   "gerenciar-galeria": "galeria"
 };
@@ -235,6 +238,7 @@ async function loadInscricoes() {
   const data = await apiRequest(`/inscricoes?${params.toString()}`);
   state.inscricoes = data.inscricoes;
   renderTable();
+  renderAiStudentSelect();
   renderAutomation();
 }
 
@@ -417,6 +421,24 @@ function renderAutomationCard(person, queue) {
   actions.append(ficha, resumo, whats);
   card.append(main, actions);
   return card;
+}
+
+function renderAiStudentSelect() {
+  const select = document.querySelector("[data-ai-student-select]");
+  if (!select) return;
+  const current = select.value;
+  const first = createElement("option", {
+    text: "Selecione um cadastro",
+    attrs: { value: "" }
+  });
+  select.replaceChildren(first);
+  actionPeople().forEach((person, index) => {
+    select.append(createElement("option", {
+      text: `${person.nome || "Sem nome"} - ${person.oficina || (person.oficinas || []).join(", ") || "Sem oficina"}`,
+      attrs: { value: String(index) }
+    }));
+  });
+  select.value = current && select.querySelector(`option[value="${current}"]`) ? current : "";
 }
 
 function renderAutomation() {
@@ -819,7 +841,12 @@ function messageTitle(key) {
 
 function renderAiAssist(result, person) {
   if (!aiAssistContent) return;
-  aiAssistContent.replaceChildren();
+  renderAiAssistInto(aiAssistContent, result, person);
+}
+
+function renderAiAssistInto(target, result, person) {
+  if (!target) return;
+  target.replaceChildren();
 
   const status = createElement("p", {
     className: `form-feedback${result.fallback ? "" : " is-success"}`,
@@ -861,7 +888,7 @@ function renderAiAssist(result, person) {
     grid.append(card);
   });
   messages.append(grid);
-  aiAssistContent.append(status, summary, alerts, messages);
+  target.append(status, summary, alerts, messages);
 }
 
 async function openAiAssist(person) {
@@ -882,6 +909,33 @@ async function openAiAssist(person) {
     renderAiAssist(result, person);
   } catch (error) {
     aiAssistContent.replaceChildren(createElement("p", { className: "form-feedback is-error", text: error.message }));
+  }
+}
+
+async function generateAdminAiSummary() {
+  const select = document.querySelector("[data-ai-student-select]");
+  const output = document.querySelector("[data-admin-ai-output]");
+  const index = Number(select?.value);
+  const person = Number.isInteger(index) ? actionPeople()[index] : null;
+  if (!output) return;
+  if (!person) {
+    output.replaceChildren(createElement("p", { className: "form-feedback is-error", text: "Selecione um cadastro para gerar o resumo IA." }));
+    return;
+  }
+
+  output.replaceChildren(createElement("p", { className: "form-feedback", text: "Gerando resumo IA administrativo..." }));
+  try {
+    const result = await secureRequest("/ai/admin/student-assist", {
+      method: "POST",
+      timeout: 22000,
+      body: {
+        mode: "full",
+        student: person
+      }
+    });
+    renderAiAssistInto(output, result, person);
+  } catch (error) {
+    output.replaceChildren(createElement("p", { className: "form-feedback is-error", text: error.message }));
   }
 }
 
@@ -1438,6 +1492,7 @@ function setupEvents() {
 
   document.querySelector("[data-refresh]")?.addEventListener("click", refreshAll);
   document.querySelector("[data-render-automation]")?.addEventListener("click", renderAutomation);
+  document.querySelector("[data-generate-ai-summary]")?.addEventListener("click", generateAdminAiSummary);
 
   document.querySelector("[data-reset-office-form]")?.addEventListener("click", resetOfficeForm);
   document.querySelector("[data-reset-gallery-form]")?.addEventListener("click", resetGalleryForm);

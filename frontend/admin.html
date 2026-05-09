@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/styles.css?v=20260509-4">
-    <link rel="stylesheet" href="/css/admin.css?v=20260509-3">
+    <link rel="stylesheet" href="/css/admin.css?v=20260509-4">
   </head>
   <body class="admin-body">
     <a class="skip-link" href="#admin-conteudo">Ir para o painel</a>
@@ -49,6 +49,7 @@
           </a>
           <nav data-admin-nav>
             <a href="#dashboard" data-admin-page-link="dashboard" aria-current="page">Dashboard</a>
+            <a href="#ia-adm" data-admin-page-link="ia-adm">IA ADM</a>
             <a href="#automacao" data-admin-page-link="automacao">Automacao</a>
             <a href="#inscritos" data-admin-page-link="inscritos">Inscritos</a>
             <a href="#oficinas" data-admin-page-link="oficinas">Oficinas</a>
@@ -103,6 +104,27 @@
               </div>
               <div class="recent-list" data-recent-list></div>
             </article>
+          </section>
+
+          <section class="admin-panel admin-ai-panel" id="ia-adm" data-admin-page="ia-adm" hidden>
+            <div class="panel-title table-title">
+              <div>
+                <h2>IA ADM</h2>
+                <p>Gere resumo operacional, alertas e mensagens prontas para WhatsApp a partir da ficha do aluno.</p>
+              </div>
+            </div>
+            <div class="admin-ai-controls">
+              <label>
+                <span>Aluno ou inscrito</span>
+                <select data-ai-student-select>
+                  <option value="">Selecione um cadastro</option>
+                </select>
+              </label>
+              <button class="button button-primary" type="button" data-generate-ai-summary>Gerar resumo IA</button>
+            </div>
+            <div class="admin-ai-output" data-admin-ai-output>
+              <p class="form-feedback">Selecione um cadastro para usar a IA administrativa.</p>
+            </div>
           </section>
 
           <section class="admin-panel automation-panel" id="automacao" data-admin-page="automacao" hidden>
@@ -509,6 +531,6 @@
     </datalist>
 
     <script src="/js/runtime-config.js?v=20260509-1" defer></script>
-    <script type="module" src="/js/admin.js?v=20260509-4"></script>
+    <script type="module" src="/js/admin.js?v=20260509-5"></script>
   </body>
 </html>

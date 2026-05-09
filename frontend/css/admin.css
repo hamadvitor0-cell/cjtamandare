@@ -238,6 +238,36 @@
   background: linear-gradient(90deg, var(--color-primary), var(--color-secondary), var(--color-accent));
 }
 
+.admin-ai-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-ai-controls {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-soft);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.admin-ai-controls label {
+  display: grid;
+  gap: 7px;
+}
+
+.admin-ai-controls label span {
+  color: var(--color-ink);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.admin-ai-output {
+  display: grid;
+  gap: 18px;
+}
+
 .automation-panel {
   display: grid;
   gap: 18px;
@@ -891,6 +921,7 @@ td {
 }
 
 :root[data-theme="dark"] .bar-track,
+:root[data-theme="dark"] .admin-ai-controls,
 :root[data-theme="dark"] .automation-column,
 :root[data-theme="dark"] .automation-metric,
 :root[data-theme="dark"] .day-picker label,
@@ -918,6 +949,11 @@ td {
 
   .automation-board {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-ai-controls {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
   }
 
   .dashboard-grid {
