@@ -78,6 +78,7 @@ const oficinaSchema = Joi.object({
   )).max(7).default([]),
   periodo: Joi.string().valid("matutino", "vespertino", "noturno", "integral", "a definir").required(),
   horario: Joi.string().min(2).max(120).required(),
+  capacidade: Joi.number().integer().min(1).max(10000).required(),
   imagemUrl: Joi.string().allow("").pattern(safeImageUrlPattern).max(400),
   initials: Joi.string().min(1).max(4).required(),
   ativo: Joi.boolean().truthy("true").falsy("false")
@@ -102,6 +103,7 @@ const alunoSchema = Joi.object({
   oficinaId: Joi.string().allow("").pattern(uuidPattern),
   oficinaIds: Joi.array().items(Joi.string().pattern(uuidPattern)).min(1).max(20).required(),
   status: Joi.string().valid("ativo", "inativo").required(),
+  documentosPendentes: Joi.boolean().truthy("true").falsy("false"),
   advertencias: Joi.string().allow("").max(1000),
   historicoOficinas: Joi.string().allow("").max(1000),
   observacoes: Joi.string().allow("").max(500)

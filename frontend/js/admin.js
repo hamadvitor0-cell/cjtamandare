@@ -325,7 +325,7 @@ function renderTable() {
 
   state.inscricoes.forEach((item) => {
     const row = createElement("tr", {
-      className: "person-row",
+      className: `person-row${item.fichaAlerta ? " is-attention" : ""}`,
       attrs: {
         tabindex: "0",
         "aria-label": `Abrir ficha de ${item.nome}`
@@ -462,6 +462,10 @@ function sourceName(source) {
   return source === "aluno" ? "Aluno ADM" : "Inscricao online";
 }
 
+function oficinaStatusLabel(status) {
+  return status === "lista_espera" ? "Lista de espera" : "Confirmada";
+}
+
 function openPrimaryEdit(person) {
   const student = primaryStudentSource(person);
   const online = primaryOnlineSource(person);
@@ -498,6 +502,7 @@ function openStudentProfile(person) {
   const online = primaryOnlineSource(person);
   const student = primaryStudentSource(person);
   const cpf = maskCpfValue(person.cpf || "") || "CPF nao informado";
+  profileDialog.classList.toggle("is-attention", Number(person.faltasUltimos30Dias || 0) > 2);
   if (profileSubtitle) {
     profileSubtitle.textContent = `${cpf} - ${person.sourceSummary || sourceName(person.primarySource || person.source)}`;
   }
@@ -511,6 +516,8 @@ function openStudentProfile(person) {
   addProfileField(grid, "Responsavel", person.responsavel);
   addProfileField(grid, "E-mail", person.email);
   addProfileField(grid, "Status", person.status || "inscrito");
+  addProfileField(grid, "Faltas nos ultimos 30 dias", String(person.faltasUltimos30Dias || 0));
+  addProfileField(grid, "Documentos", person.documentosPendentes ? "Faltando" : "Sem pendencias marcadas");
   addProfileField(grid, "Primeiro cadastro", formatDate(person.created_at));
   summary.append(grid);
 
@@ -532,7 +539,8 @@ function openStudentProfile(person) {
       card.append(
         createElement("strong", { text: detail.oficina || "Oficina" }),
         createElement("span", { text: `Cadastrado em ${formatDate(detail.createdAt || detail.created_at || person.created_at)}` }),
-        createElement("span", { text: `Origem: ${detail.sourceLabel || sourceName(detail.source)}` })
+        createElement("span", { text: `Origem: ${detail.sourceLabel || sourceName(detail.source)}` }),
+        createElement("span", { className: detail.status === "lista_espera" ? "status-waitlist" : "", text: `Status: ${oficinaStatusLabel(detail.status)}` })
       );
       timeline.append(card);
     });
@@ -543,6 +551,27 @@ function openStudentProfile(person) {
   appendProfileNote(history, "Advertencias", person.advertencias, "Sem advertencias registradas.");
   appendProfileNote(history, "Oficinas anteriores", person.historicoOficinas, "Sem historico anterior registrado.");
   appendProfileNote(history, "Observacoes", person.observacoes, "Sem observacoes registradas.");
+
+  const callsSection = makeProfileSection("Ultimas chamadas");
+  const callsList = createElement("div", { className: "profile-timeline" });
+  const calls = person.ultimasChamadas || [];
+  if (!calls.length) {
+    callsList.append(createElement("p", { className: "form-feedback", text: "Nenhuma chamada registrada para este aluno." }));
+  } else {
+    calls.forEach((call) => {
+      const card = createElement("article", {
+        className: `profile-card${call.status === "ausente" ? " is-absence" : ""}`
+      });
+      card.append(
+        createElement("strong", { text: call.oficina || "Oficina" }),
+        createElement("span", { text: `Data: ${String(call.data || "").slice(0, 10)}` }),
+        createElement("span", { text: `Status: ${call.status || "-"}` }),
+        createElement("span", { text: call.observacao || "" })
+      );
+      callsList.append(card);
+    });
+  }
+  callsSection.append(callsList);
 
   const sourceSection = makeProfileSection("Registros vinculados");
   const sourceList = createElement("div", { className: "profile-timeline" });
@@ -598,10 +627,99 @@ function openStudentProfile(person) {
     });
     actions.append(docsButton);
   }
+  const warningButton = createElement("button", {
+    className: "button button-secondary",
+    text: "Dar advertencia",
+    attrs: { type: "button" }
+  });
+  warningButton.addEventListener("click", () => addWarningToStudent(person));
+  actions.append(warningButton);
 
-  profileContent.replaceChildren(summary, officesSection, history, sourceSection, actions);
+  profileContent.replaceChildren(summary, officesSection, history, callsSection, sourceSection, actions);
   if (profileDialog.open) profileDialog.close();
   profileDialog.showModal();
+}
+
+function studentPayload(aluno, advertencias) {
+  return {
+    nome: aluno.nome,
+    cpf: maskCpfValue(aluno.cpf || ""),
+    idade: aluno.idade || "",
+    telefone: aluno.telefone || "",
+    responsavel: aluno.responsavel || "",
+    email: aluno.email || "",
+    oficinaIds: aluno.oficinaIds || [],
+    oficinaId: aluno.oficinaIds?.[0] || "",
+    status: aluno.status || "ativo",
+    documentosPendentes: Boolean(aluno.documentosPendentes),
+    advertencias,
+    historicoOficinas: aluno.historicoOficinas || "",
+    observacoes: aluno.observacoes || ""
+  };
+}
+
+function officeIdsForPerson(person) {
+  const oficinas = person.oficinas || [person.oficina].filter(Boolean);
+  return state.oficinas
+    .filter((oficina) => oficinas.includes(oficina.nome))
+    .map((oficina) => oficina.id);
+}
+
+async function getStudentForPerson(person) {
+  const student = primaryStudentSource(person);
+  const searchKey = person.cpf || person.nome || student?.sourceId;
+  const responseData = await apiRequest(`/alunos?search=${encodeURIComponent(searchKey || "")}`);
+  const candidates = responseData.alunos || [];
+  const existing = student
+    ? candidates.find((aluno) => aluno.id === student.sourceId)
+    : candidates.find((aluno) => aluno.cpf && aluno.cpf === person.cpf);
+  if (existing) return existing;
+
+  const oficinaIds = officeIdsForPerson(person);
+  if (!oficinaIds.length) {
+    throw new Error("Nao foi possivel vincular uma oficina cadastrada para criar a ficha ADM.");
+  }
+
+  const response = await secureRequest("/alunos", {
+    method: "POST",
+    body: {
+      nome: person.nome,
+      cpf: maskCpfValue(person.cpf || ""),
+      idade: person.idade || "",
+      telefone: person.telefone?.split(" / ")[0] || "",
+      responsavel: person.responsavel?.split(" / ")[0] || "",
+      email: person.email?.split(" / ")[0] || "",
+      oficinaIds,
+      oficinaId: oficinaIds[0],
+      status: "ativo",
+      documentosPendentes: Boolean(person.documentosPendentes),
+      advertencias: person.advertencias || "",
+      historicoOficinas: person.historicoOficinas || "",
+      observacoes: person.observacoes || ""
+    }
+  });
+  await loadAlunos();
+  return response.aluno;
+}
+
+async function addWarningToStudent(person) {
+  const text = window.prompt(`Descreva a advertencia para ${person.nome}:`);
+  if (!text || !text.trim()) return;
+
+  try {
+    const aluno = await getStudentForPerson(person);
+    const stamp = new Date().toLocaleString("pt-BR");
+    const advertencias = [aluno.advertencias, `[${stamp}] ${text.trim()}`].filter(Boolean).join("\n");
+    await secureRequest(`/alunos/${aluno.id}`, {
+      method: "PUT",
+      body: studentPayload(aluno, advertencias)
+    });
+    profileDialog?.close();
+    await refreshAll();
+    window.alert("Advertencia registrada na ficha do aluno.");
+  } catch (error) {
+    window.alert(error.message || "Nao foi possivel registrar a advertencia.");
+  }
 }
 
 function renderOfficeList() {
@@ -621,6 +739,7 @@ function renderOfficeList() {
       createElement("strong", { text: oficina.nome }),
       createElement("span", { text: `${oficina.categoria} · ${oficina.faixaEtaria} · ${formatDays(oficina.diasSemana)} · ${formatPeriod(oficina.periodo)}` }),
       createElement("span", { text: `Horário: ${oficina.horario}` }),
+      createElement("span", { text: `Capacidade: ${oficina.capacidade || 30} vagas` }),
       createElement("span", { text: oficina.ativo ? "Ativa no site" : "Inativa" })
     );
     const actions = createElement("div", { className: "content-actions" });
@@ -640,6 +759,7 @@ function resetOfficeForm() {
   form.elements.id.value = "";
   form.elements.imagemUrl.value = "/img/oficinas.png";
   form.elements.periodo.value = "a definir";
+  form.elements.capacidade.value = "30";
   form.elements.ativo.checked = true;
   setCheckedValues(form, "diasSemana", []);
   setFeedback(document.querySelector("[data-office-feedback]"), "");
@@ -654,6 +774,7 @@ function editOffice(oficina) {
     faixaEtaria: oficina.faixaEtaria,
     periodo: oficina.periodo,
     horario: oficina.horario,
+    capacidade: oficina.capacidade || 30,
     imagemUrl: oficina.imagemUrl,
     initials: oficina.initials,
     descricao: oficina.descricao,
@@ -766,13 +887,16 @@ function renderStudentList() {
   }
 
   state.alunos.forEach((aluno) => {
-    const item = createElement("article", { className: "content-item" });
+    const item = createElement("article", {
+      className: `content-item${Number(aluno.faltasUltimos30Dias || 0) > 2 ? " is-attention" : ""}`
+    });
     const main = createElement("div", { className: "content-item-main" });
     main.append(
       createElement("strong", { text: aluno.nome }),
       createElement("span", { text: `${(aluno.oficinas || []).join(", ") || "Sem oficina"} · CPF: ${maskCpfValue(aluno.cpf || "") || "sem CPF"} · ${aluno.status}` }),
       createElement("span", { text: aluno.telefone || "sem telefone" }),
-      createElement("span", { text: aluno.responsavel ? `Responsável: ${aluno.responsavel}` : aluno.email || "" })
+      createElement("span", { text: aluno.responsavel ? `Responsável: ${aluno.responsavel}` : aluno.email || "" }),
+      createElement("span", { text: `Faltas nos ultimos 30 dias: ${aluno.faltasUltimos30Dias || 0}${aluno.documentosPendentes ? " · documentos faltando" : ""}` })
     );
     const actions = createElement("div", { className: "content-actions" });
     const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
@@ -790,6 +914,7 @@ function resetStudentForm() {
   form.reset();
   form.elements.id.value = "";
   form.elements.status.value = "ativo";
+  form.elements.documentosPendentes.checked = false;
   setSelectedValues(form.elements.oficinaIds, []);
   setFeedback(document.querySelector("[data-student-feedback]"), "");
 }
@@ -805,6 +930,7 @@ function editStudent(aluno) {
     responsavel: aluno.responsavel,
     email: aluno.email,
     status: aluno.status,
+    documentosPendentes: Boolean(aluno.documentosPendentes),
     advertencias: aluno.advertencias,
     historicoOficinas: aluno.historicoOficinas,
     observacoes: aluno.observacoes
@@ -1158,6 +1284,11 @@ function setupEvents() {
     data.ativo = activeFromForm(form);
     data.diasSemana = checkedValues(form, "diasSemana");
     data.imagemUrl = data.imagemUrl || "/img/oficinas.png";
+    data.capacidade = Number(data.capacidade || 0);
+    if (!Number.isInteger(data.capacidade) || data.capacidade < 1) {
+      setFeedback(feedback, "Informe a capacidade de vagas da oficina.", "error");
+      return;
+    }
     const id = data.id;
     delete data.id;
     try {
@@ -1212,6 +1343,7 @@ function setupEvents() {
     const data = getFormData(form);
     data.oficinaIds = selectedValues(form.elements.oficinaIds);
     data.oficinaId = data.oficinaIds[0] || "";
+    data.documentosPendentes = Boolean(form.elements.documentosPendentes?.checked);
     if (data.cpf && !isValidCpf(data.cpf)) {
       setFeedback(feedback, "Informe um CPF valido.", "error");
       return;

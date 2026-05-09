@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="/css/admin.css">
+    <link rel="stylesheet" href="/css/styles.css?v=20260509-1">
+    <link rel="stylesheet" href="/css/admin.css?v=20260509-1">
   </head>
   <body class="admin-body">
     <a class="skip-link" href="#admin-conteudo">Ir para o painel</a>
@@ -185,6 +185,10 @@
                   <input name="horario" type="text" required maxlength="120">
                 </label>
                 <label>
+                  <span>Capacidade de vagas</span>
+                  <input name="capacidade" type="number" min="1" max="10000" value="30" required>
+                </label>
+                <label>
                   <span>Imagem URL</span>
                   <input name="imagemUrl" type="text" maxlength="400" placeholder="/img/oficinas.png">
                 </label>
@@ -318,6 +322,10 @@
                     <option value="ativo">Ativo</option>
                     <option value="inativo">Inativo</option>
                   </select>
+                </label>
+                <label class="check-row full-field">
+                  <input name="documentosPendentes" type="checkbox">
+                  <span>Documentos faltando</span>
                 </label>
                 <label class="full-field">
                   <span>Advertências</span>
@@ -474,7 +482,7 @@
       <option value="Artes e Cultura"></option>
     </datalist>
 
-    <script src="/js/runtime-config.js?v=20260508-3" defer></script>
-    <script type="module" src="/js/admin.js?v=20260508-3"></script>
+    <script src="/js/runtime-config.js?v=20260509-1" defer></script>
+    <script type="module" src="/js/admin.js?v=20260509-1"></script>
   </body>
 </html>

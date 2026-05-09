@@ -203,7 +203,8 @@ function renderWorkshops() {
       createElement("span", { text: `Faixa etária: ${workshop.faixaEtaria}` }),
       createElement("span", { text: `Dias: ${formatDays(workshop.diasSemana)}` }),
       createElement("span", { text: `Período: ${formatPeriod(workshop.periodo)}` }),
-      createElement("span", { text: `Horário: ${workshop.horario}` })
+      createElement("span", { text: `Horário: ${workshop.horario}` }),
+      createElement("span", { text: `Vagas: ${workshop.capacidade || 30}` })
     );
 
     const detail = createElement("button", {
@@ -250,7 +251,8 @@ function openWorkshopDialog(workshop) {
     ["Faixa etária", workshop.faixaEtaria],
     ["Dias", formatDays(workshop.diasSemana)],
     ["Período", formatPeriod(workshop.periodo)],
-    ["Horário", workshop.horario]
+    ["Horário", workshop.horario],
+    ["Vagas", String(workshop.capacidade || 30)]
   ].forEach(([label, value]) => {
     const item = createElement("div");
     item.append(createElement("strong", { text: label }), createElement("span", { text: value || "A definir" }));
@@ -520,6 +522,7 @@ function setupSignupForm() {
     const validation = validateSignup(data, files);
     if (validation) {
       setFeedback(feedback, validation, "error");
+      showToast(validation, "error");
       return;
     }
 
@@ -535,14 +538,18 @@ function setupSignupForm() {
       formData.set("captchaToken", captchaState.token);
       formData.set("captchaX", document.querySelector("[data-captcha-slider]")?.value || "");
       formData.set("captchaMoves", String(captchaState.moves));
-      await apiRequest("/inscricao", {
+      const result = await apiRequest("/inscricao", {
         method: "POST",
         body: formData
       });
+      const listaEspera = result.inscricao?.listaEspera || [];
+      const message = listaEspera.length
+        ? `Inscrição recebida. ${listaEspera.join(", ")} ficou em lista de espera; a equipe entrará em contato.`
+        : "Inscrição enviada com sucesso. A equipe entrará em contato.";
       form.reset();
       await loadPuzzleCaptcha();
-      setFeedback(feedback, "Inscrição enviada com sucesso. A equipe entrará em contato.", "success");
-      showToast("Inscrição enviada com sucesso.", "success");
+      setFeedback(feedback, message, "success");
+      showToast(message, "success");
     } catch (error) {
       setFeedback(feedback, error.message, "error");
       showToast(error.message, "error");

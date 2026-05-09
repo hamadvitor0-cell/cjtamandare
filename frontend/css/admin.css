@@ -488,6 +488,12 @@ td {
   outline: 2px solid transparent;
 }
 
+.person-row.is-attention,
+.content-item.is-attention {
+  background: rgba(245, 137, 31, 0.12);
+  box-shadow: inset 4px 0 0 #f59e0b;
+}
+
 .muted-cell {
   color: var(--color-muted);
   font-weight: 800;
@@ -556,6 +562,15 @@ td {
   width: min(980px, calc(100% - 28px));
 }
 
+.profile-dialog.is-attention {
+  border-color: #f59e0b;
+}
+
+.profile-dialog.is-attention .profile-dialog-content header {
+  border-bottom: 1px solid rgba(245, 137, 31, 0.32);
+  padding-bottom: 12px;
+}
+
 .profile-dialog-content,
 .profile-content {
   display: grid;
@@ -616,6 +631,15 @@ td {
 
 .profile-note p {
   white-space: pre-wrap;
+}
+
+.profile-card.is-absence {
+  border-color: rgba(220, 38, 38, 0.45);
+}
+
+.status-waitlist {
+  color: #b45309 !important;
+  font-weight: 900;
 }
 
 .profile-actions {
@@ -709,6 +733,11 @@ td {
 :root[data-theme="dark"] .profile-card,
 :root[data-theme="dark"] .profile-note {
   background: #101827;
+}
+
+:root[data-theme="dark"] .person-row.is-attention,
+:root[data-theme="dark"] .content-item.is-attention {
+  background: rgba(245, 137, 31, 0.16);
 }
 
 @media (min-width: 720px) {

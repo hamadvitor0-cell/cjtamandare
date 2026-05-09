@@ -20,8 +20,8 @@ function initials(nome) {
 async function seedOficinas() {
   for (const oficina of defaultOficinas) {
     await db.query(
-      `INSERT INTO oficinas (nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, imagem_url, initials, ativo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
+      `INSERT INTO oficinas (nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, capacidade, imagem_url, initials, ativo)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)
        ON CONFLICT (nome)
        DO UPDATE SET
          categoria = EXCLUDED.categoria,
@@ -30,6 +30,7 @@ async function seedOficinas() {
          dias_semana = CASE WHEN oficinas.dias_semana = '{}' THEN EXCLUDED.dias_semana ELSE oficinas.dias_semana END,
          periodo = CASE WHEN oficinas.periodo = 'a definir' THEN EXCLUDED.periodo ELSE oficinas.periodo END,
          horario = EXCLUDED.horario,
+         capacidade = COALESCE(oficinas.capacidade, EXCLUDED.capacidade),
          imagem_url = COALESCE(oficinas.imagem_url, EXCLUDED.imagem_url),
          initials = COALESCE(oficinas.initials, EXCLUDED.initials),
          ativo = true`,
@@ -41,6 +42,7 @@ async function seedOficinas() {
         oficina.diasSemana || [],
         oficina.periodo || "a definir",
         oficina.horario,
+        oficina.capacidade || 30,
         "/img/oficinas.png",
         initials(oficina.nome)
       ]

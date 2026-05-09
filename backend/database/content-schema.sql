@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS oficinas (
   dias_semana TEXT[] NOT NULL DEFAULT '{}',
   periodo TEXT NOT NULL DEFAULT 'a definir' CHECK (periodo IN ('matutino', 'vespertino', 'noturno', 'integral', 'a definir')),
   horario TEXT NOT NULL CHECK (char_length(horario) BETWEEN 2 AND 120),
+  capacidade INTEGER NOT NULL DEFAULT 30 CHECK (capacidade BETWEEN 1 AND 10000),
   imagem_url TEXT NOT NULL DEFAULT '/img/oficinas.png',
   initials TEXT NOT NULL CHECK (char_length(initials) BETWEEN 1 AND 4),
   ativo BOOLEAN NOT NULL DEFAULT TRUE,
@@ -54,6 +55,7 @@ CREATE TABLE IF NOT EXISTS alunos (
   email TEXT CHECK (email IS NULL OR char_length(email) <= 160),
   oficina_id UUID REFERENCES oficinas(id) ON DELETE SET NULL,
   status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo')),
+  documentos_pendentes BOOLEAN NOT NULL DEFAULT FALSE,
   advertencias TEXT CHECK (advertencias IS NULL OR char_length(advertencias) <= 1000),
   historico_oficinas TEXT CHECK (historico_oficinas IS NULL OR char_length(historico_oficinas) <= 1000),
   observacoes TEXT CHECK (observacoes IS NULL OR char_length(observacoes) <= 500),
@@ -63,6 +65,15 @@ CREATE TABLE IF NOT EXISTS alunos (
 
 ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS dias_semana TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS periodo TEXT NOT NULL DEFAULT 'a definir';
+ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS capacidade INTEGER NOT NULL DEFAULT 30;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'oficinas_capacidade_check'
+  ) THEN
+    ALTER TABLE oficinas ADD CONSTRAINT oficinas_capacidade_check CHECK (capacidade BETWEEN 1 AND 10000);
+  END IF;
+END $$;
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficinas TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficina_detalhes JSONB NOT NULL DEFAULT '[]'::jsonb;
@@ -87,6 +98,7 @@ ALTER TABLE galeria ADD COLUMN IF NOT EXISTS size_bytes INTEGER;
 ALTER TABLE galeria ADD COLUMN IF NOT EXISTS file_content BYTEA;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS oficina_id UUID REFERENCES oficinas(id) ON DELETE SET NULL;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS documentos_pendentes BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS advertencias TEXT;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS historico_oficinas TEXT;
 ALTER TABLE inscricao_documentos ADD COLUMN IF NOT EXISTS file_content BYTEA;

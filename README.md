@@ -237,8 +237,11 @@ git push -u origin main
 
 - Atualize oficinas e horários em `frontend/js/data.js` e `backend/services/oficina.service.js`.
 - Oficinas e galeria também podem ser gerenciadas pelo ADM. O arquivo `frontend/js/data.js` fica como fallback se a API estiver indisponível.
+- Cada oficina possui capacidade obrigatória. Quando a capacidade é atingida, novas inscrições online entram automaticamente em lista de espera.
+- O CPF unifica a ficha do aluno: a mesma pessoa pode entrar em várias oficinas, mas aparece uma única vez em `Inscritos`.
 - O manual para novos administradores fica em `/admin-manual.html` e exige sessão ADM ativa.
 - Para usar chamada, cadastre alunos no ADM, vincule o mesmo aluno a uma ou mais oficinas, selecione oficina e data em `Chamada`, carregue a lista, marque as presenças e salve.
+- A ficha fica destacada em laranja quando o aluno soma mais de 2 faltas nos últimos 30 dias. Advertências e documentos pendentes podem ser registrados na ficha do ADM.
 - Atualize telefone, redes sociais e endereço em `frontend/index.html`.
 - Se frontend e backend forem publicados em domínios separados, configure `window.CJ_API_BASE_URL` em `frontend/js/runtime-config.js`.
 - Nunca commite `.env`.

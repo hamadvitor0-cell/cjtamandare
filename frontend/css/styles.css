@@ -1181,6 +1181,10 @@ textarea:focus {
   animation: toast-in 180ms ease-out;
 }
 
+.toast-success {
+  border-left-color: #16a34a;
+}
+
 .toast-error {
   border-left-color: var(--color-danger);
 }

@@ -4,6 +4,8 @@ const db = require("../database/pool");
 const { normalizeCpf } = require("../utils/cpf");
 
 const memory = [];
+const CONFIRMED_STATUS = "confirmada";
+const WAITLIST_STATUS = "lista_espera";
 
 function normalizeOficinas(payload = {}) {
   const values = Array.isArray(payload.oficinas)
@@ -16,11 +18,12 @@ function mergeOficinas(current = [], incoming = []) {
   return Array.from(new Set([...current, ...incoming].map((item) => String(item || "").trim()).filter(Boolean)));
 }
 
-function detailsForOficinas(oficinas = [], createdAt, source = "inscricao") {
+function detailsForOficinas(oficinas = [], createdAt, source = "inscricao", statusByOficina = {}) {
   return oficinas.map((oficina) => ({
     oficina,
     createdAt,
-    source
+    source,
+    status: statusByOficina[oficina] || CONFIRMED_STATUS
   }));
 }
 
@@ -37,12 +40,13 @@ function normalizeOficinaDetalhes(row, oficinas) {
       oficina,
       createdAt: detail.createdAt || detail.created_at || row.created_at,
       updatedAt: detail.updatedAt || detail.updated_at || row.updated_at,
-      source: detail.source || "inscricao"
+      source: detail.source || "inscricao",
+      status: detail.status || CONFIRMED_STATUS
     };
   });
 }
 
-function mergeOficinaDetalhes(currentDetails = [], currentOficinas = [], incomingOficinas = [], now = new Date().toISOString()) {
+function mergeOficinaDetalhes(currentDetails = [], currentOficinas = [], incomingOficinas = [], now = new Date().toISOString(), statusByOficina = {}) {
   const current = normalizeOficinaDetalhes({
     oficina_detalhes: currentDetails,
     created_at: now,
@@ -52,7 +56,7 @@ function mergeOficinaDetalhes(currentDetails = [], currentOficinas = [], incomin
 
   return mergedOficinas.map((oficina) => (
     current.find((detail) => detail.oficina === oficina)
-    || { oficina, createdAt: now, updatedAt: now, source: "inscricao" }
+    || { oficina, createdAt: now, updatedAt: now, source: "inscricao", status: statusByOficina[oficina] || CONFIRMED_STATUS }
   ));
 }
 
@@ -68,6 +72,12 @@ function toPublic(row) {
     ? row.oficinas
     : [row.oficina].filter(Boolean);
   const oficinaDetalhes = normalizeOficinaDetalhes(row, oficinas);
+  const listaEspera = oficinaDetalhes
+    .filter((detail) => detail.status === WAITLIST_STATUS)
+    .map((detail) => detail.oficina);
+  const confirmadas = oficinaDetalhes
+    .filter((detail) => detail.status !== WAITLIST_STATUS)
+    .map((detail) => detail.oficina);
 
   return {
     id: row.id,
@@ -80,6 +90,9 @@ function toPublic(row) {
     oficina: oficinas.join(", "),
     oficinas,
     oficinaDetalhes,
+    confirmadas,
+    listaEspera,
+    emListaEspera: listaEspera.length > 0,
     observacoes: row.observacoes || "",
     documentosCount,
     created_at: row.created_at,
@@ -116,6 +129,64 @@ function toDocument(row) {
   };
 }
 
+async function waitlistStatusForMemory(oficinas) {
+  const Oficina = require("./oficina.model");
+  const oficinasCadastradas = await Oficina.findAll({ includeInactive: true });
+  return oficinas.reduce((acc, oficina) => {
+    const capacidade = oficinasCadastradas.find((item) => item.nome === oficina)?.capacidade || 30;
+    const ocupadas = memory.filter((item) => {
+      const detalhes = item.oficinaDetalhes || [];
+      return detalhes.some((detail) => detail.oficina === oficina && detail.status !== WAITLIST_STATUS);
+    }).length;
+    acc[oficina] = ocupadas >= capacidade ? WAITLIST_STATUS : CONFIRMED_STATUS;
+    return acc;
+  }, {});
+}
+
+async function waitlistStatusForDatabase(client, oficinas) {
+  if (!oficinas.length) return {};
+
+  const officeResult = await client.query(
+    `SELECT nome, capacidade
+     FROM oficinas
+     WHERE nome = ANY($1)
+     FOR UPDATE`,
+    [oficinas]
+  );
+  const capacities = new Map(officeResult.rows.map((row) => [row.nome, Number(row.capacidade || 30)]));
+  const statusByOficina = {};
+
+  for (const oficina of oficinas) {
+    const capacity = capacities.get(oficina) || 30;
+    const occupancy = await client.query(
+      `SELECT COUNT(DISTINCT pessoa_key)::int AS total
+       FROM (
+         SELECT COALESCE(NULLIF(i.cpf, ''), i.id::text) AS pessoa_key
+         FROM inscricoes i
+         WHERE ($1 = ANY(i.oficinas) OR i.oficina = $1)
+           AND NOT EXISTS (
+             SELECT 1
+             FROM jsonb_array_elements(COALESCE(i.oficina_detalhes, '[]'::jsonb)) AS detalhe
+             WHERE detalhe->>'oficina' = $1
+               AND detalhe->>'status' = $2
+           )
+         UNION ALL
+         SELECT COALESCE(NULLIF(a.cpf, ''), a.id::text) AS pessoa_key
+         FROM alunos a
+         INNER JOIN aluno_oficinas ao ON ao.aluno_id = a.id
+         INNER JOIN oficinas o ON o.id = ao.oficina_id
+         WHERE o.nome = $1 AND a.status = 'ativo'
+       ) ocupacao`,
+      [oficina, WAITLIST_STATUS]
+    );
+    statusByOficina[oficina] = Number(occupancy.rows[0]?.total || 0) >= capacity
+      ? WAITLIST_STATUS
+      : CONFIRMED_STATUS;
+  }
+
+  return statusByOficina;
+}
+
 async function create(payload, files = []) {
   const cpf = normalizeCpf(payload.cpf);
   const oficinas = normalizeOficinas(payload);
@@ -129,7 +200,8 @@ async function create(payload, files = []) {
       const newOficinas = oficinas.filter((oficina) => !currentOficinas.includes(oficina));
       if (!newOficinas.length) throw duplicateCpfError();
 
-      const detalhes = mergeOficinaDetalhes(existing.oficinaDetalhes, currentOficinas, oficinas, now);
+      const statusByOficina = await waitlistStatusForMemory(newOficinas);
+      const detalhes = mergeOficinaDetalhes(existing.oficinaDetalhes, currentOficinas, oficinas, now, statusByOficina);
       existing.oficinas = mergeOficinas(currentOficinas, oficinas);
       existing.oficina = existing.oficinas.join(", ");
       existing.oficinaDetalhes = detalhes;
@@ -148,13 +220,14 @@ async function create(payload, files = []) {
 
     const id = crypto.randomUUID();
     const documentos = files.map((file) => documentFromFile(file, id, now));
+    const statusByOficina = await waitlistStatusForMemory(oficinas);
     const record = toPublic({
       id,
       ...payload,
       cpf,
       oficina: oficinas[0],
       oficinas,
-      oficinaDetalhes: detailsForOficinas(oficinas, now),
+      oficinaDetalhes: detailsForOficinas(oficinas, now, "inscricao", statusByOficina),
       documentos,
       created_at: now,
       updated_at: now
@@ -185,11 +258,13 @@ async function create(payload, files = []) {
       if (!newOficinas.length) throw duplicateCpfError();
 
       const mergedOficinas = mergeOficinas(currentOficinas, oficinas);
+      const statusByOficina = await waitlistStatusForDatabase(client, newOficinas);
       const detalhes = mergeOficinaDetalhes(
         existing.rows[0].oficina_detalhes,
         currentOficinas,
         oficinas,
-        new Date().toISOString()
+        new Date().toISOString(),
+        statusByOficina
       );
       const result = await client.query(
         `UPDATE inscricoes
@@ -220,6 +295,7 @@ async function create(payload, files = []) {
       );
       row = result.rows[0];
     } else {
+      const statusByOficina = await waitlistStatusForDatabase(client, oficinas);
       const result = await client.query(
         `INSERT INTO inscricoes
           (nome, cpf, idade, telefone, responsavel, email, oficina, oficinas, oficina_detalhes, observacoes)
@@ -234,7 +310,7 @@ async function create(payload, files = []) {
           payload.email || null,
           oficinas[0],
           oficinas,
-          JSON.stringify(detailsForOficinas(oficinas, new Date().toISOString())),
+          JSON.stringify(detailsForOficinas(oficinas, new Date().toISOString(), "inscricao", statusByOficina)),
           payload.observacoes || null
         ]
       );

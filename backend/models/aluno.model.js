@@ -43,8 +43,11 @@ function toPublic(row) {
     oficinas,
     oficinaDetalhes,
     status: row.status || "ativo",
+    documentosPendentes: Boolean(row.documentos_pendentes ?? row.documentosPendentes),
     advertencias: row.advertencias || "",
     historicoOficinas: row.historico_oficinas || row.historicoOficinas || "",
+    faltasUltimos30Dias: Number(row.faltas_ultimos_30_dias ?? row.faltasUltimos30Dias ?? 0),
+    ultimasChamadas: Array.isArray(row.ultimas_chamadas) ? row.ultimas_chamadas : (row.ultimasChamadas || []),
     observacoes: row.observacoes || "",
     created_at: row.created_at,
     updated_at: row.updated_at
@@ -106,7 +109,32 @@ async function findAll(filters = {}) {
 
   const result = await db.query(
     `SELECT a.id, a.nome, a.idade, a.telefone, a.responsavel, a.email, a.oficina_id,
-            a.cpf, a.status, a.advertencias, a.historico_oficinas, a.observacoes, a.created_at, a.updated_at,
+            a.cpf, a.status, a.documentos_pendentes, a.advertencias, a.historico_oficinas, a.observacoes, a.created_at, a.updated_at,
+            (
+              SELECT COUNT(*)::int
+              FROM presencas p
+              INNER JOIN chamadas c ON c.id = p.chamada_id
+              WHERE p.aluno_id = a.id
+                AND p.status = 'ausente'
+                AND c.data_chamada >= CURRENT_DATE - INTERVAL '30 days'
+            ) AS faltas_ultimos_30_dias,
+            (
+              SELECT COALESCE(jsonb_agg(jsonb_build_object(
+                'oficina', historico.oficina,
+                'data', historico.data_chamada,
+                'status', historico.status,
+                'observacao', historico.observacao
+              ) ORDER BY historico.data_chamada DESC), '[]'::jsonb)
+              FROM (
+                SELECT o2.nome AS oficina, c2.data_chamada, p2.status, COALESCE(p2.observacao, '') AS observacao
+                FROM presencas p2
+                INNER JOIN chamadas c2 ON c2.id = p2.chamada_id
+                LEFT JOIN oficinas o2 ON o2.id = c2.oficina_id
+                WHERE p2.aluno_id = a.id
+                ORDER BY c2.data_chamada DESC
+                LIMIT 8
+              ) historico
+            ) AS ultimas_chamadas,
             COALESCE(
               ARRAY_AGG(ao.oficina_id ORDER BY o.nome) FILTER (WHERE ao.oficina_id IS NOT NULL),
               ARRAY[]::uuid[]
@@ -151,6 +179,7 @@ async function create(payload) {
         oficina_ids: Array.from(new Set([...(memory[existingIndex].oficina_ids || []), ...oficinaIds])),
         oficinas: Array.from(new Set([...(memory[existingIndex].oficinas || []), ...oficinas])),
         status: payload.status || "ativo",
+        documentos_pendentes: payload.documentosPendentes ?? memory[existingIndex].documentos_pendentes ?? false,
         advertencias: payload.advertencias || memory[existingIndex].advertencias || "",
         historico_oficinas: payload.historicoOficinas || payload.historico_oficinas || memory[existingIndex].historico_oficinas || "",
         observacoes: payload.observacoes || memory[existingIndex].observacoes || "",
@@ -173,6 +202,7 @@ async function create(payload) {
       oficina_ids: oficinaIds,
       oficinas,
       status: payload.status || "ativo",
+      documentos_pendentes: payload.documentosPendentes === true,
       advertencias: payload.advertencias || "",
       historico_oficinas: payload.historicoOficinas || payload.historico_oficinas || "",
       observacoes: payload.observacoes || "",
@@ -213,11 +243,12 @@ async function create(payload) {
              email = $5,
              oficina_id = $6,
              status = $7,
-             advertencias = COALESCE(NULLIF($8, ''), advertencias),
-             historico_oficinas = COALESCE(NULLIF($9, ''), historico_oficinas),
-             observacoes = COALESCE(NULLIF($10, ''), observacoes),
+             documentos_pendentes = $8,
+             advertencias = COALESCE(NULLIF($9, ''), advertencias),
+             historico_oficinas = COALESCE(NULLIF($10, ''), historico_oficinas),
+             observacoes = COALESCE(NULLIF($11, ''), observacoes),
              updated_at = NOW()
-         WHERE id = $11`,
+         WHERE id = $12`,
         [
           payload.nome,
           payload.idade || null,
@@ -226,6 +257,7 @@ async function create(payload) {
           payload.email || null,
           mergedOfficeIds[0] || null,
           payload.status || "ativo",
+          payload.documentosPendentes === true,
           payload.advertencias || null,
           payload.historicoOficinas || payload.historico_oficinas || null,
           payload.observacoes || null,
@@ -234,8 +266,8 @@ async function create(payload) {
       );
     } else {
       const result = await client.query(
-        `INSERT INTO alunos (nome, cpf, idade, telefone, responsavel, email, oficina_id, status, advertencias, historico_oficinas, observacoes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `INSERT INTO alunos (nome, cpf, idade, telefone, responsavel, email, oficina_id, status, documentos_pendentes, advertencias, historico_oficinas, observacoes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          RETURNING id`,
         [
           payload.nome,
@@ -246,6 +278,7 @@ async function create(payload) {
           payload.email || null,
           mergedOfficeIds[0] || null,
           payload.status || "ativo",
+          payload.documentosPendentes === true,
           payload.advertencias || null,
           payload.historicoOficinas || payload.historico_oficinas || null,
           payload.observacoes || null
@@ -295,6 +328,7 @@ async function update(id, payload) {
       oficina_ids: oficinaIds,
       oficinas,
       status: payload.status || "ativo",
+      documentos_pendentes: payload.documentosPendentes === true,
       advertencias: payload.advertencias || "",
       historico_oficinas: payload.historicoOficinas || payload.historico_oficinas || "",
       observacoes: payload.observacoes || "",
@@ -316,11 +350,12 @@ async function update(id, payload) {
            email = $6,
            oficina_id = $7,
            status = $8,
-           advertencias = $9,
-           historico_oficinas = $10,
-           observacoes = $11,
+           documentos_pendentes = $9,
+           advertencias = $10,
+           historico_oficinas = $11,
+           observacoes = $12,
            updated_at = NOW()
-       WHERE id = $12
+       WHERE id = $13
        RETURNING id`,
       [
         payload.nome,
@@ -331,6 +366,7 @@ async function update(id, payload) {
         payload.email || null,
         oficinaIds[0] || null,
         payload.status || "ativo",
+        payload.documentosPendentes === true,
         payload.advertencias || null,
         payload.historicoOficinas || payload.historico_oficinas || null,
         payload.observacoes || null,

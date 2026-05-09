@@ -11,6 +11,7 @@ const memory = defaultOficinas.map((oficina) => ({
   dias_semana: oficina.diasSemana || [],
   periodo: oficina.periodo || "a definir",
   horario: oficina.horario,
+  capacidade: oficina.capacidade || 30,
   imagem_url: "/img/oficinas.png",
   initials: oficina.nome.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase(),
   ativo: true,
@@ -28,6 +29,7 @@ function toPublic(row) {
     diasSemana: row.dias_semana || [],
     periodo: row.periodo || "a definir",
     horario: row.horario,
+    capacidade: Number(row.capacidade || 30),
     imagemUrl: row.imagem_url || "/img/oficinas.png",
     initials: row.initials || row.nome.slice(0, 2).toUpperCase(),
     ativo: row.ativo,
@@ -45,7 +47,7 @@ async function findAll({ includeInactive = false } = {}) {
   }
 
   const result = await db.query(
-    `SELECT id, nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, imagem_url, initials, ativo, created_at, updated_at
+    `SELECT id, nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, capacidade, imagem_url, initials, ativo, created_at, updated_at
      FROM oficinas
      ${includeInactive ? "" : "WHERE ativo = true"}
      ORDER BY categoria ASC, nome ASC`
@@ -65,6 +67,7 @@ async function create(payload) {
       dias_semana: payload.diasSemana || [],
       periodo: payload.periodo || "a definir",
       horario: payload.horario,
+      capacidade: Number(payload.capacidade || 30),
       imagem_url: payload.imagemUrl || "/img/oficinas.png",
       initials: payload.initials,
       ativo: payload.ativo !== false,
@@ -76,9 +79,9 @@ async function create(payload) {
   }
 
   const result = await db.query(
-    `INSERT INTO oficinas (nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, imagem_url, initials, ativo)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-     RETURNING id, nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, imagem_url, initials, ativo, created_at, updated_at`,
+    `INSERT INTO oficinas (nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, capacidade, imagem_url, initials, ativo)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+     RETURNING id, nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, capacidade, imagem_url, initials, ativo, created_at, updated_at`,
     [
       payload.nome,
       payload.categoria,
@@ -87,6 +90,7 @@ async function create(payload) {
       payload.diasSemana || [],
       payload.periodo || "a definir",
       payload.horario,
+      Number(payload.capacidade || 30),
       payload.imagemUrl || "/img/oficinas.png",
       payload.initials,
       payload.ativo !== false
@@ -108,6 +112,7 @@ async function update(id, payload) {
       dias_semana: payload.diasSemana || [],
       periodo: payload.periodo || "a definir",
       horario: payload.horario,
+      capacidade: Number(payload.capacidade || 30),
       imagem_url: payload.imagemUrl || "/img/oficinas.png",
       initials: payload.initials,
       ativo: payload.ativo !== false,
@@ -125,12 +130,13 @@ async function update(id, payload) {
          dias_semana = $5,
          periodo = $6,
          horario = $7,
-         imagem_url = $8,
-         initials = $9,
-         ativo = $10,
+         capacidade = $8,
+         imagem_url = $9,
+         initials = $10,
+         ativo = $11,
          updated_at = NOW()
-     WHERE id = $11
-     RETURNING id, nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, imagem_url, initials, ativo, created_at, updated_at`,
+     WHERE id = $12
+     RETURNING id, nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, capacidade, imagem_url, initials, ativo, created_at, updated_at`,
     [
       payload.nome,
       payload.categoria,
@@ -139,6 +145,7 @@ async function update(id, payload) {
       payload.diasSemana || [],
       payload.periodo || "a definir",
       payload.horario,
+      Number(payload.capacidade || 30),
       payload.imagemUrl || "/img/oficinas.png",
       payload.initials,
       payload.ativo !== false,
