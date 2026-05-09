@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS alunos (
   email TEXT CHECK (email IS NULL OR char_length(email) <= 160),
   oficina_id UUID REFERENCES oficinas(id) ON DELETE SET NULL,
   status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo')),
+  advertencias TEXT CHECK (advertencias IS NULL OR char_length(advertencias) <= 1000),
+  historico_oficinas TEXT CHECK (historico_oficinas IS NULL OR char_length(historico_oficinas) <= 1000),
   observacoes TEXT CHECK (observacoes IS NULL OR char_length(observacoes) <= 500),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -63,7 +65,14 @@ ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS dias_semana TEXT[] NOT NULL DEFAUL
 ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS periodo TEXT NOT NULL DEFAULT 'a definir';
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficinas TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficina_detalhes JSONB NOT NULL DEFAULT '[]'::jsonb;
 UPDATE inscricoes SET oficinas = ARRAY[oficina] WHERE oficinas = '{}' AND oficina IS NOT NULL;
+UPDATE inscricoes
+SET oficina_detalhes = (
+  SELECT COALESCE(jsonb_agg(jsonb_build_object('oficina', oficina_nome, 'createdAt', created_at, 'source', 'inscricao')), '[]'::jsonb)
+  FROM unnest(oficinas) AS oficina_nome
+)
+WHERE oficina_detalhes = '[]'::jsonb AND cardinality(oficinas) > 0;
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -78,6 +87,8 @@ ALTER TABLE galeria ADD COLUMN IF NOT EXISTS size_bytes INTEGER;
 ALTER TABLE galeria ADD COLUMN IF NOT EXISTS file_content BYTEA;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS oficina_id UUID REFERENCES oficinas(id) ON DELETE SET NULL;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS advertencias TEXT;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS historico_oficinas TEXT;
 ALTER TABLE inscricao_documentos ADD COLUMN IF NOT EXISTS file_content BYTEA;
 
 CREATE TABLE IF NOT EXISTS aluno_oficinas (

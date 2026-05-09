@@ -20,12 +20,119 @@ function alunoToInscricaoRows(aluno) {
     email: aluno.email || "",
     oficina: oficinas.join(", "),
     oficinas,
+    oficinaDetalhes: aluno.oficinaDetalhes || oficinas.map((oficina) => ({
+      oficina,
+      createdAt: aluno.created_at,
+      source: "aluno"
+    })),
+    advertencias: aluno.advertencias || "",
+    historicoOficinas: aluno.historicoOficinas || "",
     observacoes: aluno.observacoes || "",
     documentosCount: 0,
     status: aluno.status || "ativo",
     created_at: aluno.created_at,
     updated_at: aluno.updated_at
   };
+}
+
+function sourceLabel(source) {
+  return source === "aluno" ? "Aluno ADM" : "Inscricao online";
+}
+
+function uniqueValues(values) {
+  return Array.from(new Set(values.map((value) => String(value || "").trim()).filter(Boolean)));
+}
+
+function sourceRecord(row) {
+  const oficinas = Array.isArray(row.oficinas) && row.oficinas.length ? row.oficinas : [row.oficina].filter(Boolean);
+  return {
+    source: row.source,
+    sourceLabel: sourceLabel(row.source),
+    sourceId: row.sourceId,
+    id: row.id,
+    nome: row.nome,
+    cpf: row.cpf || "",
+    idade: row.idade,
+    telefone: row.telefone || "",
+    responsavel: row.responsavel || "",
+    email: row.email || "",
+    oficinas,
+    oficina: oficinas.join(", "),
+    oficinaDetalhes: row.oficinaDetalhes || oficinas.map((oficina) => ({
+      oficina,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      source: row.source
+    })),
+    documentosCount: Number(row.documentosCount || 0),
+    observacoes: row.observacoes || "",
+    status: row.status || "",
+    advertencias: row.advertencias || "",
+    historicoOficinas: row.historicoOficinas || "",
+    created_at: row.created_at,
+    updated_at: row.updated_at
+  };
+}
+
+function personRows(rows) {
+  const groups = new Map();
+
+  rows.forEach((row) => {
+    const key = row.cpf ? `cpf:${row.cpf}` : `${row.source}:${row.sourceId}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  });
+
+  return Array.from(groups.entries()).map(([key, group]) => {
+    const sources = group.map(sourceRecord);
+    const sortedByActivity = [...sources].sort((a, b) => asTimestamp(b.updated_at || b.created_at) - asTimestamp(a.updated_at || a.created_at));
+    const primary = sortedByActivity[0] || sources[0];
+    const online = sources.find((item) => item.source === "inscricao");
+    const aluno = sources.find((item) => item.source === "aluno");
+    const oficinas = uniqueValues(sources.flatMap((item) => item.oficinas));
+    const oficinaDetalhes = sources
+      .flatMap((item) => item.oficinaDetalhes.map((detail) => ({
+        ...detail,
+        source: detail.source || item.source,
+        sourceLabel: sourceLabel(detail.source || item.source),
+        sourceId: item.sourceId
+      })))
+      .sort((a, b) => asTimestamp(a.createdAt || a.created_at) - asTimestamp(b.createdAt || b.created_at));
+    const firstCreated = sources
+      .map((item) => item.created_at)
+      .filter(Boolean)
+      .sort((a, b) => asTimestamp(a) - asTimestamp(b))[0] || primary.created_at;
+
+    return {
+      id: key,
+      source: "pessoa",
+      sourceId: primary.sourceId,
+      primarySource: primary.source,
+      primarySourceId: primary.sourceId,
+      inscricaoId: online?.sourceId || "",
+      alunoId: aluno?.sourceId || "",
+      nome: primary.nome,
+      cpf: primary.cpf,
+      idade: primary.idade,
+      telefone: uniqueValues(sources.map((item) => item.telefone)).join(" / "),
+      responsavel: uniqueValues(sources.map((item) => item.responsavel)).join(" / "),
+      email: uniqueValues(sources.map((item) => item.email)).join(" / "),
+      oficina: oficinas.join(", "),
+      oficinas,
+      oficinaDetalhes,
+      sourceSummary: uniqueValues(sources.map((item) => item.sourceLabel)).join(" + "),
+      sources,
+      documentosCount: sources.reduce((total, item) => total + Number(item.documentosCount || 0), 0),
+      documentSources: sources.filter((item) => item.source === "inscricao" && item.documentosCount > 0)
+        .map((item) => ({ sourceId: item.sourceId, documentosCount: item.documentosCount, sourceLabel: item.sourceLabel })),
+      status: aluno?.status || online?.status || primary.status || "",
+      advertencias: aluno?.advertencias || "",
+      historicoOficinas: aluno?.historicoOficinas || "",
+      observacoes: uniqueValues(sources.map((item) => item.observacoes)).join("\n\n"),
+      created_at: firstCreated,
+      updated_at: primary.updated_at || primary.created_at
+    };
+  }).sort((a, b) => asTimestamp(b.updated_at || b.created_at) - asTimestamp(a.updated_at || a.created_at));
 }
 
 function inscriptionToRow(inscricao) {
@@ -48,7 +155,7 @@ function filterRows(rows, filters = {}) {
       || item.nome.toLowerCase().includes(search)
       || (normalizedSearchPhone && String(item.cpf || "").includes(normalizedSearchPhone))
       || item.email.toLowerCase().includes(search)
-      || (normalizedSearchPhone && item.telefone.replace(/\D/g, "").includes(normalizedSearchPhone));
+      || (normalizedSearchPhone && String(item.telefone || "").replace(/\D/g, "").includes(normalizedSearchPhone));
     const matchesOficina = !oficina || oficinas.includes(oficina);
     return matchesSearch && matchesOficina;
   });
@@ -56,15 +163,14 @@ function filterRows(rows, filters = {}) {
 
 async function combinedRows(filters = {}) {
   const [inscricoes, alunos] = await Promise.all([
-    Inscricao.findAll(filters),
+    Inscricao.findAll({ search: filters.search || "" }),
     Aluno.findAll({ search: filters.search || "" })
   ]);
 
-  return filterRows([
+  return [
     ...inscricoes.map(inscriptionToRow),
     ...alunos.map(alunoToInscricaoRows)
-  ], filters)
-    .sort((a, b) => asTimestamp(b.created_at) - asTimestamp(a.created_at));
+  ].sort((a, b) => asTimestamp(b.created_at) - asTimestamp(a.created_at));
 }
 
 function uniquePersonRows(rows) {
@@ -82,7 +188,7 @@ async function create(data, documentos = []) {
 }
 
 async function list(filters) {
-  return combinedRows(filters);
+  return filterRows(personRows(await combinedRows(filters)), filters);
 }
 
 async function update(id, data) {
@@ -94,7 +200,7 @@ async function remove(id) {
 }
 
 async function dashboard() {
-  const rows = uniquePersonRows(await combinedRows());
+  const rows = personRows(await combinedRows());
   const byOficina = rows.reduce((acc, item) => {
     const oficinas = Array.isArray(item.oficinas) && item.oficinas.length ? item.oficinas : [item.oficina];
     oficinas.forEach((oficina) => {

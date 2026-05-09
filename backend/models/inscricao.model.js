@@ -16,6 +16,46 @@ function mergeOficinas(current = [], incoming = []) {
   return Array.from(new Set([...current, ...incoming].map((item) => String(item || "").trim()).filter(Boolean)));
 }
 
+function detailsForOficinas(oficinas = [], createdAt, source = "inscricao") {
+  return oficinas.map((oficina) => ({
+    oficina,
+    createdAt,
+    source
+  }));
+}
+
+function normalizeOficinaDetalhes(row, oficinas) {
+  const rawDetails = Array.isArray(row.oficina_detalhes)
+    ? row.oficina_detalhes
+    : Array.isArray(row.oficinaDetalhes)
+      ? row.oficinaDetalhes
+      : [];
+
+  return oficinas.map((oficina) => {
+    const detail = rawDetails.find((item) => item.oficina === oficina) || {};
+    return {
+      oficina,
+      createdAt: detail.createdAt || detail.created_at || row.created_at,
+      updatedAt: detail.updatedAt || detail.updated_at || row.updated_at,
+      source: detail.source || "inscricao"
+    };
+  });
+}
+
+function mergeOficinaDetalhes(currentDetails = [], currentOficinas = [], incomingOficinas = [], now = new Date().toISOString()) {
+  const current = normalizeOficinaDetalhes({
+    oficina_detalhes: currentDetails,
+    created_at: now,
+    updated_at: now
+  }, currentOficinas);
+  const mergedOficinas = mergeOficinas(currentOficinas, incomingOficinas);
+
+  return mergedOficinas.map((oficina) => (
+    current.find((detail) => detail.oficina === oficina)
+    || { oficina, createdAt: now, updatedAt: now, source: "inscricao" }
+  ));
+}
+
 function duplicateCpfError() {
   const error = new Error("Este CPF ja possui cadastro para a(s) oficina(s) selecionada(s). Para alterar dados, procure a equipe do Centro da Juventude.");
   error.statusCode = 409;
@@ -27,6 +67,7 @@ function toPublic(row) {
   const oficinas = Array.isArray(row.oficinas) && row.oficinas.length
     ? row.oficinas
     : [row.oficina].filter(Boolean);
+  const oficinaDetalhes = normalizeOficinaDetalhes(row, oficinas);
 
   return {
     id: row.id,
@@ -38,6 +79,7 @@ function toPublic(row) {
     email: row.email || "",
     oficina: oficinas.join(", "),
     oficinas,
+    oficinaDetalhes,
     observacoes: row.observacoes || "",
     documentosCount,
     created_at: row.created_at,
@@ -87,8 +129,10 @@ async function create(payload, files = []) {
       const newOficinas = oficinas.filter((oficina) => !currentOficinas.includes(oficina));
       if (!newOficinas.length) throw duplicateCpfError();
 
+      const detalhes = mergeOficinaDetalhes(existing.oficinaDetalhes, currentOficinas, oficinas, now);
       existing.oficinas = mergeOficinas(currentOficinas, oficinas);
       existing.oficina = existing.oficinas.join(", ");
+      existing.oficinaDetalhes = detalhes;
       existing.nome = payload.nome;
       existing.idade = payload.idade;
       existing.telefone = payload.telefone;
@@ -110,6 +154,7 @@ async function create(payload, files = []) {
       cpf,
       oficina: oficinas[0],
       oficinas,
+      oficinaDetalhes: detailsForOficinas(oficinas, now),
       documentos,
       created_at: now,
       updated_at: now
@@ -124,7 +169,7 @@ async function create(payload, files = []) {
   try {
     await client.query("BEGIN");
     const existing = await client.query(
-      `SELECT id, oficinas, oficina
+      `SELECT id, oficinas, oficina, oficina_detalhes, created_at, updated_at
        FROM inscricoes
        WHERE cpf = $1
        FOR UPDATE`,
@@ -140,6 +185,12 @@ async function create(payload, files = []) {
       if (!newOficinas.length) throw duplicateCpfError();
 
       const mergedOficinas = mergeOficinas(currentOficinas, oficinas);
+      const detalhes = mergeOficinaDetalhes(
+        existing.rows[0].oficina_detalhes,
+        currentOficinas,
+        oficinas,
+        new Date().toISOString()
+      );
       const result = await client.query(
         `UPDATE inscricoes
          SET nome = $1,
@@ -149,10 +200,11 @@ async function create(payload, files = []) {
              email = $5,
              oficina = $6,
              oficinas = $7,
-             observacoes = $8,
+             oficina_detalhes = $8,
+             observacoes = $9,
              updated_at = NOW()
-         WHERE id = $9
-         RETURNING id, nome, cpf, idade, telefone, responsavel, email, oficina, oficinas, observacoes, created_at, updated_at`,
+         WHERE id = $10
+         RETURNING id, nome, cpf, idade, telefone, responsavel, email, oficina, oficinas, oficina_detalhes, observacoes, created_at, updated_at`,
         [
           payload.nome,
           payload.idade,
@@ -161,6 +213,7 @@ async function create(payload, files = []) {
           payload.email || null,
           mergedOficinas[0],
           mergedOficinas,
+          JSON.stringify(detalhes),
           payload.observacoes || null,
           existing.rows[0].id
         ]
@@ -169,9 +222,9 @@ async function create(payload, files = []) {
     } else {
       const result = await client.query(
         `INSERT INTO inscricoes
-          (nome, cpf, idade, telefone, responsavel, email, oficina, oficinas, observacoes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         RETURNING id, nome, cpf, idade, telefone, responsavel, email, oficina, oficinas, observacoes, created_at, updated_at`,
+          (nome, cpf, idade, telefone, responsavel, email, oficina, oficinas, oficina_detalhes, observacoes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         RETURNING id, nome, cpf, idade, telefone, responsavel, email, oficina, oficinas, oficina_detalhes, observacoes, created_at, updated_at`,
         [
           payload.nome,
           cpf,
@@ -181,6 +234,7 @@ async function create(payload, files = []) {
           payload.email || null,
           oficinas[0],
           oficinas,
+          JSON.stringify(detailsForOficinas(oficinas, new Date().toISOString())),
           payload.observacoes || null
         ]
       );
@@ -271,6 +325,7 @@ async function findAll(filters = {}) {
       email,
       oficina,
       oficinas,
+      oficina_detalhes,
       observacoes,
       created_at,
       updated_at,
@@ -305,6 +360,9 @@ async function update(id, payload) {
       cpf: cpf || memory[index].cpf || "",
       oficina: oficinas[0] || memory[index].oficina,
       oficinas: oficinas.length ? oficinas : memory[index].oficinas,
+      oficinaDetalhes: oficinas.length
+        ? mergeOficinaDetalhes(memory[index].oficinaDetalhes, memory[index].oficinas, oficinas, new Date().toISOString())
+        : memory[index].oficinaDetalhes,
       documentosCount: memory[index].documentosCount || 0,
       updated_at: new Date().toISOString()
     });
@@ -313,6 +371,21 @@ async function update(id, payload) {
 
   let result;
   try {
+    const existing = await db.query(
+      "SELECT oficinas, oficina, oficina_detalhes FROM inscricoes WHERE id = $1",
+      [id]
+    );
+    const existingOficinas = existing.rows[0]?.oficinas?.length
+      ? existing.rows[0].oficinas
+      : [existing.rows[0]?.oficina].filter(Boolean);
+    const nextOficinas = oficinas.length ? oficinas : [payload.oficina].filter(Boolean);
+    const detalhes = mergeOficinaDetalhes(
+      existing.rows[0]?.oficina_detalhes || [],
+      existingOficinas,
+      nextOficinas,
+      new Date().toISOString()
+    );
+
     result = await db.query(
       `UPDATE inscricoes
        SET nome = $1,
@@ -323,9 +396,10 @@ async function update(id, payload) {
            email = $6,
            oficina = $7,
            oficinas = $8,
-           observacoes = $9,
+           oficina_detalhes = $9,
+           observacoes = $10,
            updated_at = NOW()
-       WHERE id = $10
+       WHERE id = $11
        RETURNING
          id,
          nome,
@@ -336,6 +410,7 @@ async function update(id, payload) {
          email,
          oficina,
          oficinas,
+         oficina_detalhes,
          observacoes,
          created_at,
          updated_at,
@@ -351,8 +426,9 @@ async function update(id, payload) {
         payload.telefone,
         payload.responsavel || null,
         payload.email || null,
-        oficinas[0] || payload.oficina,
-        oficinas.length ? oficinas : [payload.oficina].filter(Boolean),
+        nextOficinas[0] || payload.oficina,
+        nextOficinas,
+        JSON.stringify(detalhes),
         payload.observacoes || null,
         id
       ]
@@ -462,6 +538,7 @@ async function stats() {
                 email,
                 oficina,
                 oficinas,
+                oficina_detalhes,
                 observacoes,
                 created_at,
                 updated_at,

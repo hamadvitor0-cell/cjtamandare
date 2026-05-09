@@ -102,6 +102,8 @@ const alunoSchema = Joi.object({
   oficinaId: Joi.string().allow("").pattern(uuidPattern),
   oficinaIds: Joi.array().items(Joi.string().pattern(uuidPattern)).min(1).max(20).required(),
   status: Joi.string().valid("ativo", "inativo").required(),
+  advertencias: Joi.string().allow("").max(1000),
+  historicoOficinas: Joi.string().allow("").max(1000),
   observacoes: Joi.string().allow("").max(500)
 });
 

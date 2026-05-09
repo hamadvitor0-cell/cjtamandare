@@ -69,6 +69,9 @@ const editForm = document.querySelector("[data-edit-form]");
 const editFeedback = document.querySelector("[data-edit-feedback]");
 const documentsDialog = document.querySelector("[data-documents-dialog]");
 const documentsList = document.querySelector("[data-documents-list]");
+const profileDialog = document.querySelector("[data-profile-dialog]");
+const profileContent = document.querySelector("[data-profile-content]");
+const profileSubtitle = document.querySelector("[data-profile-subtitle]");
 const pageTitle = document.querySelector("[data-page-title]");
 
 const pageTitles = {
@@ -321,14 +324,30 @@ function renderTable() {
   }
 
   state.inscricoes.forEach((item) => {
-    const row = createElement("tr");
+    const row = createElement("tr", {
+      className: "person-row",
+      attrs: {
+        tabindex: "0",
+        "aria-label": `Abrir ficha de ${item.nome}`
+      }
+    });
+    row.addEventListener("click", (event) => {
+      if (event.target.closest("button, a, input, select, textarea")) return;
+      openStudentProfile(item);
+    });
+    row.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openStudentProfile(item);
+    });
+
     row.append(
       createElement("td", { text: item.nome }),
       createElement("td", { text: maskCpfValue(item.cpf || "") || "-" }),
-      createElement("td", { text: String(item.idade) }),
-      createElement("td", { text: item.telefone }),
-      createElement("td", { text: item.oficina }),
-      createElement("td", { text: item.source === "aluno" ? "Aluno ADM" : "Inscricao online" })
+      createElement("td", { text: item.idade === "" || item.idade === undefined ? "-" : String(item.idade) }),
+      createElement("td", { text: item.telefone || "-" }),
+      createElement("td", { text: item.oficina || "-" }),
+      createElement("td", { text: item.sourceSummary || (item.source === "aluno" ? "Aluno ADM" : "Inscricao online") })
     );
 
     const docsCell = createElement("td");
@@ -348,26 +367,35 @@ function renderTable() {
 
     const actionsCell = createElement("td");
     const actions = createElement("div", { className: "table-actions" });
+    const ficha = createElement("button", {
+      className: "icon-action",
+      text: "Ficha",
+      attrs: { type: "button" }
+    });
     const edit = createElement("button", {
       className: "icon-action",
       text: "Editar",
       attrs: { type: "button" }
     });
-    const del = createElement("button", {
-      className: "icon-action danger",
-      text: "Excluir",
-      attrs: { type: "button" }
-    });
-    if (item.source === "aluno") {
-      edit.textContent = "Editar aluno";
-      del.textContent = "Excluir aluno";
-      edit.addEventListener("click", () => openStudentFromEnrollment(item));
-      del.addEventListener("click", () => removeStudentFromEnrollment(item));
-    } else {
-      edit.addEventListener("click", () => openEdit(item));
-      del.addEventListener("click", () => removeInscricao(item));
+    ficha.addEventListener("click", () => openStudentProfile(item));
+    edit.addEventListener("click", () => openPrimaryEdit(item));
+    actions.append(ficha, edit);
+
+    const isGrouped = item.source === "pessoa" && (item.sources || []).length > 1;
+    if (!isGrouped) {
+      const del = createElement("button", {
+        className: "icon-action danger",
+        text: "Excluir",
+        attrs: { type: "button" }
+      });
+      if (item.source === "aluno" || item.primarySource === "aluno") {
+        del.textContent = "Excluir aluno";
+        del.addEventListener("click", () => removeStudentFromEnrollment(item));
+      } else {
+        del.addEventListener("click", () => removeInscricao({ ...item, id: item.sourceId || item.id }));
+      }
+      actions.append(del);
     }
-    actions.append(edit, del);
     actionsCell.append(actions);
     row.append(actionsCell);
     tableBody.append(row);
@@ -407,6 +435,173 @@ function setFormValues(form, values) {
       form.elements[key].value = value ?? "";
     }
   });
+}
+
+function addProfileField(container, label, value) {
+  const item = createElement("div", { className: "profile-field" });
+  item.append(
+    createElement("span", { text: label }),
+    createElement("strong", { text: value || "-" })
+  );
+  container.append(item);
+}
+
+function multilineText(value, fallback) {
+  return String(value || "").trim() || fallback;
+}
+
+function primaryOnlineSource(person) {
+  return (person.sources || []).find((source) => source.source === "inscricao");
+}
+
+function primaryStudentSource(person) {
+  return (person.sources || []).find((source) => source.source === "aluno");
+}
+
+function sourceName(source) {
+  return source === "aluno" ? "Aluno ADM" : "Inscricao online";
+}
+
+function openPrimaryEdit(person) {
+  const student = primaryStudentSource(person);
+  const online = primaryOnlineSource(person);
+  if (student) {
+    openStudentFromEnrollment({ sourceId: student.sourceId, nome: person.nome });
+    return;
+  }
+  if (online) {
+    openEdit({ ...online, id: online.sourceId });
+    return;
+  }
+  openStudentProfile(person);
+}
+
+function makeProfileSection(title) {
+  const section = createElement("section", { className: "profile-section" });
+  section.append(createElement("h3", { text: title }));
+  return section;
+}
+
+function appendProfileNote(section, title, value, fallback) {
+  const note = createElement("article", { className: "profile-note" });
+  note.append(
+    createElement("strong", { text: title }),
+    createElement("p", { text: multilineText(value, fallback) })
+  );
+  section.append(note);
+}
+
+function openStudentProfile(person) {
+  if (!profileDialog || !profileContent) return;
+
+  const sources = person.sources?.length ? person.sources : [person];
+  const online = primaryOnlineSource(person);
+  const student = primaryStudentSource(person);
+  const cpf = maskCpfValue(person.cpf || "") || "CPF nao informado";
+  if (profileSubtitle) {
+    profileSubtitle.textContent = `${cpf} - ${person.sourceSummary || sourceName(person.primarySource || person.source)}`;
+  }
+
+  const summary = makeProfileSection("Dados principais");
+  const grid = createElement("div", { className: "profile-grid" });
+  addProfileField(grid, "Nome", person.nome);
+  addProfileField(grid, "CPF", cpf);
+  addProfileField(grid, "Idade", person.idade === "" || person.idade === undefined ? "-" : `${person.idade} anos`);
+  addProfileField(grid, "Telefone", person.telefone);
+  addProfileField(grid, "Responsavel", person.responsavel);
+  addProfileField(grid, "E-mail", person.email);
+  addProfileField(grid, "Status", person.status || "inscrito");
+  addProfileField(grid, "Primeiro cadastro", formatDate(person.created_at));
+  summary.append(grid);
+
+  const officesSection = makeProfileSection("Oficinas e matriculas");
+  const timeline = createElement("div", { className: "profile-timeline" });
+  const detalhes = person.oficinaDetalhes?.length
+    ? person.oficinaDetalhes
+    : (person.oficinas || [person.oficina].filter(Boolean)).map((oficina) => ({
+      oficina,
+      createdAt: person.created_at,
+      source: person.primarySource || person.source
+    }));
+
+  if (!detalhes.length) {
+    timeline.append(createElement("p", { className: "form-feedback", text: "Nenhuma oficina vinculada." }));
+  } else {
+    detalhes.forEach((detail) => {
+      const card = createElement("article", { className: "profile-card" });
+      card.append(
+        createElement("strong", { text: detail.oficina || "Oficina" }),
+        createElement("span", { text: `Cadastrado em ${formatDate(detail.createdAt || detail.created_at || person.created_at)}` }),
+        createElement("span", { text: `Origem: ${detail.sourceLabel || sourceName(detail.source)}` })
+      );
+      timeline.append(card);
+    });
+  }
+  officesSection.append(timeline);
+
+  const history = makeProfileSection("Historico do aluno");
+  appendProfileNote(history, "Advertencias", person.advertencias, "Sem advertencias registradas.");
+  appendProfileNote(history, "Oficinas anteriores", person.historicoOficinas, "Sem historico anterior registrado.");
+  appendProfileNote(history, "Observacoes", person.observacoes, "Sem observacoes registradas.");
+
+  const sourceSection = makeProfileSection("Registros vinculados");
+  const sourceList = createElement("div", { className: "profile-timeline" });
+  sources.forEach((source) => {
+    const item = createElement("article", { className: "profile-card" });
+    item.append(
+      createElement("strong", { text: source.sourceLabel || sourceName(source.source) }),
+      createElement("span", { text: source.oficina || "Sem oficina" }),
+      createElement("span", { text: `Criado em ${formatDate(source.created_at)}` }),
+      createElement("span", { text: `Telefone: ${source.telefone || "nao informado"}` })
+    );
+    if (source.documentosCount) {
+      item.append(createElement("span", { text: `Documentos: ${source.documentosCount}` }));
+    }
+    sourceList.append(item);
+  });
+  sourceSection.append(sourceList);
+
+  const actions = createElement("div", { className: "profile-actions" });
+  if (student) {
+    const editStudentButton = createElement("button", {
+      className: "button button-primary",
+      text: "Editar ficha ADM",
+      attrs: { type: "button" }
+    });
+    editStudentButton.addEventListener("click", () => {
+      profileDialog.close();
+      openStudentFromEnrollment({ sourceId: student.sourceId, nome: person.nome });
+    });
+    actions.append(editStudentButton);
+  }
+  if (online) {
+    const editOnlineButton = createElement("button", {
+      className: "button button-secondary",
+      text: "Editar inscricao online",
+      attrs: { type: "button" }
+    });
+    editOnlineButton.addEventListener("click", () => {
+      profileDialog.close();
+      openEdit({ ...online, id: online.sourceId });
+    });
+    actions.append(editOnlineButton);
+  }
+  if (Number(person.documentosCount || 0) > 0) {
+    const docsButton = createElement("button", {
+      className: "button button-secondary",
+      text: "Ver documentos",
+      attrs: { type: "button" }
+    });
+    docsButton.addEventListener("click", () => {
+      profileDialog.close();
+      openDocuments(person);
+    });
+    actions.append(docsButton);
+  }
+
+  profileContent.replaceChildren(summary, officesSection, history, sourceSection, actions);
+  if (profileDialog.open) profileDialog.close();
+  profileDialog.showModal();
 }
 
 function renderOfficeList() {
@@ -610,6 +805,8 @@ function editStudent(aluno) {
     responsavel: aluno.responsavel,
     email: aluno.email,
     status: aluno.status,
+    advertencias: aluno.advertencias,
+    historicoOficinas: aluno.historicoOficinas,
     observacoes: aluno.observacoes
   });
   setSelectedValues(form.elements.oficinaIds, aluno.oficinaIds || []);
@@ -752,8 +949,19 @@ async function openDocuments(item) {
   documentsDialog.showModal();
 
   try {
-    const data = await apiRequest(`/inscricoes/${item.id}/documentos`);
-    const documentos = data.documentos || [];
+    const sources = item.documentSources?.length
+      ? item.documentSources
+      : [{ sourceId: item.sourceId || item.id, sourceLabel: item.sourceSummary || sourceName(item.source) }];
+    const documentos = [];
+
+    for (const source of sources) {
+      if (!source.sourceId) continue;
+      const data = await apiRequest(`/inscricoes/${source.sourceId}/documentos`);
+      documentos.push(...(data.documentos || []).map((documento) => ({
+        ...documento,
+        sourceLabel: source.sourceLabel || "Inscricao online"
+      })));
+    }
     documentsList.replaceChildren();
 
     if (!documentos.length) {
@@ -767,7 +975,7 @@ async function openDocuments(item) {
       const sizeKb = Math.max(1, Math.round((documento.sizeBytes || 0) / 1024));
       main.append(
         createElement("strong", { text: documento.originalName }),
-        createElement("span", { text: `${documento.mimeType} · ${sizeKb} KB` })
+        createElement("span", { text: [documento.mimeType, `${sizeKb} KB`, documento.sourceLabel].filter(Boolean).join(" - ") })
       );
       const link = createElement("a", {
         className: "button button-secondary",
@@ -906,6 +1114,10 @@ function setupEvents() {
 
   document.querySelector("[data-close-documents]")?.addEventListener("click", () => {
     documentsDialog?.close();
+  });
+
+  document.querySelector("[data-close-profile]")?.addEventListener("click", () => {
+    profileDialog?.close();
   });
 
   editForm?.addEventListener("submit", async (event) => {

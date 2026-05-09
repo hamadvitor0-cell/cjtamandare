@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS inscricoes (
   email TEXT CHECK (email IS NULL OR char_length(email) <= 160),
   oficina TEXT NOT NULL CHECK (char_length(oficina) BETWEEN 2 AND 80),
   oficinas TEXT[] NOT NULL DEFAULT '{}',
+  oficina_detalhes JSONB NOT NULL DEFAULT '[]'::jsonb,
   observacoes TEXT CHECK (observacoes IS NULL OR char_length(observacoes) <= 500),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -46,7 +47,14 @@ CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);
 
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficinas TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficina_detalhes JSONB NOT NULL DEFAULT '[]'::jsonb;
 UPDATE inscricoes SET oficinas = ARRAY[oficina] WHERE oficinas = '{}' AND oficina IS NOT NULL;
+UPDATE inscricoes
+SET oficina_detalhes = (
+  SELECT COALESCE(jsonb_agg(jsonb_build_object('oficina', oficina_nome, 'createdAt', created_at, 'source', 'inscricao')), '[]'::jsonb)
+  FROM unnest(oficinas) AS oficina_nome
+)
+WHERE oficina_detalhes = '[]'::jsonb AND cardinality(oficinas) > 0;
 DO $$
 BEGIN
   IF NOT EXISTS (

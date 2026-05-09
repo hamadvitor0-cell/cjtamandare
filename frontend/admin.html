@@ -25,7 +25,7 @@
           <form data-login-form novalidate>
             <label>
               <span>E-mail</span>
-              <input name="email" type="email" autocomplete="username" required>
+              <input name="email" type="text" inputmode="email" autocomplete="username" spellcheck="false" required>
             </label>
             <label>
               <span>Senha</span>
@@ -108,7 +108,7 @@
             <div class="panel-title table-title">
               <div>
                 <h2>Inscritos</h2>
-                <p>Pesquise, filtre, edite, exclua e exporte os registros.</p>
+                <p>Cada CPF aparece uma vez. Clique no aluno para abrir a ficha completa.</p>
               </div>
               <button class="button button-primary" type="button" data-export-csv>Exportar CSV</button>
             </div>
@@ -320,6 +320,14 @@
                   </select>
                 </label>
                 <label class="full-field">
+                  <span>Advertências</span>
+                  <textarea name="advertencias" rows="3" maxlength="1000" placeholder="Registre advertências, datas e encaminhamentos quando houver."></textarea>
+                </label>
+                <label class="full-field">
+                  <span>Histórico de oficinas anteriores</span>
+                  <textarea name="historicoOficinas" rows="3" maxlength="1000" placeholder="Liste oficinas anteriores, períodos concluídos ou desligamentos."></textarea>
+                </label>
+                <label class="full-field">
                   <span>Observações</span>
                   <textarea name="observacoes" rows="3" maxlength="500"></textarea>
                 </label>
@@ -440,6 +448,19 @@
           <button type="button" class="dialog-close" aria-label="Fechar" data-close-documents>×</button>
         </header>
         <div class="content-list" data-documents-list></div>
+      </div>
+    </dialog>
+
+    <dialog class="edit-dialog profile-dialog" data-profile-dialog>
+      <div class="edit-form profile-dialog-content">
+        <header>
+          <div>
+            <h2>Ficha do aluno</h2>
+            <p data-profile-subtitle></p>
+          </div>
+          <button type="button" class="dialog-close" aria-label="Fechar" data-close-profile>×</button>
+        </header>
+        <div class="profile-content" data-profile-content></div>
       </div>
     </dialog>
 

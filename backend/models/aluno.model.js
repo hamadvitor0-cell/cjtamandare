@@ -22,6 +22,13 @@ async function officeNamesForMemory(oficinaIds) {
 function toPublic(row) {
   const oficinaIds = row.oficina_ids || row.oficinaIds || (row.oficina_id ? [row.oficina_id] : []);
   const oficinas = row.oficinas || (row.oficina_nome ? [row.oficina_nome] : []);
+  const oficinaCreatedAts = row.oficina_created_ats || row.oficinaCreatedAts || [];
+  const oficinaDetalhes = oficinas.map((oficina, index) => ({
+    oficina,
+    oficinaId: oficinaIds[index] || "",
+    createdAt: oficinaCreatedAts[index] || row.created_at,
+    source: "aluno"
+  }));
   return {
     id: row.id,
     nome: row.nome,
@@ -34,7 +41,10 @@ function toPublic(row) {
     oficinaIds,
     oficina: oficinas[0] || "",
     oficinas,
+    oficinaDetalhes,
     status: row.status || "ativo",
+    advertencias: row.advertencias || "",
+    historicoOficinas: row.historico_oficinas || row.historicoOficinas || "",
     observacoes: row.observacoes || "",
     created_at: row.created_at,
     updated_at: row.updated_at
@@ -96,7 +106,7 @@ async function findAll(filters = {}) {
 
   const result = await db.query(
     `SELECT a.id, a.nome, a.idade, a.telefone, a.responsavel, a.email, a.oficina_id,
-            a.cpf, a.status, a.observacoes, a.created_at, a.updated_at,
+            a.cpf, a.status, a.advertencias, a.historico_oficinas, a.observacoes, a.created_at, a.updated_at,
             COALESCE(
               ARRAY_AGG(ao.oficina_id ORDER BY o.nome) FILTER (WHERE ao.oficina_id IS NOT NULL),
               ARRAY[]::uuid[]
@@ -104,7 +114,11 @@ async function findAll(filters = {}) {
             COALESCE(
               ARRAY_AGG(o.nome ORDER BY o.nome) FILTER (WHERE o.nome IS NOT NULL),
               ARRAY[]::text[]
-            ) AS oficinas
+            ) AS oficinas,
+            COALESCE(
+              ARRAY_AGG(ao.created_at ORDER BY o.nome) FILTER (WHERE ao.created_at IS NOT NULL),
+              ARRAY[]::timestamptz[]
+            ) AS oficina_created_ats
      FROM alunos a
      LEFT JOIN aluno_oficinas ao ON ao.aluno_id = a.id
      LEFT JOIN oficinas o ON o.id = ao.oficina_id
@@ -137,7 +151,9 @@ async function create(payload) {
         oficina_ids: Array.from(new Set([...(memory[existingIndex].oficina_ids || []), ...oficinaIds])),
         oficinas: Array.from(new Set([...(memory[existingIndex].oficinas || []), ...oficinas])),
         status: payload.status || "ativo",
-        observacoes: payload.observacoes || "",
+        advertencias: payload.advertencias || memory[existingIndex].advertencias || "",
+        historico_oficinas: payload.historicoOficinas || payload.historico_oficinas || memory[existingIndex].historico_oficinas || "",
+        observacoes: payload.observacoes || memory[existingIndex].observacoes || "",
         updated_at: new Date().toISOString()
       };
       return toPublic(memory[existingIndex]);
@@ -157,6 +173,8 @@ async function create(payload) {
       oficina_ids: oficinaIds,
       oficinas,
       status: payload.status || "ativo",
+      advertencias: payload.advertencias || "",
+      historico_oficinas: payload.historicoOficinas || payload.historico_oficinas || "",
       observacoes: payload.observacoes || "",
       created_at: now,
       updated_at: now
@@ -168,36 +186,77 @@ async function create(payload) {
   const client = await db.pool.connect();
   try {
     await client.query("BEGIN");
-    const result = await client.query(
-      `INSERT INTO alunos (nome, cpf, idade, telefone, responsavel, email, oficina_id, status, observacoes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       ON CONFLICT (cpf)
-       WHERE cpf IS NOT NULL AND cpf <> ''
-       DO UPDATE SET
-         nome = EXCLUDED.nome,
-         idade = EXCLUDED.idade,
-         telefone = EXCLUDED.telefone,
-         responsavel = EXCLUDED.responsavel,
-         email = EXCLUDED.email,
-         status = EXCLUDED.status,
-         observacoes = EXCLUDED.observacoes,
-         updated_at = NOW()
-       RETURNING id`,
-      [
-        payload.nome,
-        cpf || null,
-        payload.idade || null,
-        payload.telefone || null,
-        payload.responsavel || null,
-        payload.email || null,
-        oficinaIds[0] || null,
-        payload.status || "ativo",
-        payload.observacoes || null
-      ]
-    );
-    await attachOffices(client, result.rows[0].id, oficinaIds);
+
+    let alunoId = "";
+    let mergedOfficeIds = oficinaIds;
+    const existing = cpf
+      ? await client.query("SELECT id FROM alunos WHERE cpf = $1 FOR UPDATE", [cpf])
+      : { rows: [] };
+
+    if (existing.rows[0]) {
+      alunoId = existing.rows[0].id;
+      const currentOffices = await client.query(
+        "SELECT oficina_id FROM aluno_oficinas WHERE aluno_id = $1",
+        [alunoId]
+      );
+      mergedOfficeIds = Array.from(new Set([
+        ...currentOffices.rows.map((row) => row.oficina_id).filter(Boolean),
+        ...oficinaIds
+      ]));
+
+      await client.query(
+        `UPDATE alunos
+         SET nome = $1,
+             idade = $2,
+             telefone = $3,
+             responsavel = $4,
+             email = $5,
+             oficina_id = $6,
+             status = $7,
+             advertencias = COALESCE(NULLIF($8, ''), advertencias),
+             historico_oficinas = COALESCE(NULLIF($9, ''), historico_oficinas),
+             observacoes = COALESCE(NULLIF($10, ''), observacoes),
+             updated_at = NOW()
+         WHERE id = $11`,
+        [
+          payload.nome,
+          payload.idade || null,
+          payload.telefone || null,
+          payload.responsavel || null,
+          payload.email || null,
+          mergedOfficeIds[0] || null,
+          payload.status || "ativo",
+          payload.advertencias || null,
+          payload.historicoOficinas || payload.historico_oficinas || null,
+          payload.observacoes || null,
+          alunoId
+        ]
+      );
+    } else {
+      const result = await client.query(
+        `INSERT INTO alunos (nome, cpf, idade, telefone, responsavel, email, oficina_id, status, advertencias, historico_oficinas, observacoes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         RETURNING id`,
+        [
+          payload.nome,
+          cpf || null,
+          payload.idade || null,
+          payload.telefone || null,
+          payload.responsavel || null,
+          payload.email || null,
+          mergedOfficeIds[0] || null,
+          payload.status || "ativo",
+          payload.advertencias || null,
+          payload.historicoOficinas || payload.historico_oficinas || null,
+          payload.observacoes || null
+        ]
+      );
+      alunoId = result.rows[0].id;
+    }
+
+    await attachOffices(client, alunoId, mergedOfficeIds);
     await client.query("COMMIT");
-    return (await findAll({ search: payload.nome })).find((item) => item.id === result.rows[0].id);
+    return (await findAll({ search: payload.nome })).find((item) => item.id === alunoId);
   } catch (error) {
     await client.query("ROLLBACK");
     if (error.code === "23505" && String(error.constraint || "").includes("cpf")) {
@@ -236,6 +295,8 @@ async function update(id, payload) {
       oficina_ids: oficinaIds,
       oficinas,
       status: payload.status || "ativo",
+      advertencias: payload.advertencias || "",
+      historico_oficinas: payload.historicoOficinas || payload.historico_oficinas || "",
       observacoes: payload.observacoes || "",
       updated_at: new Date().toISOString()
     };
@@ -255,9 +316,11 @@ async function update(id, payload) {
            email = $6,
            oficina_id = $7,
            status = $8,
-           observacoes = $9,
+           advertencias = $9,
+           historico_oficinas = $10,
+           observacoes = $11,
            updated_at = NOW()
-       WHERE id = $10
+       WHERE id = $12
        RETURNING id`,
       [
         payload.nome,
@@ -268,6 +331,8 @@ async function update(id, payload) {
         payload.email || null,
         oficinaIds[0] || null,
         payload.status || "ativo",
+        payload.advertencias || null,
+        payload.historicoOficinas || payload.historico_oficinas || null,
         payload.observacoes || null,
         id
       ]
