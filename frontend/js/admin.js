@@ -72,6 +72,8 @@ const documentsList = document.querySelector("[data-documents-list]");
 const profileDialog = document.querySelector("[data-profile-dialog]");
 const profileContent = document.querySelector("[data-profile-content]");
 const profileSubtitle = document.querySelector("[data-profile-subtitle]");
+const aiAssistDialog = document.querySelector("[data-ai-assist-dialog]");
+const aiAssistContent = document.querySelector("[data-ai-assist-content]");
 const pageTitle = document.querySelector("[data-page-title]");
 
 const pageTitles = {
@@ -591,9 +593,17 @@ function openStudentProfile(person) {
   sourceSection.append(sourceList);
 
   const actions = createElement("div", { className: "profile-actions" });
+  const aiButton = createElement("button", {
+    className: "button button-primary",
+    text: "Resumo IA",
+    attrs: { type: "button" }
+  });
+  aiButton.addEventListener("click", () => openAiAssist(person));
+  actions.append(aiButton);
+
   if (student) {
     const editStudentButton = createElement("button", {
-      className: "button button-primary",
+      className: "button button-secondary",
       text: "Editar ficha ADM",
       attrs: { type: "button" }
     });
@@ -638,6 +648,98 @@ function openStudentProfile(person) {
   profileContent.replaceChildren(summary, officesSection, history, callsSection, sourceSection, actions);
   if (profileDialog.open) profileDialog.close();
   profileDialog.showModal();
+}
+
+function normalizeWhatsAppPhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("55")) return digits;
+  if (digits.length >= 10 && digits.length <= 11) return `55${digits}`;
+  return digits;
+}
+
+function whatsappUrl(phone, message) {
+  const normalized = normalizeWhatsAppPhone(phone);
+  if (!normalized) return "";
+  return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
+}
+
+function messageTitle(key) {
+  const titles = {
+    confirmacao: "Confirmacao",
+    documentos: "Documentos",
+    faltas: "Faltas",
+    listaEspera: "Lista de espera"
+  };
+  return titles[key] || key;
+}
+
+function renderAiAssist(result, person) {
+  if (!aiAssistContent) return;
+  aiAssistContent.replaceChildren();
+
+  const status = createElement("p", {
+    className: `form-feedback${result.fallback ? "" : " is-success"}`,
+    text: result.aiEnabled
+      ? "Resumo gerado com IA configurada."
+      : "IA real nao configurada. Usando resumo seguro por regras."
+  });
+  const summary = createElement("section", { className: "ai-assist-section" });
+  summary.append(
+    createElement("h3", { text: "Resumo" }),
+    createElement("p", { text: result.summary || "Nao foi possivel gerar resumo." })
+  );
+
+  const alerts = createElement("section", { className: "ai-assist-section" });
+  alerts.append(createElement("h3", { text: "Alertas" }));
+  const alertList = createElement("ul", { className: "ai-alert-list" });
+  const alertItems = result.alerts?.length ? result.alerts : ["Sem alertas automaticos."];
+  alertItems.forEach((alert) => alertList.append(createElement("li", { text: alert })));
+  alerts.append(alertList);
+
+  const messages = createElement("section", { className: "ai-assist-section" });
+  messages.append(createElement("h3", { text: "Mensagens WhatsApp" }));
+  const grid = createElement("div", { className: "ai-message-grid" });
+  Object.entries(result.messages || {}).forEach(([key, text]) => {
+    const card = createElement("article", { className: "ai-message-card" });
+    card.append(
+      createElement("strong", { text: messageTitle(key) }),
+      createElement("p", { text })
+    );
+    const url = whatsappUrl(person.telefone, text);
+    const action = createElement(url ? "a" : "button", {
+      className: "button button-secondary",
+      text: url ? "Abrir WhatsApp" : "Sem telefone",
+      attrs: url
+        ? { href: url, target: "_blank", rel: "noopener noreferrer" }
+        : { type: "button", disabled: "disabled" }
+    });
+    card.append(action);
+    grid.append(card);
+  });
+  messages.append(grid);
+  aiAssistContent.append(status, summary, alerts, messages);
+}
+
+async function openAiAssist(person) {
+  if (!aiAssistDialog || !aiAssistContent) return;
+  if (profileDialog?.open) profileDialog.close();
+  aiAssistContent.replaceChildren(createElement("p", { className: "form-feedback", text: "Gerando resumo e mensagens..." }));
+  aiAssistDialog.showModal();
+
+  try {
+    const result = await secureRequest("/ai/admin/student-assist", {
+      method: "POST",
+      timeout: 22000,
+      body: {
+        mode: "full",
+        student: person
+      }
+    });
+    renderAiAssist(result, person);
+  } catch (error) {
+    aiAssistContent.replaceChildren(createElement("p", { className: "form-feedback is-error", text: error.message }));
+  }
 }
 
 function studentPayload(aluno, advertencias) {
@@ -1280,6 +1382,10 @@ function setupEvents() {
 
   document.querySelector("[data-close-profile]")?.addEventListener("click", () => {
     profileDialog?.close();
+  });
+
+  document.querySelector("[data-close-ai-assist]")?.addEventListener("click", () => {
+    aiAssistDialog?.close();
   });
 
   editForm?.addEventListener("submit", async (event) => {

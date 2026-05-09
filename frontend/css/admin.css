@@ -650,6 +650,68 @@ td {
   padding-top: 14px;
 }
 
+.ai-assist-dialog {
+  width: min(900px, calc(100% - 28px));
+}
+
+.ai-assist-content,
+.ai-assist-body {
+  display: grid;
+  gap: 18px;
+}
+
+.ai-assist-content header {
+  align-items: flex-start;
+}
+
+.ai-assist-section {
+  display: grid;
+  gap: 10px;
+}
+
+.ai-assist-section h3 {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 1rem;
+}
+
+.ai-assist-section p {
+  margin: 0;
+  color: var(--color-muted);
+  white-space: pre-wrap;
+}
+
+.ai-alert-list {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.ai-message-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.ai-message-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-soft);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.ai-message-card strong {
+  color: var(--color-ink);
+}
+
+.ai-message-card .button {
+  width: fit-content;
+  min-height: 40px;
+  padding: 9px 14px;
+}
+
 .manual-body {
   min-height: 100svh;
   background: var(--color-soft);
@@ -731,7 +793,8 @@ td {
 :root[data-theme="dark"] .content-thumb,
 :root[data-theme="dark"] .profile-field,
 :root[data-theme="dark"] .profile-card,
-:root[data-theme="dark"] .profile-note {
+:root[data-theme="dark"] .profile-note,
+:root[data-theme="dark"] .ai-message-card {
   background: #101827;
 }
 
@@ -775,6 +838,10 @@ td {
   }
 
   .profile-timeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ai-message-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css?v=20260509-2">
-    <link rel="stylesheet" href="/css/admin.css?v=20260509-1">
+    <link rel="stylesheet" href="/css/styles.css?v=20260509-3">
+    <link rel="stylesheet" href="/css/admin.css?v=20260509-2">
   </head>
   <body class="admin-body">
     <a class="skip-link" href="#admin-conteudo">Ir para o painel</a>
@@ -472,6 +472,19 @@
       </div>
     </dialog>
 
+    <dialog class="edit-dialog ai-assist-dialog" data-ai-assist-dialog>
+      <div class="edit-form ai-assist-content">
+        <header>
+          <div>
+            <h2>Resumo IA</h2>
+            <p>Resumo administrativo e mensagens prontas para WhatsApp.</p>
+          </div>
+          <button type="button" class="dialog-close" aria-label="Fechar" data-close-ai-assist>×</button>
+        </header>
+        <div class="ai-assist-body" data-ai-assist-content></div>
+      </div>
+    </dialog>
+
     <datalist id="categorias-sugeridas">
       <option value="Esportes"></option>
       <option value="Dança e Movimento"></option>
@@ -483,6 +496,6 @@
     </datalist>
 
     <script src="/js/runtime-config.js?v=20260509-1" defer></script>
-    <script type="module" src="/js/admin.js?v=20260509-2"></script>
+    <script type="module" src="/js/admin.js?v=20260509-3"></script>
   </body>
 </html>

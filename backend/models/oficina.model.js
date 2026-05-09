@@ -20,6 +20,15 @@ const memory = defaultOficinas.map((oficina) => ({
 }));
 
 function toPublic(row) {
+  const capacidade = Number(row.capacidade || 30);
+  const inscritosConfirmados = Number(row.inscritos_confirmados ?? row.inscritosConfirmados ?? 0);
+  const vagasDisponiveis = Math.max(capacidade - inscritosConfirmados, 0);
+  const situacaoVagas = vagasDisponiveis <= 0
+    ? "lista_espera"
+    : vagasDisponiveis <= 3
+      ? "poucas_vagas"
+      : "vagas_abertas";
+
   return {
     id: row.id,
     nome: row.nome,
@@ -29,7 +38,10 @@ function toPublic(row) {
     diasSemana: row.dias_semana || [],
     periodo: row.periodo || "a definir",
     horario: row.horario,
-    capacidade: Number(row.capacidade || 30),
+    capacidade,
+    inscritosConfirmados,
+    vagasDisponiveis,
+    situacaoVagas,
     imagemUrl: row.imagem_url || "/img/oficinas.png",
     initials: row.initials || row.nome.slice(0, 2).toUpperCase(),
     ativo: row.ativo,
@@ -47,9 +59,43 @@ async function findAll({ includeInactive = false } = {}) {
   }
 
   const result = await db.query(
-    `SELECT id, nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, capacidade, imagem_url, initials, ativo, created_at, updated_at
-     FROM oficinas
-     ${includeInactive ? "" : "WHERE ativo = true"}
+    `SELECT
+       o.id,
+       o.nome,
+       o.categoria,
+       o.descricao,
+       o.faixa_etaria,
+       o.dias_semana,
+       o.periodo,
+       o.horario,
+       o.capacidade,
+       o.imagem_url,
+       o.initials,
+       o.ativo,
+       o.created_at,
+       o.updated_at,
+       COALESCE(ocupacao.total, 0) AS inscritos_confirmados
+     FROM oficinas o
+     LEFT JOIN LATERAL (
+       SELECT COUNT(DISTINCT pessoa_key)::int AS total
+       FROM (
+         SELECT COALESCE(NULLIF(i.cpf, ''), i.id::text) AS pessoa_key
+         FROM inscricoes i
+         WHERE (o.nome = ANY(i.oficinas) OR i.oficina = o.nome)
+           AND NOT EXISTS (
+             SELECT 1
+             FROM jsonb_array_elements(COALESCE(i.oficina_detalhes, '[]'::jsonb)) AS detalhe
+             WHERE detalhe->>'oficina' = o.nome
+               AND detalhe->>'status' = 'lista_espera'
+           )
+         UNION ALL
+         SELECT COALESCE(NULLIF(a.cpf, ''), a.id::text) AS pessoa_key
+         FROM alunos a
+         INNER JOIN aluno_oficinas ao ON ao.aluno_id = a.id
+         WHERE ao.oficina_id = o.id AND a.status = 'ativo'
+       ) pessoas
+     ) ocupacao ON true
+     ${includeInactive ? "" : "WHERE o.ativo = true"}
      ORDER BY categoria ASC, nome ASC`
   );
   return result.rows.map(toPublic);

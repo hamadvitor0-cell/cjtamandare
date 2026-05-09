@@ -5,6 +5,8 @@ import {
   debounce,
   getFormData,
   isValidCpf,
+  maskCpfValue,
+  normalizeCpf,
   showToast,
   setFeedback,
   setupCpfMasks,
@@ -16,6 +18,7 @@ const state = {
   category: "Todas",
   search: "",
   showAllWorkshops: false,
+  aiMessages: [],
   workshops: [...fallbackWorkshops],
   categories: [...fallbackCategories],
   galleryItems: [...fallbackGalleryItems]
@@ -60,6 +63,43 @@ function formatPeriod(period = "a definir") {
     "a definir": "A definir"
   };
   return labels[period] || period;
+}
+
+function slugify(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function workshopPath(workshop) {
+  return `/oficina/${slugify(workshop.nome)}`;
+}
+
+function workshopStatus(workshop) {
+  if (workshop.situacaoVagas === "lista_espera") {
+    return { label: "Lista de espera", className: "workshop-status is-waitlist" };
+  }
+  if (workshop.situacaoVagas === "poucas_vagas") {
+    return { label: `Poucas vagas (${workshop.vagasDisponiveis})`, className: "workshop-status" };
+  }
+  if (Number(workshop.vagasDisponiveis) <= 0 && Number(workshop.capacidade) > 0) {
+    return { label: "Turma cheia", className: "workshop-status is-full" };
+  }
+  return {
+    label: `Vagas abertas${workshop.vagasDisponiveis !== undefined ? ` (${workshop.vagasDisponiveis})` : ""}`,
+    className: "workshop-status"
+  };
+}
+
+function selectWorkshopForSignup(workshop) {
+  const select = document.querySelector("[data-office-select]");
+  if (!select) return;
+  Array.from(select.options).forEach((option) => {
+    option.selected = option.value === workshop.nome;
+  });
 }
 
 function observeReveal(root = document) {
@@ -199,8 +239,10 @@ function renderWorkshops() {
     thumb.append(img, mark);
 
     const content = createElement("div", { className: "workshop-content" });
+    const status = workshopStatus(workshop);
     content.append(
       createElement("span", { className: "category-chip", text: workshop.categoria }),
+      createElement("span", { className: status.className, text: status.label }),
       createElement("h3", { text: workshop.nome }),
       createElement("p", { text: workshop.descricao })
     );
@@ -214,12 +256,15 @@ function renderWorkshops() {
       createElement("span", { text: `Vagas: ${workshop.capacidade || 30}` })
     );
 
-    const detail = createElement("button", {
+    const detail = createElement("a", {
       className: "button button-secondary",
       text: "Detalhes",
-      attrs: { type: "button" }
+      attrs: { href: workshopPath(workshop) }
     });
-    detail.addEventListener("click", () => openWorkshopDialog(workshop));
+    detail.addEventListener("click", (event) => {
+      event.preventDefault();
+      openWorkshopPage(workshop, true);
+    });
 
     const button = createElement("button", {
       className: "button button-primary",
@@ -227,8 +272,7 @@ function renderWorkshops() {
       attrs: { type: "button" }
     });
     button.addEventListener("click", () => {
-      const select = document.querySelector("[data-office-select]");
-      if (select) select.value = workshop.nome;
+      selectWorkshopForSignup(workshop);
       document.querySelector("#inscricao")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
 
@@ -270,13 +314,95 @@ function renderWorkshopMore(total, initialCount, canCollapse) {
   container.append(button);
 }
 
+function findWorkshopBySlug(slug) {
+  return state.workshops.find((workshop) => slugify(workshop.nome) === slug);
+}
+
+function renderWorkshopPage(workshop) {
+  const section = document.querySelector("[data-workshop-page]");
+  const content = document.querySelector("[data-workshop-page-content]");
+  if (!section || !content) return;
+  const status = workshopStatus(workshop);
+  section.hidden = false;
+  content.replaceChildren();
+
+  const card = createElement("article", { className: "workshop-page-card reveal" });
+  const details = createElement("div", { className: "dialog-detail-grid" });
+  [
+    ["Categoria", workshop.categoria],
+    ["Faixa etaria", workshop.faixaEtaria],
+    ["Dias", formatDays(workshop.diasSemana)],
+    ["Periodo", formatPeriod(workshop.periodo)],
+    ["Horario", workshop.horario],
+    ["Vagas", status.label],
+    ["Documentos", "RG, CPF, comprovante e declaracao escolar quando for menor de idade"]
+  ].forEach(([label, value]) => {
+    const item = createElement("div");
+    item.append(createElement("strong", { text: label }), createElement("span", { text: value || "A definir" }));
+    details.append(item);
+  });
+
+  const actions = createElement("div", { className: "workshop-page-actions" });
+  const signup = createElement("button", { className: "button button-primary", text: "Inscrever-se", attrs: { type: "button" } });
+  signup.addEventListener("click", () => {
+    selectWorkshopForSignup(workshop);
+    document.querySelector("#inscricao")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  const back = createElement("button", { className: "button button-secondary", text: "Ver outras oficinas", attrs: { type: "button" } });
+  back.addEventListener("click", () => {
+    history.pushState(null, "", "/#oficinas");
+    section.hidden = true;
+    document.querySelector("#oficinas")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  actions.append(signup, back);
+
+  card.append(
+    createElement("span", { className: "category-chip", text: workshop.categoria }),
+    createElement("span", { className: status.className, text: status.label }),
+    createElement("h2", { text: workshop.nome }),
+    createElement("p", { text: workshop.descricao }),
+    details,
+    actions
+  );
+  content.append(card);
+  observeReveal(section);
+}
+
+function openWorkshopPage(workshop, push = false) {
+  if (!workshop) return;
+  if (push) history.pushState(null, "", workshopPath(workshop));
+  renderWorkshopPage(workshop);
+  document.querySelector("[data-workshop-page]")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function setupWorkshopRoutes() {
+  const section = document.querySelector("[data-workshop-page]");
+
+  function syncRoute() {
+    const match = window.location.pathname.match(/^\/oficina\/([^/]+)$/);
+    if (!match) {
+      if (section) section.hidden = true;
+      return;
+    }
+    const workshop = findWorkshopBySlug(match[1]);
+    if (workshop) {
+      renderWorkshopPage(workshop);
+    }
+  }
+
+  syncRoute();
+  window.addEventListener("popstate", syncRoute);
+}
+
 function openWorkshopDialog(workshop) {
   const dialog = document.querySelector("[data-workshop-dialog]");
   const content = document.querySelector("[data-workshop-dialog-content]");
   if (!dialog || !content) return;
+  const status = workshopStatus(workshop);
   content.replaceChildren();
   content.append(
     createElement("span", { className: "category-chip", text: workshop.categoria }),
+    createElement("span", { className: status.className, text: status.label }),
     createElement("h2", { text: workshop.nome }),
     createElement("p", { text: workshop.descricao }),
     createElement("div", { className: "dialog-detail-grid" })
@@ -287,7 +413,9 @@ function openWorkshopDialog(workshop) {
     ["Dias", formatDays(workshop.diasSemana)],
     ["Período", formatPeriod(workshop.periodo)],
     ["Horário", workshop.horario],
-    ["Vagas", String(workshop.capacidade || 30)]
+    ["Vagas", String(workshop.capacidade || 30)],
+    ["Situacao", status.label],
+    ["Documentos", "RG, CPF, comprovante e declaracao escolar quando for menor de idade"]
   ].forEach(([label, value]) => {
     const item = createElement("div");
     item.append(createElement("strong", { text: label }), createElement("span", { text: value || "A definir" }));
@@ -295,8 +423,7 @@ function openWorkshopDialog(workshop) {
   });
   const signup = createElement("button", { className: "button button-primary", text: "Inscrever-se nesta oficina", attrs: { type: "button" } });
   signup.addEventListener("click", () => {
-    const select = document.querySelector("[data-office-select]");
-    if (select) select.value = workshop.nome;
+    selectWorkshopForSignup(workshop);
     dialog.close();
     document.querySelector("#inscricao")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
@@ -599,6 +726,150 @@ function setupSignupForm() {
   });
 }
 
+function formatStatusDate(value) {
+  if (!value) return "Data nao informada";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString("pt-BR");
+}
+
+function renderStatusLookup(status) {
+  const result = document.querySelector("[data-status-result]");
+  if (!result) return;
+  result.replaceChildren();
+
+  if (!status?.encontrado) {
+    result.append(createElement("p", {
+      className: "form-feedback is-error",
+      text: status?.message || "Nenhuma inscricao encontrada para este CPF."
+    }));
+    return;
+  }
+
+  const card = createElement("article", { className: "status-card" });
+  const header = createElement("header");
+  const badgeClass = status.situacao === "Lista de espera" ? "status-badge is-waitlist" : "status-badge";
+  header.append(
+    createElement("h3", { text: `${status.nomeParcial || "Inscricao"} - ${maskCpfValue(status.cpf || "")}` }),
+    createElement("span", { className: badgeClass, text: status.situacao })
+  );
+
+  const list = createElement("ul", { className: "status-list" });
+  (status.oficinas || []).forEach((office) => {
+    const item = createElement("li");
+    item.append(
+      createElement("strong", { text: office.oficina }),
+      createElement("span", { text: `${office.situacao} - ${formatStatusDate(office.dataInscricao)}` })
+    );
+    list.append(item);
+  });
+
+  card.append(
+    header,
+    list,
+    createElement("p", { text: status.documentos }),
+    createElement("p", { text: `Ultima atualizacao: ${formatStatusDate(status.ultimaAtualizacao || status.dataInscricao)}` })
+  );
+  result.append(card);
+}
+
+function setupStatusLookup() {
+  const form = document.querySelector("[data-status-form]");
+  if (!form) return;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const result = document.querySelector("[data-status-result]");
+    const cpf = normalizeCpf(form.elements.cpf?.value || "");
+    if (!isValidCpf(cpf)) {
+      renderStatusLookup({ encontrado: false, message: "Informe um CPF valido." });
+      return;
+    }
+
+    const button = form.querySelector("button[type='submit']");
+    button.disabled = true;
+    if (result) result.replaceChildren(createElement("p", { className: "form-feedback", text: "Consultando inscricao..." }));
+    try {
+      const data = await apiRequest("/inscricoes/status", {
+        method: "POST",
+        body: { cpf }
+      });
+      renderStatusLookup(data.status);
+    } catch (error) {
+      renderStatusLookup({ encontrado: false, message: error.message });
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
+function renderAiMessages() {
+  const container = document.querySelector("[data-ai-messages]");
+  if (!container) return;
+  container.replaceChildren();
+  state.aiMessages.forEach((message) => {
+    container.append(createElement("div", {
+      className: `ai-message ${message.role === "user" ? "is-user" : message.role === "system" ? "is-system" : "is-assistant"}`,
+      text: message.content
+    }));
+  });
+  container.scrollTop = container.scrollHeight;
+}
+
+function pushAiMessage(role, content) {
+  state.aiMessages.push({ role, content });
+  state.aiMessages = state.aiMessages.slice(-12);
+  renderAiMessages();
+}
+
+function setupAiChat() {
+  const toggle = document.querySelector("[data-ai-toggle]");
+  const panel = document.querySelector("[data-ai-panel]");
+  const close = document.querySelector("[data-ai-close]");
+  const form = document.querySelector("[data-ai-form]");
+  if (!toggle || !panel || !form) return;
+
+  function openPanel(open) {
+    panel.hidden = !open;
+    toggle.setAttribute("aria-expanded", String(open));
+    if (open && !state.aiMessages.length) {
+      pushAiMessage("assistant", "Ola! Posso ajudar com oficinas, documentos, inscricao, lista de espera, status por CPF e contato.");
+    }
+    if (open) form.elements.message?.focus();
+  }
+
+  toggle.addEventListener("click", () => openPanel(panel.hidden));
+  close?.addEventListener("click", () => openPanel(false));
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const input = form.elements.message;
+    const text = String(input?.value || "").trim();
+    if (!text) return;
+    input.value = "";
+    pushAiMessage("user", text);
+    pushAiMessage("assistant", "Consultando...");
+
+    try {
+      const chatMessages = state.aiMessages
+        .filter((message) => message.role === "user" || message.role === "assistant")
+        .filter((message) => message.content !== "Consultando...");
+      const data = await apiRequest("/ai/chat", {
+        method: "POST",
+        timeout: 22000,
+        body: { messages: chatMessages }
+      });
+      state.aiMessages.pop();
+      pushAiMessage("assistant", data.message || "Nao consegui responder agora.");
+      if (data.fallback) {
+        pushAiMessage("system", "Modo seguro: resposta gerada sem IA real configurada.");
+      }
+    } catch (error) {
+      state.aiMessages.pop();
+      pushAiMessage("assistant", error.message);
+    }
+  });
+}
+
 function setupVLibras() {
   let attempts = 0;
 
@@ -666,6 +937,7 @@ async function init() {
   setupWorkshopSearch();
   populateOfficeSelects();
   renderWorkshops();
+  setupWorkshopRoutes();
   renderAgenda();
   renderGallery();
   setupWorkshopDialog();
@@ -674,6 +946,8 @@ async function init() {
   setupCpfMasks();
   await setupPuzzleCaptcha();
   setupSignupForm();
+  setupStatusLookup();
+  setupAiChat();
   setupYearAndStats();
 }
 

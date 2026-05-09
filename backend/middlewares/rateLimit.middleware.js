@@ -31,8 +31,30 @@ const loginLimiter = rateLimit({
   }
 });
 
+const aiLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: config.isProduction ? 20 : 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Muitas consultas de IA em pouco tempo. Tente novamente em alguns minutos."
+  }
+});
+
+const statusLookupLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: config.isProduction ? 15 : 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Muitas consultas de CPF em pouco tempo. Tente novamente em alguns minutos."
+  }
+});
+
 module.exports = {
   generalLimiter,
   inscriptionLimiter,
-  loginLimiter
+  loginLimiter,
+  aiLimiter,
+  statusLookupLimiter
 };

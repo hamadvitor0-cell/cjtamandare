@@ -2,6 +2,7 @@ const Inscricao = require("../models/inscricao.model");
 const Aluno = require("../models/aluno.model");
 const Oficina = require("../models/oficina.model");
 const db = require("../database/pool");
+const { maskCpf, normalizeCpf } = require("../utils/cpf");
 
 function asTimestamp(value) {
   return value ? new Date(value).getTime() : 0;
@@ -199,6 +200,63 @@ function uniquePersonRows(rows) {
   });
 }
 
+function publicName(value) {
+  const parts = String(value || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "";
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1].slice(0, 1).toUpperCase()}.`;
+}
+
+function publicStatusLabel(status) {
+  return status === "lista_espera" ? "Lista de espera" : "Confirmada";
+}
+
+function uniquePublicDetails(person) {
+  const detalhes = person.oficinaDetalhes?.length
+    ? person.oficinaDetalhes
+    : (person.oficinas || [person.oficina].filter(Boolean)).map((oficina) => ({
+      oficina,
+      status: person.status === "lista_espera" ? "lista_espera" : "confirmada",
+      createdAt: person.created_at
+    }));
+
+  const byOffice = new Map();
+  detalhes.forEach((detail) => {
+    if (!detail.oficina) return;
+    const current = byOffice.get(detail.oficina);
+    if (!current || asTimestamp(detail.updatedAt || detail.createdAt) >= asTimestamp(current.updatedAt || current.createdAt)) {
+      byOffice.set(detail.oficina, detail);
+    }
+  });
+
+  return Array.from(byOffice.values());
+}
+
+function publicStatusFromPerson(person) {
+  const detalhes = uniquePublicDetails(person);
+  const documentosPendentes = Boolean(person.documentosPendentes || Number(person.documentosCount || 0) === 0);
+  const hasWaitlist = detalhes.some((detail) => detail.status === "lista_espera");
+  const oficinas = detalhes.map((detail) => ({
+    oficina: detail.oficina,
+    situacao: publicStatusLabel(detail.status),
+    dataInscricao: detail.createdAt || detail.created_at || person.created_at
+  }));
+
+  return {
+    encontrado: true,
+    nomeParcial: publicName(person.nome),
+    cpf: maskCpf(person.cpf),
+    situacao: hasWaitlist ? "Lista de espera" : documentosPendentes ? "Documentos pendentes" : "Confirmada",
+    oficinas,
+    documentosPendentes,
+    documentos: documentosPendentes
+      ? "Documentos pendentes ou ainda nao conferidos pela equipe."
+      : "Sem pendencias marcadas no cadastro.",
+    dataInscricao: person.created_at,
+    ultimaAtualizacao: person.updated_at
+  };
+}
+
 async function syncCreatedInscricaoToAluno(inscricao) {
   if (!inscricao?.cpf) return;
 
@@ -242,6 +300,21 @@ async function create(data, documentos = []) {
 
 async function list(filters) {
   return filterRows(personRows(await combinedRows(filters)), filters);
+}
+
+async function publicStatusByCpf(cpfInput) {
+  const cpf = normalizeCpf(cpfInput);
+  const rows = await combinedRows({ search: cpf });
+  const person = personRows(rows).find((item) => item.cpf === cpf);
+
+  if (!person) {
+    return {
+      encontrado: false,
+      message: "Nenhuma inscricao encontrada para este CPF."
+    };
+  }
+
+  return publicStatusFromPerson(person);
 }
 
 async function update(id, data) {
@@ -288,6 +361,7 @@ module.exports = {
   update,
   remove,
   dashboard,
+  publicStatusByCpf,
   listDocuments,
   getDocument
 };

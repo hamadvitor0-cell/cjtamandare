@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css?v=20260509-2">
+    <link rel="stylesheet" href="/css/styles.css?v=20260509-3">
   </head>
   <body>
     <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
@@ -36,7 +36,9 @@
 
         <div class="nav-links" id="menu-principal" data-menu>
           <a href="#sobre">Sobre</a>
+          <a href="#como-funciona">Como funciona</a>
           <a href="#oficinas">Oficinas</a>
+          <a href="#acompanhar">Acompanhar</a>
           <a href="#agenda">Agenda</a>
           <a href="#galeria">Galeria</a>
           <a href="#inscricao">Inscrições</a>
@@ -110,6 +112,49 @@
         </div>
       </section>
 
+      <section class="section-block how-it-works" id="como-funciona" aria-labelledby="como-funciona-titulo">
+        <div class="container section-heading reveal">
+          <h2 id="como-funciona-titulo">Como funciona</h2>
+          <p>O processo e simples: escolha as oficinas, preencha a inscricao online, acompanhe a situacao pelo CPF e aguarde a orientacao da equipe.</p>
+        </div>
+        <div class="container process-grid reveal" aria-label="Etapas da inscricao">
+          <article class="process-step">
+            <strong>01</strong>
+            <h3>Escolha</h3>
+            <p>Veja oficinas, horarios e situacao de vagas antes de preencher o formulario.</p>
+          </article>
+          <article class="process-step">
+            <strong>02</strong>
+            <h3>Inscricao</h3>
+            <p>Envie os dados e, quando possivel, anexe os documentos solicitados.</p>
+          </article>
+          <article class="process-step">
+            <strong>03</strong>
+            <h3>Conferencia</h3>
+            <p>A equipe confere vaga, lista de espera e documentos pendentes.</p>
+          </article>
+          <article class="process-step">
+            <strong>04</strong>
+            <h3>Acompanhamento</h3>
+            <p>Consulte a situacao pelo CPF ou fale com a equipe pelo WhatsApp.</p>
+          </article>
+        </div>
+        <div class="container docs-strip reveal" aria-label="Documentos necessarios">
+          <div>
+            <span>Maiores de 18 anos</span>
+            <strong>RG, CPF e comprovante de residencia.</strong>
+          </div>
+          <div>
+            <span>Menores de idade</span>
+            <strong>Documentos do aluno e responsavel, declaracao escolar e comprovante.</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-block workshop-page" data-workshop-page hidden aria-live="polite">
+        <div class="container" data-workshop-page-content></div>
+      </section>
+
       <section class="section-block workshops" id="oficinas" aria-labelledby="oficinas-titulo">
         <div class="container section-heading reveal">
           <h2 id="oficinas-titulo">Oficinas</h2>
@@ -126,6 +171,23 @@
 
         <div class="container workshop-grid" id="oficinas-lista" data-workshop-grid aria-live="polite"></div>
         <div class="container workshop-more" data-workshop-more></div>
+      </section>
+
+      <section class="section-block status-lookup" id="acompanhar" aria-labelledby="acompanhar-titulo">
+        <div class="container status-layout">
+          <div class="section-heading reveal">
+            <h2 id="acompanhar-titulo">Acompanhar inscricao</h2>
+            <p>Informe o CPF usado no cadastro para ver apenas dados minimos: oficinas, situacao, lista de espera, documentos pendentes e data da inscricao.</p>
+          </div>
+          <form class="status-form reveal" data-status-form novalidate>
+            <label>
+              <span>CPF</span>
+              <input name="cpf" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" data-cpf-mask required>
+            </label>
+            <button class="button button-primary" type="submit">Consultar</button>
+            <div class="status-result" data-status-result aria-live="polite"></div>
+          </form>
+        </div>
       </section>
 
       <section class="section-block agenda" id="agenda" aria-labelledby="agenda-titulo">
@@ -230,6 +292,31 @@
         </div>
       </section>
 
+      <section class="section-block faq" id="duvidas" aria-labelledby="duvidas-titulo">
+        <div class="container section-heading reveal">
+          <h2 id="duvidas-titulo">Duvidas frequentes</h2>
+          <p>Informacoes rapidas para inscricao, documentos, vagas e atendimento.</p>
+        </div>
+        <div class="container faq-grid reveal">
+          <details>
+            <summary>Como sei se fui confirmado?</summary>
+            <p>Consulte pelo CPF na area de acompanhamento. A equipe tambem pode chamar pelo WhatsApp informado no cadastro.</p>
+          </details>
+          <details>
+            <summary>Se a turma estiver cheia?</summary>
+            <p>A inscricao pode ficar em lista de espera. Quando houver vaga, a equipe orienta os proximos passos.</p>
+          </details>
+          <details>
+            <summary>Posso escolher mais de uma oficina?</summary>
+            <p>Sim. O formulario permite selecionar mais de uma oficina para o mesmo CPF.</p>
+          </details>
+          <details>
+            <summary>A inscricao online ja garante a vaga?</summary>
+            <p>A inscricao registra o interesse. A confirmacao depende de vaga disponivel e conferencia da documentacao.</p>
+          </details>
+        </div>
+      </section>
+
       <section class="section-block contact" id="contato" aria-labelledby="contato-titulo">
         <div class="container contact-layout">
           <div class="section-heading reveal">
@@ -285,6 +372,27 @@
 
     <div class="toast-region" aria-live="polite" aria-label="Notificações" data-toast-region></div>
 
+    <div class="ai-chat" data-ai-chat>
+      <button class="ai-chat-toggle" type="button" aria-expanded="false" aria-controls="assistente-ia" data-ai-toggle>
+        Assistente IA
+      </button>
+      <section class="ai-chat-panel" id="assistente-ia" data-ai-panel hidden aria-label="Assistente virtual">
+        <header>
+          <div>
+            <strong>Assistente CJ</strong>
+            <span>Oficinas, documentos, status e contato</span>
+          </div>
+          <button type="button" class="dialog-close" aria-label="Fechar assistente" data-ai-close>Ã—</button>
+        </header>
+        <div class="ai-chat-messages" data-ai-messages aria-live="polite"></div>
+        <form class="ai-chat-form" data-ai-form>
+          <label class="sr-only" for="ai-chat-input">Mensagem para o assistente</label>
+          <input id="ai-chat-input" name="message" type="text" maxlength="600" autocomplete="off" placeholder="Digite sua duvida">
+          <button class="button button-primary" type="submit">Enviar</button>
+        </form>
+      </section>
+    </div>
+
     <div vw class="enabled">
       <div vw-access-button class="active"></div>
       <div vw-plugin-wrapper>
@@ -294,6 +402,6 @@
 
     <script src="/js/runtime-config.js?v=20260508-5" defer></script>
     <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
-    <script type="module" src="/js/main.js?v=20260509-2"></script>
+    <script type="module" src="/js/main.js?v=20260509-3"></script>
   </body>
 </html>

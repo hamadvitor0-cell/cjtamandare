@@ -57,6 +57,8 @@ const config = {
   trustProxy: bool(process.env.TRUST_PROXY, false),
   logToFile: bool(process.env.LOG_TO_FILE, false),
   autoMigrate: bool(process.env.AUTO_MIGRATE, false),
+  aiFeaturesEnabled: bool(process.env.AI_FEATURES_ENABLED, false),
+  aiModel: process.env.AI_MODEL || "openai/gpt-5.4",
   adminName: process.env.ADMIN_NAME || "Administrador",
   adminEmail: process.env.ADMIN_EMAIL || "",
   adminPassword: process.env.ADMIN_PASSWORD || ""

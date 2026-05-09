@@ -4,8 +4,9 @@ const validate = require("../middlewares/validate.middleware");
 const upload = require("../middlewares/upload.middleware");
 const { requireAuth, authorizeRoles } = require("../middlewares/auth.middleware");
 const { requireCsrf, issueCsrfToken } = require("../middlewares/csrf.middleware");
-const { inscriptionLimiter, loginLimiter } = require("../middlewares/rateLimit.middleware");
+const { aiLimiter, inscriptionLimiter, loginLimiter, statusLookupLimiter } = require("../middlewares/rateLimit.middleware");
 const InscricaoController = require("../controllers/inscricao.controller");
+const AiController = require("../controllers/ai.controller");
 const AuthController = require("../controllers/auth.controller");
 const DashboardController = require("../controllers/dashboard.controller");
 const OficinaController = require("../controllers/oficina.controller");
@@ -25,7 +26,10 @@ const {
   alunoSchema,
   chamadaQuerySchema,
   chamadaHistoryQuerySchema,
-  chamadaSchema
+  chamadaSchema,
+  statusLookupSchema,
+  aiChatSchema,
+  adminStudentAssistSchema
 } = require("../utils/validators");
 
 const router = express.Router();
@@ -58,6 +62,20 @@ router.post(
 );
 
 router.post(
+  "/inscricoes/status",
+  statusLookupLimiter,
+  validate(statusLookupSchema),
+  asyncHandler(InscricaoController.status)
+);
+
+router.post(
+  "/ai/chat",
+  aiLimiter,
+  validate(aiChatSchema),
+  asyncHandler(AiController.chat)
+);
+
+router.post(
   "/auth/login",
   loginLimiter,
   validate(loginSchema),
@@ -65,6 +83,15 @@ router.post(
 );
 router.get("/auth/me", requireAuth, AuthController.me);
 router.post("/auth/logout", requireAuth, requireCsrf, AuthController.logout);
+
+router.post(
+  "/ai/admin/student-assist",
+  aiLimiter,
+  ...adminOnly,
+  requireCsrf,
+  validate(adminStudentAssistSchema),
+  asyncHandler(AiController.adminStudentAssist)
+);
 
 router.get(
   "/inscricoes",

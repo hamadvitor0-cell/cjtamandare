@@ -129,6 +129,23 @@ const chamadaSchema = Joi.object({
   })).max(500).required()
 });
 
+const statusLookupSchema = Joi.object({
+  cpf: cpfField.required()
+});
+
+const aiChatSchema = Joi.object({
+  messages: Joi.array().items(Joi.object({
+    role: Joi.string().valid("user", "assistant").required(),
+    content: Joi.string().trim().min(1).max(1400).required()
+  })).min(1).max(12).required(),
+  cpf: optionalCpfField.optional()
+});
+
+const adminStudentAssistSchema = Joi.object({
+  mode: Joi.string().valid("full", "summary", "messages").default("full"),
+  student: Joi.object().unknown(true).required()
+});
+
 module.exports = {
   inscriptionSchema,
   updateInscriptionSchema,
@@ -141,5 +158,8 @@ module.exports = {
   alunoSchema,
   chamadaQuerySchema,
   chamadaHistoryQuerySchema,
-  chamadaSchema
+  chamadaSchema,
+  statusLookupSchema,
+  aiChatSchema,
+  adminStudentAssistSchema
 };

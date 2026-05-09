@@ -460,6 +460,11 @@ button {
 
 :root[data-theme="dark"] .info-card,
 :root[data-theme="dark"] .workshop-card,
+:root[data-theme="dark"] .process-step,
+:root[data-theme="dark"] .status-form,
+:root[data-theme="dark"] .faq-grid details,
+:root[data-theme="dark"] .workshop-page-card,
+:root[data-theme="dark"] .ai-chat-panel,
 :root[data-theme="dark"] .metric-card,
 :root[data-theme="dark"] .admin-panel,
 :root[data-theme="dark"] .notice-box,
@@ -735,6 +740,297 @@ textarea:focus {
 .workshop-meta span {
   display: flex;
   gap: 8px;
+}
+
+.workshop-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid rgba(var(--color-secondary-rgb), 0.25);
+  border-radius: var(--radius);
+  background: rgba(var(--color-secondary-rgb), 0.09);
+  color: var(--color-secondary);
+  padding: 5px 8px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.workshop-status.is-waitlist,
+.status-badge.is-waitlist {
+  border-color: rgba(var(--color-accent-rgb), 0.34);
+  background: rgba(var(--color-accent-rgb), 0.12);
+  color: #9c4c00;
+}
+
+.workshop-status.is-full {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.how-it-works,
+.faq {
+  background: var(--color-surface);
+}
+
+.process-grid {
+  margin-top: 28px;
+  display: grid;
+  gap: 14px;
+}
+
+.process-step,
+.status-form,
+.faq-grid details,
+.workshop-page-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-card);
+}
+
+.process-step {
+  padding: 20px;
+}
+
+.process-step strong {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius);
+  background: rgba(var(--color-primary-rgb), 0.08);
+  color: var(--color-primary);
+  font-family: var(--font-title);
+}
+
+.process-step h3 {
+  margin: 14px 0 6px;
+  font-family: var(--font-title);
+}
+
+.process-step p,
+.status-result p,
+.faq-grid p,
+.workshop-page-card p {
+  color: var(--color-muted);
+}
+
+.docs-strip {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.docs-strip div {
+  border-radius: var(--radius);
+  padding: 18px;
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.docs-strip div:nth-child(2) {
+  background: var(--color-secondary);
+}
+
+.docs-strip span,
+.docs-strip strong {
+  display: block;
+}
+
+.docs-strip span {
+  font-weight: 800;
+  opacity: 0.86;
+}
+
+.status-lookup,
+.workshop-page {
+  background: var(--color-soft);
+}
+
+.status-layout {
+  display: grid;
+  gap: 24px;
+}
+
+.status-form {
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.status-result {
+  min-height: 36px;
+}
+
+.status-card {
+  display: grid;
+  gap: 12px;
+}
+
+.status-card header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.status-card h3 {
+  margin: 0;
+  font-family: var(--font-title);
+}
+
+.status-badge {
+  display: inline-flex;
+  border: 1px solid rgba(var(--color-secondary-rgb), 0.25);
+  border-radius: var(--radius);
+  background: rgba(var(--color-secondary-rgb), 0.1);
+  color: var(--color-secondary);
+  padding: 5px 8px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.status-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.status-list li {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+.workshop-page-card {
+  padding: 24px;
+  display: grid;
+  gap: 18px;
+}
+
+.workshop-page-card h2 {
+  margin: 0;
+  font-family: var(--font-title);
+  line-height: 1.1;
+}
+
+.workshop-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.faq-grid {
+  margin-top: 28px;
+  display: grid;
+  gap: 14px;
+}
+
+.faq-grid details {
+  padding: 18px;
+}
+
+.faq-grid summary {
+  cursor: pointer;
+  color: var(--color-ink);
+  font-weight: 900;
+}
+
+.ai-chat {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 240;
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.ai-chat-toggle,
+.ai-chat-panel {
+  pointer-events: auto;
+}
+
+.ai-chat-toggle {
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: var(--shadow-soft);
+  padding: 13px 16px;
+  font-weight: 900;
+}
+
+.ai-chat-panel {
+  width: min(390px, calc(100vw - 32px));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.ai-chat-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ai-chat-panel header strong,
+.ai-chat-panel header span {
+  display: block;
+}
+
+.ai-chat-panel header span {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.ai-chat-messages {
+  max-height: min(420px, 58vh);
+  overflow: auto;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.ai-message {
+  max-width: 88%;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  color: var(--color-ink);
+  background: var(--color-soft);
+  font-weight: 700;
+}
+
+.ai-message.is-user {
+  justify-self: end;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.ai-message.is-system {
+  max-width: 100%;
+  border: 1px solid rgba(var(--color-accent-rgb), 0.25);
+  background: rgba(var(--color-accent-rgb), 0.1);
+  color: #7a3b00;
+}
+
+.ai-chat-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 14px;
+  border-top: 1px solid var(--color-border);
 }
 
 .calendar-grid {
@@ -1186,7 +1482,7 @@ textarea:focus {
 .toast-region {
   position: fixed;
   right: 16px;
-  bottom: 16px;
+  bottom: 84px;
   z-index: 250;
   display: grid;
   gap: 10px;
@@ -1282,6 +1578,9 @@ textarea:focus {
   .stats-grid,
   .workshop-grid,
   .calendar-grid,
+  .process-grid,
+  .docs-strip,
+  .faq-grid,
   .gallery-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1333,13 +1632,16 @@ textarea:focus {
 
   .split-layout,
   .signup-layout,
-  .contact-layout {
+  .contact-layout,
+  .status-layout {
     grid-template-columns: minmax(0, 0.82fr) minmax(420px, 1fr);
     align-items: start;
   }
 
   .about-cards,
-  .calendar-grid {
+  .calendar-grid,
+  .process-grid,
+  .faq-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
@@ -1363,5 +1665,9 @@ textarea:focus {
 @media (min-width: 1180px) {
   .section-block {
     padding: 94px 0;
+  }
+
+  .process-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }

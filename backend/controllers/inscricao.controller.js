@@ -34,6 +34,11 @@ async function list(req, res) {
   return res.json({ inscricoes });
 }
 
+async function status(req, res) {
+  const statusInfo = await InscricaoService.publicStatusByCpf(req.validated.body.cpf);
+  return res.json({ status: statusInfo });
+}
+
 async function update(req, res) {
   const updated = await InscricaoService.update(req.validated.params.id, req.validated.body);
 
@@ -92,6 +97,7 @@ async function downloadDocument(req, res) {
 module.exports = {
   create,
   list,
+  status,
   update,
   remove,
   exportCsv,
