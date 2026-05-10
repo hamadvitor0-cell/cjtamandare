@@ -11,6 +11,7 @@ const AuthController = require("../controllers/auth.controller");
 const DashboardController = require("../controllers/dashboard.controller");
 const OficinaController = require("../controllers/oficina.controller");
 const GaleriaController = require("../controllers/galeria.controller");
+const ColaboradorController = require("../controllers/colaborador.controller");
 const AlunoController = require("../controllers/aluno.controller");
 const BolsistaController = require("../controllers/bolsista.controller");
 const CalendarioController = require("../controllers/calendario.controller");
@@ -25,6 +26,7 @@ const {
   adminListQuerySchema,
   oficinaSchema,
   galeriaSchema,
+  colaboradorSchema,
   alunoSchema,
   bolsistaSchema,
   calendarQuerySchema,
@@ -52,10 +54,16 @@ router.get("/captcha/challenge", asyncHandler(CaptchaController.challenge));
 
 router.get("/oficinas", asyncHandler(OficinaController.list));
 router.get("/galeria", asyncHandler(GaleriaController.list));
+router.get("/colaboradores", asyncHandler(ColaboradorController.list));
 router.get(
   "/galeria/:id/imagem",
   validate(idParamSchema, "params"),
   asyncHandler(GaleriaController.image)
+);
+router.get(
+  "/colaboradores/:id/imagem",
+  validate(idParamSchema, "params"),
+  asyncHandler(ColaboradorController.image)
 );
 
 router.post(
@@ -219,6 +227,44 @@ router.delete(
   requireCsrf,
   validate(idParamSchema, "params"),
   asyncHandler(GaleriaController.remove)
+);
+
+router.post(
+  "/admin/colaboradores",
+  ...adminOnly,
+  requireCsrf,
+  upload.rejectLargeMultipart(6 * 1024 * 1024),
+  upload.imageUpload.single("imagemArquivo"),
+  upload.validateUploadedFiles,
+  validate(colaboradorSchema),
+  asyncHandler(ColaboradorController.create)
+);
+
+router.get(
+  "/admin/colaboradores",
+  ...adminOnly,
+  validate(adminListQuerySchema, "query"),
+  asyncHandler(ColaboradorController.list)
+);
+
+router.put(
+  "/admin/colaboradores/:id",
+  ...adminOnly,
+  requireCsrf,
+  upload.rejectLargeMultipart(6 * 1024 * 1024),
+  upload.imageUpload.single("imagemArquivo"),
+  upload.validateUploadedFiles,
+  validate(idParamSchema, "params"),
+  validate(colaboradorSchema),
+  asyncHandler(ColaboradorController.update)
+);
+
+router.delete(
+  "/admin/colaboradores/:id",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  asyncHandler(ColaboradorController.remove)
 );
 
 router.get(

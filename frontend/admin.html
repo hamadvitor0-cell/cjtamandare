@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css?v=20260509-4">
-    <link rel="stylesheet" href="/css/admin.css?v=20260509-6">
+    <link rel="stylesheet" href="/css/styles.css?v=20260510-2">
+    <link rel="stylesheet" href="/css/admin.css?v=20260510-1">
   </head>
   <body class="admin-body">
     <a class="skip-link" href="#admin-conteudo">Ir para o painel</a>
@@ -54,6 +54,7 @@
             <a href="#inscritos" data-admin-page-link="inscritos">Inscritos</a>
             <a href="#oficinas" data-admin-page-link="oficinas">Oficinas</a>
             <a href="#galeria" data-admin-page-link="galeria">Galeria</a>
+            <a href="#colaboradores" data-admin-page-link="colaboradores">Colaboradores</a>
             <a href="#alunos" data-admin-page-link="alunos">Alunos</a>
             <a href="#bolsistas" data-admin-page-link="bolsistas">Bolsistas</a>
             <a href="#calendario" data-admin-page-link="calendario">Calendario</a>
@@ -311,6 +312,62 @@
             </form>
 
             <div class="content-list gallery-manager-list" data-gallery-list></div>
+          </section>
+
+          <section class="admin-panel manager-panel" id="colaboradores" data-admin-page="colaboradores" hidden>
+            <div class="panel-title table-title">
+              <div>
+                <h2>Gerenciar colaboradores</h2>
+                <p>Adicione parceiros do site publico, edite texto, imagem, link e ordem de exibicao.</p>
+              </div>
+              <button class="button button-secondary" type="button" data-reset-collaborator-form>Novo colaborador</button>
+            </div>
+
+            <form class="manager-form" enctype="multipart/form-data" data-collaborator-form novalidate>
+              <input type="hidden" name="id">
+              <div class="form-grid">
+                <label>
+                  <span>Nome</span>
+                  <input name="nome" type="text" required maxlength="120">
+                </label>
+                <label>
+                  <span>Site oficial</span>
+                  <input name="siteUrl" type="url" required maxlength="500" placeholder="https://...">
+                </label>
+                <label>
+                  <span>URL da imagem</span>
+                  <input name="imagemUrl" type="text" maxlength="500" placeholder="https://... ou /img/sesc-parana.png">
+                  <small>Use uma URL direta de imagem ou envie um arquivo abaixo.</small>
+                </label>
+                <label>
+                  <span>Arquivo da imagem</span>
+                  <input name="imagemArquivo" type="file" accept=".jpg,.jpeg,.png,.webp">
+                  <small>JPG, PNG ou WEBP ate 5 MB. Se enviado, substitui a URL.</small>
+                </label>
+                <label>
+                  <span>Ordem</span>
+                  <input name="ordem" type="number" min="0" max="9999" value="0">
+                </label>
+                <label>
+                  <span>Texto alternativo</span>
+                  <input name="alt" type="text" maxlength="180">
+                </label>
+                <label class="full-field">
+                  <span>Descricao</span>
+                  <textarea name="descricao" rows="4" maxlength="700"></textarea>
+                </label>
+                <label class="check-row full-field">
+                  <input name="ativo" type="checkbox" checked>
+                  <span>Colaborador ativo no site</span>
+                </label>
+              </div>
+              <div class="form-actions">
+                <button class="button button-primary" type="submit">Salvar colaborador</button>
+                <p class="form-feedback" role="status" aria-live="polite" data-collaborator-feedback></p>
+              </div>
+            </form>
+
+            <div class="content-list collaborator-manager-list" data-collaborator-list></div>
           </section>
 
           <section class="admin-panel manager-panel" id="alunos" data-admin-page="alunos" hidden>
@@ -716,6 +773,6 @@
     </datalist>
 
     <script src="/js/runtime-config.js?v=20260509-1" defer></script>
-    <script type="module" src="/js/admin.js?v=20260509-9"></script>
+    <script type="module" src="/js/admin.js?v=20260510-1"></script>
   </body>
 </html>

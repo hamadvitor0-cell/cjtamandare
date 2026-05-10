@@ -23,6 +23,7 @@ const state = {
     ativo: true
   })),
   galeria: [],
+  colaboradores: [],
   alunos: [],
   bolsistas: [],
   attendanceRows: [],
@@ -135,6 +136,7 @@ const pageTitles = {
   inscritos: "Inscritos",
   oficinas: "Oficinas",
   galeria: "Galeria",
+  colaboradores: "Colaboradores",
   alunos: "Alunos",
   bolsistas: "Bolsistas",
   calendario: "Calendario",
@@ -145,7 +147,9 @@ const pageAliases = {
   ia: "ia-adm",
   assistente: "ia-adm",
   "gerenciar-oficinas": "oficinas",
-  "gerenciar-galeria": "galeria"
+  "gerenciar-galeria": "galeria",
+  colaboradores: "colaboradores",
+  parceiros: "colaboradores"
 };
 
 function showAdmin() {
@@ -347,15 +351,18 @@ async function loadInscricoes() {
 }
 
 async function loadManagedContent() {
-  const [oficinasData, galeriaData] = await Promise.all([
+  const [oficinasData, galeriaData, colaboradoresData] = await Promise.all([
     apiRequest("/admin/oficinas?includeInactive=true"),
-    apiRequest("/admin/galeria?includeInactive=true")
+    apiRequest("/admin/galeria?includeInactive=true"),
+    apiRequest("/admin/colaboradores?includeInactive=true")
   ]);
   state.oficinas = oficinasData.oficinas || [];
   state.galeria = galeriaData.galeria || [];
+  state.colaboradores = colaboradoresData.colaboradores || [];
   populateSelects();
   renderOfficeList();
   renderGalleryList();
+  renderCollaboratorList();
 }
 
 async function loadAlunos() {
@@ -1334,6 +1341,94 @@ async function deleteGallery(image) {
   await loadManagedContent();
 }
 
+function initialsFromName(name) {
+  return String(name || "CJ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
+function collaboratorThumb(item) {
+  if (item.imagemUrl) {
+    return createElement("img", {
+      className: "content-thumb",
+      attrs: { src: item.imagemUrl, alt: item.alt || item.nome, loading: "lazy" }
+    });
+  }
+  return createElement("div", {
+    className: "content-thumb content-thumb-placeholder",
+    text: initialsFromName(item.nome),
+    attrs: { "aria-hidden": "true" }
+  });
+}
+
+function renderCollaboratorList() {
+  const list = document.querySelector("[data-collaborator-list]");
+  if (!list) return;
+  list.replaceChildren();
+
+  if (!state.colaboradores.length) {
+    list.append(createElement("p", { className: "form-feedback", text: "Nenhum colaborador cadastrado." }));
+    return;
+  }
+
+  state.colaboradores.forEach((itemData) => {
+    const item = createElement("article", { className: "content-item" });
+    item.append(collaboratorThumb(itemData));
+    const main = createElement("div", { className: "content-item-main" });
+    main.append(
+      createElement("strong", { text: itemData.nome }),
+      createElement("span", { text: itemData.descricao || "Sem descricao." }),
+      createElement("span", { text: itemData.siteUrl }),
+      createElement("span", { text: itemData.hasUploadedFile ? `Arquivo: ${itemData.originalName || "imagem enviada"}` : (itemData.imagemUrl ? "Origem: URL" : "Sem imagem") }),
+      createElement("span", { text: itemData.ativo ? `Ativo - ordem ${itemData.ordem}` : `Inativo - ordem ${itemData.ordem}` })
+    );
+    const actions = createElement("div", { className: "content-actions" });
+    const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
+    const del = createElement("button", { className: "icon-action danger", text: "Excluir", attrs: { type: "button" } });
+    edit.addEventListener("click", () => editCollaborator(itemData));
+    del.addEventListener("click", () => deleteCollaborator(itemData));
+    actions.append(edit, del);
+    item.append(main, actions);
+    list.append(item);
+  });
+}
+
+function resetCollaboratorForm() {
+  const form = document.querySelector("[data-collaborator-form]");
+  form.reset();
+  form.elements.id.value = "";
+  form.elements.ordem.value = String(state.colaboradores.length + 1);
+  form.elements.ativo.checked = true;
+  if (form.elements.imagemArquivo) form.elements.imagemArquivo.value = "";
+  setFeedback(document.querySelector("[data-collaborator-feedback]"), "");
+}
+
+function editCollaborator(item) {
+  const form = document.querySelector("[data-collaborator-form]");
+  setFormValues(form, {
+    id: item.id,
+    nome: item.nome,
+    descricao: item.descricao,
+    siteUrl: item.siteUrl,
+    imagemUrl: item.imagemUrl,
+    alt: item.alt,
+    ordem: item.ordem,
+    ativo: item.ativo
+  });
+  if (form.elements.imagemArquivo) form.elements.imagemArquivo.value = "";
+  showAdminPage("colaboradores", true);
+}
+
+async function deleteCollaborator(item) {
+  if (!window.confirm(`Excluir o colaborador ${item.nome}?`)) return;
+  await secureRequest(`/admin/colaboradores/${item.id}`, { method: "DELETE" });
+  await loadManagedContent();
+}
+
 function renderStudentList() {
   const list = document.querySelector("[data-student-list]");
   if (!list) return;
@@ -1854,6 +1949,7 @@ function setupEvents() {
 
   document.querySelector("[data-reset-office-form]")?.addEventListener("click", resetOfficeForm);
   document.querySelector("[data-reset-gallery-form]")?.addEventListener("click", resetGalleryForm);
+  document.querySelector("[data-reset-collaborator-form]")?.addEventListener("click", resetCollaboratorForm);
   document.querySelector("[data-reset-student-form]")?.addEventListener("click", resetStudentForm);
   document.querySelector("[data-reset-bolsista-form]")?.addEventListener("click", resetBolsistaForm);
   document.querySelector("[data-reset-calendar-event-form]")?.addEventListener("click", resetCalendarEventForm);
@@ -2061,6 +2157,37 @@ function setupEvents() {
       });
       setFeedback(feedback, "Imagem salva com sucesso.", "success");
       resetGalleryForm();
+      await loadManagedContent();
+    } catch (error) {
+      setFeedback(feedback, error.message, "error");
+    }
+  });
+
+  document.querySelector("[data-collaborator-form]")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const feedback = document.querySelector("[data-collaborator-feedback]");
+    const formData = new FormData(form);
+    const id = formData.get("id");
+    const imageFile = form.elements.imagemArquivo?.files?.[0];
+
+    formData.set("ativo", String(activeFromForm(form)));
+    formData.set("ordem", String(Number(formData.get("ordem") || 0)));
+    formData.delete("id");
+    if (!imageFile) formData.delete("imagemArquivo");
+
+    if (!String(formData.get("siteUrl") || "").trim()) {
+      setFeedback(feedback, "Informe o site oficial do colaborador.", "error");
+      return;
+    }
+
+    try {
+      await secureRequest(id ? `/admin/colaboradores/${id}` : "/admin/colaboradores", {
+        method: id ? "PUT" : "POST",
+        body: formData
+      });
+      resetCollaboratorForm();
+      setFeedback(feedback, "Colaborador salvo com sucesso.", "success");
       await loadManagedContent();
     } catch (error) {
       setFeedback(feedback, error.message, "error");

@@ -22,11 +22,11 @@
       "continue": true
     },
     {
-      "src": "/admin/(oficinas|galeria|bolsistas|calendario)(.*)",
+      "src": "/admin/(oficinas|galeria|colaboradores|bolsistas|calendario)(.*)",
       "dest": "/api/index.js"
     },
     {
-      "src": "/(ai|inscricao|inscricoes|auth|csrf-token|captcha|dashboard|oficinas|galeria|alunos|chamadas|health)(.*)",
+      "src": "/(ai|inscricao|inscricoes|auth|csrf-token|captcha|dashboard|oficinas|galeria|colaboradores|alunos|chamadas|health)(.*)",
       "dest": "/api/index.js"
     },
     {

@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const db = require("./pool");
 const { defaultOficinas } = require("../services/oficina.service");
+const { defaultColaboradores } = require("../models/colaborador.model");
 
 function initials(nome) {
   return nome
@@ -74,6 +75,23 @@ async function run() {
       "Logo oficial do Centro da Juventude Almirante Tamandaré"
     ]
   );
+
+  for (const colaborador of defaultColaboradores) {
+    await db.query(
+      `INSERT INTO colaboradores (seed_key, nome, descricao, site_url, imagem_url, alt, ordem, ativo)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+       ON CONFLICT (seed_key) DO NOTHING`,
+      [
+        colaborador.seed_key,
+        colaborador.nome,
+        colaborador.descricao,
+        colaborador.site_url,
+        colaborador.imagem_url,
+        colaborador.alt,
+        colaborador.ordem
+      ]
+    );
+  }
 
   await db.query(
     `INSERT INTO aluno_oficinas (aluno_id, oficina_id)

@@ -654,7 +654,8 @@ select[multiple] {
   gap: 8px;
 }
 
-.gallery-manager-list .content-item {
+.gallery-manager-list .content-item,
+.collaborator-manager-list .content-item {
   grid-template-columns: 82px minmax(0, 1fr);
 }
 
@@ -665,6 +666,15 @@ select[multiple] {
   object-fit: cover;
   border: 1px solid var(--color-border);
   background: var(--color-soft);
+}
+
+.content-thumb-placeholder {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  font-family: var(--font-title);
+  font-weight: 800;
 }
 
 .attendance-notes {

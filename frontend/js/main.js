@@ -1,4 +1,4 @@
-import { workshops as fallbackWorkshops, categories as fallbackCategories, categoryColors, agenda, galleryItems as fallbackGalleryItems } from "./data.js";
+import { workshops as fallbackWorkshops, categories as fallbackCategories, categoryColors, agenda, galleryItems as fallbackGalleryItems, collaborators as fallbackCollaborators } from "./data.js";
 import { apiRequest } from "./api.js?v=20260509-2";
 import {
   createElement,
@@ -21,7 +21,8 @@ const state = {
   aiMessages: [],
   workshops: [...fallbackWorkshops],
   categories: [...fallbackCategories],
-  galleryItems: [...fallbackGalleryItems]
+  galleryItems: [...fallbackGalleryItems],
+  collaborators: [...fallbackCollaborators]
 };
 
 let revealObserver;
@@ -543,6 +544,67 @@ function renderGallery() {
   });
 }
 
+function initialsFromName(name) {
+  return String(name || "CJ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
+function renderCollaborators() {
+  const grid = document.querySelector("[data-collaborators-grid]");
+  if (!grid) return;
+  grid.replaceChildren();
+
+  state.collaborators
+    .slice()
+    .sort((a, b) => Number(a.ordem || 0) - Number(b.ordem || 0))
+    .forEach((item) => {
+      const card = createElement("article", { className: "collaborator-card" });
+      const media = createElement("div", { className: "collaborator-media" });
+
+      if (item.imagemUrl) {
+        media.append(createElement("img", {
+          attrs: {
+            src: item.imagemUrl,
+            alt: item.alt || item.nome,
+            loading: "lazy"
+          }
+        }));
+      } else {
+        media.append(createElement("span", {
+          className: "collaborator-mark",
+          text: initialsFromName(item.nome),
+          attrs: { "aria-hidden": "true" }
+        }));
+      }
+
+      const content = createElement("div", { className: "collaborator-content" });
+      content.append(
+        createElement("h3", { text: item.nome }),
+        createElement("p", { text: item.descricao })
+      );
+
+      if (item.siteUrl) {
+        content.append(createElement("a", {
+          className: "button button-secondary",
+          text: "Site oficial",
+          attrs: {
+            href: item.siteUrl,
+            target: "_blank",
+            rel: "noopener noreferrer"
+          }
+        }));
+      }
+
+      card.append(media, content);
+      grid.append(card);
+    });
+}
+
 function validateSignup(data, files = []) {
   if (!data.nome || data.nome.trim().length < 3) return "Informe o nome completo.";
   if (!isValidCpf(data.cpf)) return "Informe um CPF valido.";
@@ -888,7 +950,47 @@ function setupAiChat() {
 function setupVLibras() {
   let attempts = 0;
 
+  function ensureMarkup() {
+    let root = document.querySelector("[vw]");
+    if (root) {
+      root.classList.add("enabled");
+      return root;
+    }
+
+    root = createElement("div", { className: "enabled", attrs: { vw: "", "data-vlibras-root": "" } });
+    root.append(
+      createElement("div", {
+        className: "active",
+        attrs: {
+          "vw-access-button": "",
+          role: "button",
+          tabindex: "0",
+          "aria-label": "Abrir VLibras"
+        }
+      }),
+      createElement("div", {
+        attrs: { "vw-plugin-wrapper": "" }
+      })
+    );
+    root.querySelector("[vw-plugin-wrapper]")?.append(createElement("div", { className: "vw-plugin-top-wrapper" }));
+    document.body.append(root);
+    return root;
+  }
+
+  function loadScript() {
+    if (document.querySelector('script[src*="vlibras-plugin.js"]')) return;
+    const script = createElement("script", {
+      attrs: {
+        src: "https://vlibras.gov.br/app/vlibras-plugin.js",
+        defer: ""
+      }
+    });
+    script.addEventListener("load", initWidget, { once: true });
+    document.body.append(script);
+  }
+
   function initWidget() {
+    ensureMarkup();
     if (window.VLibras?.Widget) {
       if (!document.documentElement.dataset.vlibrasReady) {
         new window.VLibras.Widget("https://vlibras.gov.br/app");
@@ -897,16 +999,17 @@ function setupVLibras() {
       return;
     }
 
+    loadScript();
     attempts += 1;
-    if (attempts < 20) {
+    if (attempts < 40) {
       window.setTimeout(initWidget, 250);
     }
   }
 
-  if (document.readyState === "complete") {
+  if (document.readyState === "complete" || document.readyState === "interactive") {
     initWidget();
   } else {
-    window.addEventListener("load", initWidget, { once: true });
+    document.addEventListener("DOMContentLoaded", initWidget, { once: true });
   }
 }
 
@@ -920,9 +1023,10 @@ function setupYearAndStats() {
 
 async function loadPublicContent() {
   try {
-    const [oficinasData, galeriaData] = await Promise.all([
+    const [oficinasData, galeriaData, colaboradoresData] = await Promise.all([
       apiRequest("/oficinas"),
-      apiRequest("/galeria")
+      apiRequest("/galeria"),
+      apiRequest("/colaboradores")
     ]);
     if (Array.isArray(oficinasData.oficinas) && oficinasData.oficinas.length) {
       state.workshops = oficinasData.oficinas;
@@ -936,6 +1040,9 @@ async function loadPublicContent() {
         alt: item.alt || item.titulo,
         caption: item.titulo
       }));
+    }
+    if (Array.isArray(colaboradoresData.colaboradores) && colaboradoresData.colaboradores.length) {
+      state.collaborators = colaboradoresData.colaboradores;
     }
   } catch (error) {
     console.warn("Conteúdo dinâmico indisponível. Usando dados locais.", error.message);
@@ -955,6 +1062,7 @@ async function init() {
   setupWorkshopRoutes();
   renderAgenda();
   renderGallery();
+  renderCollaborators();
   setupWorkshopDialog();
   setupVLibras();
   setupPhoneMasks();

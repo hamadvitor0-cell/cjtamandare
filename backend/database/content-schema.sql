@@ -33,6 +33,24 @@ CREATE TABLE IF NOT EXISTS galeria (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS colaboradores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  seed_key TEXT UNIQUE,
+  nome TEXT NOT NULL CHECK (char_length(nome) BETWEEN 2 AND 120),
+  descricao TEXT CHECK (descricao IS NULL OR char_length(descricao) <= 700),
+  site_url TEXT NOT NULL CHECK (char_length(site_url) BETWEEN 1 AND 500),
+  imagem_url TEXT NOT NULL DEFAULT '' CHECK (char_length(imagem_url) <= 500),
+  alt TEXT CHECK (alt IS NULL OR char_length(alt) <= 180),
+  ordem INTEGER NOT NULL DEFAULT 0,
+  ativo BOOLEAN NOT NULL DEFAULT TRUE,
+  original_name TEXT CHECK (original_name IS NULL OR char_length(original_name) <= 240),
+  mime_type TEXT CHECK (mime_type IS NULL OR mime_type IN ('image/jpeg', 'image/png', 'image/webp')),
+  size_bytes INTEGER CHECK (size_bytes IS NULL OR (size_bytes > 0 AND size_bytes <= 5242880)),
+  file_content BYTEA,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS inscricao_documentos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   inscricao_id UUID NOT NULL REFERENCES inscricoes(id) ON DELETE CASCADE,
@@ -96,6 +114,11 @@ ALTER TABLE galeria ADD COLUMN IF NOT EXISTS original_name TEXT;
 ALTER TABLE galeria ADD COLUMN IF NOT EXISTS mime_type TEXT;
 ALTER TABLE galeria ADD COLUMN IF NOT EXISTS size_bytes INTEGER;
 ALTER TABLE galeria ADD COLUMN IF NOT EXISTS file_content BYTEA;
+ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS seed_key TEXT;
+ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS original_name TEXT;
+ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS mime_type TEXT;
+ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS size_bytes INTEGER;
+ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS file_content BYTEA;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS oficina_id UUID REFERENCES oficinas(id) ON DELETE SET NULL;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS documentos_pendentes BOOLEAN NOT NULL DEFAULT FALSE;
@@ -190,6 +213,8 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS idx_oficinas_categoria ON oficinas (categoria);
 CREATE INDEX IF NOT EXISTS idx_galeria_ordem ON galeria (ordem ASC);
+CREATE INDEX IF NOT EXISTS idx_colaboradores_ordem ON colaboradores (ordem ASC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_colaboradores_seed_key_unique ON colaboradores (seed_key);
 CREATE INDEX IF NOT EXISTS idx_inscricao_documentos_inscricao ON inscricao_documentos (inscricao_id);
 CREATE INDEX IF NOT EXISTS idx_inscricoes_cpf ON inscricoes (cpf);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_alunos_cpf_unique ON alunos (cpf) WHERE cpf IS NOT NULL AND cpf <> '';
@@ -221,6 +246,12 @@ EXECUTE FUNCTION set_updated_at();
 DROP TRIGGER IF EXISTS trg_galeria_updated_at ON galeria;
 CREATE TRIGGER trg_galeria_updated_at
 BEFORE UPDATE ON galeria
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_colaboradores_updated_at ON colaboradores;
+CREATE TRIGGER trg_colaboradores_updated_at
+BEFORE UPDATE ON colaboradores
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 

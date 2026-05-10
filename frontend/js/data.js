@@ -84,3 +84,22 @@ export const galleryItems = [
     caption: "Identidade oficial"
   }
 ];
+
+export const collaborators = [
+  {
+    nome: "SESC Parana",
+    descricao: "O Sesc Parana atua em areas como acao social, cultura, educacao, esporte e lazer, saude, alimentacao e turismo, ampliando o acesso da comunidade a servicos e atividades formativas.",
+    siteUrl: "https://www.sescpr.com.br/",
+    imagemUrl: "/img/sesc-parana.png",
+    alt: "Logo do SESC Parana",
+    ordem: 1
+  },
+  {
+    nome: "Secretaria Municipal de Cultura e Turismo",
+    descricao: "A Secretaria de Cultura e Turismo de Almirante Tamandare promove o desenvolvimento cultural, protege o patrimonio local e incentiva acoes de turismo, eventos e valorizacao do Circuito da Natureza.",
+    siteUrl: "https://tamandare.pr.gov.br/secretarias/cultura-e-turismo",
+    imagemUrl: "",
+    alt: "Secretaria Municipal de Cultura e Turismo de Almirante Tamandare",
+    ordem: 2
+  }
+];

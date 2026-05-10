@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css?v=20260509-4">
+    <link rel="stylesheet" href="/css/styles.css?v=20260510-2">
   </head>
   <body>
     <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
@@ -41,6 +41,7 @@
           <a href="#acompanhar">Acompanhar</a>
           <a href="#agenda">Agenda</a>
           <a href="#galeria">Galeria</a>
+          <a href="#colaboradores">Colaboradores</a>
           <a href="#inscricao">Inscrições</a>
           <a href="#contato">Contato</a>
           <a class="nav-admin" href="/admin.html">ADM</a>
@@ -206,6 +207,14 @@
         <div class="container gallery-grid reveal" data-gallery-grid></div>
       </section>
 
+      <section class="section-block collaborators" id="colaboradores" aria-labelledby="colaboradores-titulo">
+        <div class="container section-heading reveal">
+          <h2 id="colaboradores-titulo">Colaboradores</h2>
+          <p>Instituicoes parceiras que fortalecem as oportunidades culturais, educativas e comunitarias do Centro da Juventude.</p>
+        </div>
+        <div class="container collaborators-grid reveal" data-collaborators-grid></div>
+      </section>
+
       <section class="section-block signup" id="inscricao" aria-labelledby="inscricao-titulo">
         <div class="container signup-layout">
           <div class="section-heading reveal">
@@ -352,6 +361,7 @@
         </a>
         <nav aria-label="Links rápidos">
           <a href="#oficinas">Oficinas</a>
+          <a href="#colaboradores">Colaboradores</a>
           <a href="#inscricao">Inscrições</a>
           <a href="/admin.html">ADM</a>
         </nav>
@@ -399,15 +409,15 @@
       </section>
     </div>
 
-    <div vw class="enabled">
-      <div vw-access-button class="active"></div>
+    <div vw class="enabled" data-vlibras-root>
+      <div vw-access-button class="active" role="button" tabindex="0" aria-label="Abrir VLibras"></div>
       <div vw-plugin-wrapper>
         <div class="vw-plugin-top-wrapper"></div>
       </div>
     </div>
 
     <script src="/js/runtime-config.js?v=20260508-5" defer></script>
-    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
-    <script type="module" src="/js/main.js?v=20260510-1"></script>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js" defer></script>
+    <script type="module" src="/js/main.js?v=20260510-2"></script>
   </body>
 </html>

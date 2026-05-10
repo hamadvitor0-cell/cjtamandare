@@ -93,6 +93,16 @@ const galeriaSchema = Joi.object({
   ativo: Joi.boolean().truthy("true").falsy("false")
 });
 
+const colaboradorSchema = Joi.object({
+  nome: Joi.string().min(2).max(120).required(),
+  descricao: Joi.string().allow("").max(700),
+  siteUrl: Joi.string().uri({ scheme: ["http", "https"] }).max(500).required(),
+  imagemUrl: Joi.string().allow("").pattern(safeImageUrlPattern).max(500),
+  alt: Joi.string().allow("").max(180),
+  ordem: Joi.number().integer().min(0).max(9999),
+  ativo: Joi.boolean().truthy("true").falsy("false")
+});
+
 const alunoSchema = Joi.object({
   nome: Joi.string().min(3).max(120).required(),
   cpf: optionalCpfField,
@@ -194,6 +204,7 @@ module.exports = {
   adminListQuerySchema,
   oficinaSchema,
   galeriaSchema,
+  colaboradorSchema,
   alunoSchema,
   bolsistaSchema,
   calendarQuerySchema,

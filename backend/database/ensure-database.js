@@ -5,6 +5,7 @@ const config = require("../config/env");
 const db = require("./pool");
 const Admin = require("../models/admin.model");
 const { defaultOficinas } = require("../services/oficina.service");
+const { defaultColaboradores } = require("../models/colaborador.model");
 
 let setupPromise = null;
 const setupLockId = 20260509;
@@ -72,6 +73,25 @@ async function seedGaleria() {
   );
 }
 
+async function seedColaboradores() {
+  for (const colaborador of defaultColaboradores) {
+    await db.query(
+      `INSERT INTO colaboradores (seed_key, nome, descricao, site_url, imagem_url, alt, ordem, ativo)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+       ON CONFLICT (seed_key) DO NOTHING`,
+      [
+        colaborador.seed_key,
+        colaborador.nome,
+        colaborador.descricao,
+        colaborador.site_url,
+        colaborador.imagem_url,
+        colaborador.alt,
+        colaborador.ordem
+      ]
+    );
+  }
+}
+
 async function seedAdmin() {
   if (!config.adminEmail || !config.adminPassword) return;
   if (config.adminPassword.length < 12) {
@@ -95,6 +115,7 @@ async function runSetup() {
   await db.query(contentSchema);
   await seedOficinas();
   await seedGaleria();
+  await seedColaboradores();
   await db.query(
     `INSERT INTO aluno_oficinas (aluno_id, oficina_id)
      SELECT id, oficina_id
