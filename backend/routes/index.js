@@ -13,6 +13,7 @@ const OficinaController = require("../controllers/oficina.controller");
 const GaleriaController = require("../controllers/galeria.controller");
 const AlunoController = require("../controllers/aluno.controller");
 const BolsistaController = require("../controllers/bolsista.controller");
+const CalendarioController = require("../controllers/calendario.controller");
 const ChamadaController = require("../controllers/chamada.controller");
 const CaptchaController = require("../controllers/captcha.controller");
 const {
@@ -26,6 +27,8 @@ const {
   galeriaSchema,
   alunoSchema,
   bolsistaSchema,
+  calendarQuerySchema,
+  calendarEventSchema,
   chamadaQuerySchema,
   chamadaHistoryQuerySchema,
   chamadaSchema,
@@ -274,6 +277,38 @@ router.delete(
   requireCsrf,
   validate(idParamSchema, "params"),
   asyncHandler(BolsistaController.remove)
+);
+
+router.get(
+  "/admin/calendario",
+  ...adminOnly,
+  validate(calendarQuerySchema, "query"),
+  asyncHandler(CalendarioController.month)
+);
+
+router.post(
+  "/admin/calendario/eventos",
+  ...adminOnly,
+  requireCsrf,
+  validate(calendarEventSchema),
+  asyncHandler(CalendarioController.createEvent)
+);
+
+router.put(
+  "/admin/calendario/eventos/:id",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  validate(calendarEventSchema),
+  asyncHandler(CalendarioController.updateEvent)
+);
+
+router.delete(
+  "/admin/calendario/eventos/:id",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  asyncHandler(CalendarioController.removeEvent)
 );
 
 router.get(

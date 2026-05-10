@@ -22,7 +22,7 @@
       "continue": true
     },
     {
-      "src": "/admin/(oficinas|galeria|bolsistas)(.*)",
+      "src": "/admin/(oficinas|galeria|bolsistas|calendario)(.*)",
       "dest": "/api/index.js"
     },
     {

@@ -117,10 +117,35 @@ const bolsistaSchema = Joi.object({
   email: Joi.string().email({ tlds: { allow: false } }).allow("").max(160),
   funcao: Joi.string().valid("adm", "social_media", "professor", "ajudante_professor").required(),
   tipoAtuacao: Joi.string().valid("aula", "ajuda", "apoio", "sem_vinculo").required(),
+  diasSemana: Joi.array().items(Joi.string().valid(
+    "segunda",
+    "terca",
+    "quarta",
+    "quinta",
+    "sexta",
+    "sabado",
+    "domingo"
+  )).max(2).default([]),
   oficinaId: Joi.string().allow("").pattern(uuidPattern),
   oficinaIds: Joi.array().items(Joi.string().pattern(uuidPattern)).max(20).default([]),
   status: Joi.string().valid("ativo", "inativo").required(),
   observacoes: Joi.string().allow("").max(1000)
+});
+
+const calendarQuerySchema = Joi.object({
+  mes: Joi.string().pattern(/^\d{4}-\d{2}$/)
+});
+
+const calendarEventSchema = Joi.object({
+  titulo: Joi.string().min(2).max(120).required(),
+  tipo: Joi.string().valid("reuniao", "passeio", "evento", "formacao", "outro").required(),
+  data: Joi.date().iso().required(),
+  horarioInicio: Joi.string().allow("").pattern(/^([01]\d|2[0-3]):[0-5]\d$/),
+  horarioFim: Joi.string().allow("").pattern(/^([01]\d|2[0-3]):[0-5]\d$/),
+  local: Joi.string().allow("").max(120),
+  oficinaId: Joi.string().allow("").pattern(uuidPattern),
+  bolsistaIds: Joi.array().items(Joi.string().pattern(uuidPattern)).max(40).default([]),
+  descricao: Joi.string().allow("").max(500)
 });
 
 const chamadaQuerySchema = Joi.object({
@@ -171,6 +196,8 @@ module.exports = {
   galeriaSchema,
   alunoSchema,
   bolsistaSchema,
+  calendarQuerySchema,
+  calendarEventSchema,
   chamadaQuerySchema,
   chamadaHistoryQuerySchema,
   chamadaSchema,

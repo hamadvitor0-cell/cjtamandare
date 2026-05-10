@@ -140,6 +140,7 @@ CREATE TABLE IF NOT EXISTS bolsistas (
   email TEXT CHECK (email IS NULL OR char_length(email) <= 160),
   funcao TEXT NOT NULL CHECK (funcao IN ('adm', 'social_media', 'professor', 'ajudante_professor')),
   tipo_atuacao TEXT NOT NULL DEFAULT 'apoio' CHECK (tipo_atuacao IN ('aula', 'ajuda', 'apoio', 'sem_vinculo')),
+  dias_semana TEXT[] NOT NULL DEFAULT '{}' CHECK (cardinality(dias_semana) <= 2),
   status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo')),
   observacoes TEXT CHECK (observacoes IS NULL OR char_length(observacoes) <= 1000),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -153,6 +154,40 @@ CREATE TABLE IF NOT EXISTS bolsista_oficinas (
   PRIMARY KEY (bolsista_id, oficina_id)
 );
 
+CREATE TABLE IF NOT EXISTS calendario_eventos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  titulo TEXT NOT NULL CHECK (char_length(titulo) BETWEEN 2 AND 120),
+  tipo TEXT NOT NULL CHECK (tipo IN ('reuniao', 'passeio', 'evento', 'formacao', 'outro')),
+  data_evento DATE NOT NULL,
+  horario_inicio TEXT CHECK (horario_inicio IS NULL OR horario_inicio ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  horario_fim TEXT CHECK (horario_fim IS NULL OR horario_fim ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  local TEXT CHECK (local IS NULL OR char_length(local) <= 120),
+  oficina_id UUID REFERENCES oficinas(id) ON DELETE SET NULL,
+  descricao TEXT CHECK (descricao IS NULL OR char_length(descricao) <= 500),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS calendario_evento_bolsistas (
+  evento_id UUID NOT NULL REFERENCES calendario_eventos(id) ON DELETE CASCADE,
+  bolsista_id UUID NOT NULL REFERENCES bolsistas(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (evento_id, bolsista_id)
+);
+
+ALTER TABLE bolsistas ADD COLUMN IF NOT EXISTS dias_semana TEXT[] NOT NULL DEFAULT '{}';
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'bolsistas_dias_semana_check'
+  ) THEN
+    ALTER TABLE bolsistas ADD CONSTRAINT bolsistas_dias_semana_check CHECK (
+      cardinality(dias_semana) <= 2
+      AND dias_semana <@ ARRAY['segunda','terca','quarta','quinta','sexta','sabado','domingo']::text[]
+    );
+  END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_oficinas_categoria ON oficinas (categoria);
 CREATE INDEX IF NOT EXISTS idx_galeria_ordem ON galeria (ordem ASC);
 CREATE INDEX IF NOT EXISTS idx_inscricao_documentos_inscricao ON inscricao_documentos (inscricao_id);
@@ -165,6 +200,9 @@ CREATE INDEX IF NOT EXISTS idx_presencas_chamada ON presencas (chamada_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_bolsistas_cpf_unique ON bolsistas (cpf) WHERE cpf IS NOT NULL AND cpf <> '';
 CREATE INDEX IF NOT EXISTS idx_bolsistas_status ON bolsistas (status);
 CREATE INDEX IF NOT EXISTS idx_bolsista_oficinas_oficina ON bolsista_oficinas (oficina_id);
+CREATE INDEX IF NOT EXISTS idx_calendario_eventos_data ON calendario_eventos (data_evento);
+CREATE INDEX IF NOT EXISTS idx_calendario_eventos_oficina ON calendario_eventos (oficina_id);
+CREATE INDEX IF NOT EXISTS idx_calendario_evento_bolsistas_bolsista ON calendario_evento_bolsistas (bolsista_id);
 
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
@@ -207,5 +245,11 @@ EXECUTE FUNCTION set_updated_at();
 DROP TRIGGER IF EXISTS trg_bolsistas_updated_at ON bolsistas;
 CREATE TRIGGER trg_bolsistas_updated_at
 BEFORE UPDATE ON bolsistas
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_calendario_eventos_updated_at ON calendario_eventos;
+CREATE TRIGGER trg_calendario_eventos_updated_at
+BEFORE UPDATE ON calendario_eventos
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();

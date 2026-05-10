@@ -32,7 +32,12 @@ const state = {
   studentSearch: "",
   studentOffice: "",
   bolsistaSearch: "",
-  bolsistaOffice: ""
+  bolsistaOffice: "",
+  calendar: {
+    month: new Date().toISOString().slice(0, 7),
+    aulas: [],
+    eventos: []
+  }
 };
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -62,6 +67,28 @@ function formatPeriod(period = "a definir") {
   return labels[period] || period;
 }
 
+function monthLabel(month) {
+  const [year, monthNumber] = String(month || "").split("-").map(Number);
+  if (!year || !monthNumber) return "";
+  return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" })
+    .format(new Date(Date.UTC(year, monthNumber - 1, 1, 12)));
+}
+
+function addMonths(month, amount) {
+  const [year, monthNumber] = String(month || state.calendar.month).split("-").map(Number);
+  const date = new Date(Date.UTC(year, monthNumber - 1 + amount, 1, 12));
+  return date.toISOString().slice(0, 7);
+}
+
+function dateFromMonthDay(month, day) {
+  return `${month}-${String(day).padStart(2, "0")}`;
+}
+
+function weekdayIndexMondayFirst(dateValue) {
+  const day = new Date(`${dateValue}T12:00:00Z`).getUTCDay();
+  return day === 0 ? 6 : day - 1;
+}
+
 const bolsistaFunctionLabels = {
   adm: "ADM",
   social_media: "Social media",
@@ -74,6 +101,14 @@ const bolsistaActionLabels = {
   ajuda: "Ajuda professor",
   apoio: "Apoio",
   sem_vinculo: "Sem vinculo direto"
+};
+
+const eventTypeLabels = {
+  reuniao: "Reuniao",
+  passeio: "Passeio",
+  evento: "Evento",
+  formacao: "Formacao",
+  outro: "Outro"
 };
 
 const loginView = document.querySelector("[data-login-view]");
@@ -102,6 +137,7 @@ const pageTitles = {
   galeria: "Galeria",
   alunos: "Alunos",
   bolsistas: "Bolsistas",
+  calendario: "Calendario",
   chamada: "Chamada"
 };
 
@@ -241,6 +277,36 @@ function populateSelects() {
       select.value = state.oficinas.some((item) => item.id === current) ? current : "";
     }
   });
+
+  document.querySelectorAll("[data-calendar-event-office]").forEach((select) => {
+    const current = select.value;
+    const first = select.querySelector("option[value='']")?.cloneNode(true);
+    select.replaceChildren();
+    if (first) select.append(first);
+    state.oficinas.forEach((workshop) => {
+      select.append(createElement("option", {
+        text: workshop.nome,
+        attrs: { value: workshop.id }
+      }));
+    });
+    select.value = state.oficinas.some((item) => item.id === current) ? current : "";
+  });
+}
+
+function populateBolsistaSelects() {
+  document.querySelectorAll("[data-calendar-event-bolsistas]").forEach((select) => {
+    const current = Array.from(select.selectedOptions).map((option) => option.value);
+    select.replaceChildren();
+    state.bolsistas
+      .filter((bolsista) => bolsista.status === "ativo")
+      .forEach((bolsista) => {
+        select.append(createElement("option", {
+          text: bolsista.nome,
+          attrs: { value: bolsista.id }
+        }));
+      });
+    setSelectedValues(select, current);
+  });
 }
 
 async function checkSession() {
@@ -256,7 +322,7 @@ async function checkSession() {
 }
 
 async function refreshAll() {
-  await Promise.all([loadDashboard(), loadInscricoes(), loadAlunos(), loadBolsistas(), loadAttendanceHistory()]);
+  await Promise.all([loadDashboard(), loadInscricoes(), loadAlunos(), loadBolsistas(), loadCalendar(), loadAttendanceHistory()]);
 }
 
 async function loadAdminData() {
@@ -308,7 +374,17 @@ async function loadBolsistas() {
   if (state.bolsistaOffice) params.set("oficinaId", state.bolsistaOffice);
   const data = await apiRequest(`/admin/bolsistas?${params.toString()}`);
   state.bolsistas = data.bolsistas || [];
+  populateBolsistaSelects();
   renderBolsistaList(data.limite || 40);
+}
+
+async function loadCalendar() {
+  const data = await apiRequest(`/admin/calendario?mes=${encodeURIComponent(state.calendar.month)}`);
+  const calendario = data.calendario || {};
+  state.calendar.month = calendario.mes || state.calendar.month;
+  state.calendar.aulas = calendario.aulas || [];
+  state.calendar.eventos = calendario.eventos || [];
+  renderCalendar();
 }
 
 async function loadAttendanceHistory() {
@@ -1369,6 +1445,7 @@ function renderBolsistaList(limit = 40) {
     main.append(
       createElement("strong", { text: bolsista.nome }),
       createElement("span", { text: `${bolsistaFunctionLabels[bolsista.funcao] || bolsista.funcao} - ${bolsistaActionLabels[bolsista.tipoAtuacao] || bolsista.tipoAtuacao}` }),
+      createElement("span", { text: `Dias: ${(bolsista.diasSemana || []).map((day) => dayLabels[day] || day).join(", ") || "sem escala semanal"}` }),
       createElement("span", { text: `${bolsista.idade} anos - CPF: ${maskCpfValue(bolsista.cpf || "") || "sem CPF"} - ${bolsista.status}` }),
       createElement("span", { text: bolsista.telefone || bolsista.email || "sem contato informado" }),
       createElement("span", { text: (bolsista.oficinas || []).length ? `Oficinas: ${bolsista.oficinas.join(", ")}` : "Sem oficina vinculada" }),
@@ -1392,6 +1469,7 @@ function resetBolsistaForm() {
   form.elements.funcao.value = "adm";
   form.elements.tipoAtuacao.value = "apoio";
   form.elements.status.value = "ativo";
+  setCheckedValues(form, "diasSemana", []);
   setSelectedValues(form.elements.oficinaIds, []);
   setFeedback(document.querySelector("[data-bolsista-feedback]"), "");
 }
@@ -1410,6 +1488,7 @@ function editBolsista(bolsista) {
     status: bolsista.status,
     observacoes: bolsista.observacoes
   });
+  setCheckedValues(form, "diasSemana", bolsista.diasSemana || []);
   setSelectedValues(form.elements.oficinaIds, bolsista.oficinaIds || []);
   showAdminPage("bolsistas", true);
 }
@@ -1417,7 +1496,146 @@ function editBolsista(bolsista) {
 async function deleteBolsista(bolsista) {
   if (!window.confirm(`Excluir o bolsista ${bolsista.nome}?`)) return;
   await secureRequest(`/admin/bolsistas/${bolsista.id}`, { method: "DELETE" });
-  await loadBolsistas();
+  await Promise.all([loadBolsistas(), loadCalendar()]);
+}
+
+function timeRange(item) {
+  const start = item.horarioInicio || "";
+  const end = item.horarioFim || "";
+  if (start && end) return `${start} - ${end}`;
+  return start || item.horario || "";
+}
+
+function itemsByDate() {
+  const map = new Map();
+  const add = (date, item) => {
+    if (!map.has(date)) map.set(date, []);
+    map.get(date).push(item);
+  };
+  state.calendar.aulas.forEach((aula) => add(aula.data, { ...aula, kind: "aula" }));
+  state.calendar.eventos.forEach((evento) => add(evento.data, { ...evento, kind: "evento" }));
+  return map;
+}
+
+function renderCalendarItem(item) {
+  const node = createElement("article", {
+    className: `calendar-item is-${item.kind === "aula" ? "class" : item.tipo || "event"}`
+  });
+  node.append(
+    createElement("strong", { text: item.kind === "aula" ? item.titulo : `${eventTypeLabels[item.tipo] || "Evento"}: ${item.titulo}` })
+  );
+  const details = [
+    timeRange(item),
+    item.kind === "aula" ? item.periodo : item.local,
+    item.kind === "aula"
+      ? ((item.bolsistas || []).map((bolsista) => bolsista.nome).join(", ") || "Sem bolsista escalado")
+      : ((item.bolsistas || []).join(", ") || "")
+  ].filter(Boolean);
+  if (details.length) {
+    node.append(createElement("span", { text: details.join(" - ") }));
+  }
+  return node;
+}
+
+function renderCalendar() {
+  const grid = document.querySelector("[data-calendar-grid]");
+  const eventList = document.querySelector("[data-calendar-event-list]");
+  const monthInput = document.querySelector("[data-calendar-month]");
+  if (!grid || !eventList) return;
+
+  if (monthInput) monthInput.value = state.calendar.month;
+  const [year, monthNumber] = state.calendar.month.split("-").map(Number);
+  const totalDays = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+  const firstDate = `${state.calendar.month}-01`;
+  const leading = weekdayIndexMondayFirst(firstDate);
+  const today = new Date().toISOString().slice(0, 10);
+  const grouped = itemsByDate();
+
+  grid.replaceChildren();
+  ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"].forEach((label) => {
+    grid.append(createElement("div", { className: "calendar-weekday", text: label }));
+  });
+  for (let i = 0; i < leading; i += 1) {
+    grid.append(createElement("div", { className: "calendar-day is-empty" }));
+  }
+  for (let day = 1; day <= totalDays; day += 1) {
+    const date = dateFromMonthDay(state.calendar.month, day);
+    const cell = createElement("section", {
+      className: `calendar-day${date === today ? " is-today" : ""}`
+    });
+    const header = createElement("header");
+    header.append(
+      createElement("strong", { text: String(day) }),
+      createElement("span", { text: date === today ? "Hoje" : "" })
+    );
+    cell.append(header);
+    const items = grouped.get(date) || [];
+    if (!items.length) {
+      cell.append(createElement("p", { text: "Sem agenda" }));
+    } else {
+      items.forEach((item) => cell.append(renderCalendarItem(item)));
+    }
+    grid.append(cell);
+  }
+
+  eventList.replaceChildren();
+  if (!state.calendar.eventos.length) {
+    eventList.append(createElement("p", { className: "form-feedback", text: `Nenhum evento manual em ${monthLabel(state.calendar.month)}.` }));
+    return;
+  }
+
+  state.calendar.eventos.forEach((evento) => {
+    const item = createElement("article", { className: "content-item" });
+    const main = createElement("div", { className: "content-item-main" });
+    main.append(
+      createElement("strong", { text: evento.titulo }),
+      createElement("span", { text: `${eventTypeLabels[evento.tipo] || evento.tipo} - ${evento.data} ${timeRange(evento)}`.trim() }),
+      createElement("span", { text: [evento.local, evento.oficina].filter(Boolean).join(" - ") || "Sem local/oficina" }),
+      createElement("span", { text: (evento.bolsistas || []).length ? `Bolsistas: ${evento.bolsistas.join(", ")}` : "Sem bolsista vinculado" }),
+      createElement("span", { text: evento.descricao || "" })
+    );
+    const actions = createElement("div", { className: "content-actions" });
+    const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
+    const del = createElement("button", { className: "icon-action danger", text: "Excluir", attrs: { type: "button" } });
+    edit.addEventListener("click", () => editCalendarEvent(evento));
+    del.addEventListener("click", () => deleteCalendarEvent(evento));
+    actions.append(edit, del);
+    item.append(main, actions);
+    eventList.append(item);
+  });
+}
+
+function resetCalendarEventForm() {
+  const form = document.querySelector("[data-calendar-event-form]");
+  form.reset();
+  form.elements.id.value = "";
+  form.elements.tipo.value = "reuniao";
+  form.elements.data.value = `${state.calendar.month}-01`;
+  setSelectedValues(form.elements.bolsistaIds, []);
+  setFeedback(document.querySelector("[data-calendar-feedback]"), "");
+}
+
+function editCalendarEvent(evento) {
+  const form = document.querySelector("[data-calendar-event-form]");
+  setFormValues(form, {
+    id: evento.id,
+    titulo: evento.titulo,
+    tipo: evento.tipo,
+    data: evento.data,
+    horarioInicio: evento.horarioInicio,
+    horarioFim: evento.horarioFim,
+    local: evento.local,
+    oficinaId: evento.oficinaId,
+    descricao: evento.descricao
+  });
+  setSelectedValues(form.elements.bolsistaIds, evento.bolsistaIds || []);
+  showAdminPage("calendario", true);
+}
+
+async function deleteCalendarEvent(evento) {
+  if (!window.confirm(`Excluir o evento ${evento.titulo}?`)) return;
+  await secureRequest(`/admin/calendario/eventos/${evento.id}`, { method: "DELETE" });
+  await loadCalendar();
 }
 
 function renderAttendanceRows(payload) {
@@ -1638,6 +1856,7 @@ function setupEvents() {
   document.querySelector("[data-reset-gallery-form]")?.addEventListener("click", resetGalleryForm);
   document.querySelector("[data-reset-student-form]")?.addEventListener("click", resetStudentForm);
   document.querySelector("[data-reset-bolsista-form]")?.addEventListener("click", resetBolsistaForm);
+  document.querySelector("[data-reset-calendar-event-form]")?.addEventListener("click", resetCalendarEventForm);
 
   document.querySelector("[data-logout]")?.addEventListener("click", async () => {
     await secureRequest("/auth/logout", { method: "POST" });
@@ -1673,6 +1892,26 @@ function setupEvents() {
   document.querySelector("[data-bolsista-office-filter]")?.addEventListener("change", (event) => {
     state.bolsistaOffice = event.target.value;
     loadBolsistas();
+  });
+
+  document.querySelector("[data-calendar-month]")?.addEventListener("change", (event) => {
+    state.calendar.month = event.target.value || new Date().toISOString().slice(0, 7);
+    loadCalendar();
+  });
+
+  document.querySelector("[data-calendar-prev]")?.addEventListener("click", () => {
+    state.calendar.month = addMonths(state.calendar.month, -1);
+    loadCalendar();
+  });
+
+  document.querySelector("[data-calendar-next]")?.addEventListener("click", () => {
+    state.calendar.month = addMonths(state.calendar.month, 1);
+    loadCalendar();
+  });
+
+  document.querySelector("[data-calendar-today]")?.addEventListener("click", () => {
+    state.calendar.month = new Date().toISOString().slice(0, 7);
+    loadCalendar();
   });
 
   document.querySelector("[data-attendance-office]")?.addEventListener("change", () => {
@@ -1862,6 +2101,7 @@ function setupEvents() {
     const data = getFormData(form);
     data.oficinaIds = selectedValues(form.elements.oficinaIds);
     data.oficinaId = data.oficinaIds[0] || "";
+    data.diasSemana = checkedValues(form, "diasSemana");
     data.idade = Number(data.idade || 0);
     if (data.cpf && !isValidCpf(data.cpf)) {
       setFeedback(feedback, "Informe um CPF valido.", "error");
@@ -1869,6 +2109,10 @@ function setupEvents() {
     }
     if (!Number.isInteger(data.idade) || data.idade < 14 || data.idade > 24) {
       setFeedback(feedback, "A idade do bolsista deve estar entre 14 e 24 anos.", "error");
+      return;
+    }
+    if (data.diasSemana.length > 2) {
+      setFeedback(feedback, "Selecione no maximo 2 dias de trabalho para o bolsista.", "error");
       return;
     }
     const id = data.id;
@@ -1880,7 +2124,34 @@ function setupEvents() {
       });
       setFeedback(feedback, "Bolsista salvo com sucesso.", "success");
       resetBolsistaForm();
-      await loadBolsistas();
+      await Promise.all([loadBolsistas(), loadCalendar()]);
+    } catch (error) {
+      setFeedback(feedback, error.message, "error");
+    }
+  });
+
+  document.querySelector("[data-calendar-event-form]")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const feedback = document.querySelector("[data-calendar-feedback]");
+    const data = getFormData(form);
+    data.bolsistaIds = selectedValues(form.elements.bolsistaIds);
+    data.oficinaId = data.oficinaId || "";
+    if (!data.titulo || !data.data) {
+      setFeedback(feedback, "Informe titulo e data do evento.", "error");
+      return;
+    }
+    const id = data.id;
+    delete data.id;
+    try {
+      await secureRequest(id ? `/admin/calendario/eventos/${id}` : "/admin/calendario/eventos", {
+        method: id ? "PUT" : "POST",
+        body: data
+      });
+      state.calendar.month = data.data.slice(0, 7);
+      setFeedback(feedback, "Evento salvo com sucesso.", "success");
+      resetCalendarEventForm();
+      await loadCalendar();
     } catch (error) {
       setFeedback(feedback, error.message, "error");
     }
@@ -1897,6 +2168,10 @@ function init() {
   const today = new Date().toISOString().slice(0, 10);
   const dateInput = document.querySelector("[data-attendance-date]");
   if (dateInput && !dateInput.value) dateInput.value = today;
+  const monthInput = document.querySelector("[data-calendar-month]");
+  if (monthInput && !monthInput.value) monthInput.value = state.calendar.month;
+  const eventDateInput = document.querySelector("[data-calendar-event-form] input[name='data']");
+  if (eventDateInput && !eventDateInput.value) eventDateInput.value = today;
   setupEvents();
   checkSession();
 }

@@ -19,6 +19,10 @@ function normalizeOfficeIds(payload = {}) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
+function normalizeDays(payload = {}) {
+  return Array.from(new Set((payload.diasSemana || []).filter(Boolean))).slice(0, 2);
+}
+
 async function ensureSchema() {
   if (!db.hasDatabase) return;
   if (!schemaPromise) {
@@ -34,6 +38,7 @@ async function ensureSchema() {
         email TEXT CHECK (email IS NULL OR char_length(email) <= 160),
         funcao TEXT NOT NULL CHECK (funcao IN ('adm', 'social_media', 'professor', 'ajudante_professor')),
         tipo_atuacao TEXT NOT NULL DEFAULT 'apoio' CHECK (tipo_atuacao IN ('aula', 'ajuda', 'apoio', 'sem_vinculo')),
+        dias_semana TEXT[] NOT NULL DEFAULT '{}' CHECK (cardinality(dias_semana) <= 2),
         status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo')),
         observacoes TEXT CHECK (observacoes IS NULL OR char_length(observacoes) <= 1000),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -46,6 +51,19 @@ async function ensureSchema() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         PRIMARY KEY (bolsista_id, oficina_id)
       );
+
+      ALTER TABLE bolsistas ADD COLUMN IF NOT EXISTS dias_semana TEXT[] NOT NULL DEFAULT '{}';
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'bolsistas_dias_semana_check'
+        ) THEN
+          ALTER TABLE bolsistas ADD CONSTRAINT bolsistas_dias_semana_check CHECK (
+            cardinality(dias_semana) <= 2
+            AND dias_semana <@ ARRAY['segunda','terca','quarta','quinta','sexta','sabado','domingo']::text[]
+          );
+        END IF;
+      END $$;
 
       CREATE UNIQUE INDEX IF NOT EXISTS idx_bolsistas_cpf_unique ON bolsistas (cpf) WHERE cpf IS NOT NULL AND cpf <> '';
       CREATE INDEX IF NOT EXISTS idx_bolsistas_status ON bolsistas (status);
@@ -89,6 +107,7 @@ function toPublic(row) {
     email: row.email || "",
     funcao: row.funcao,
     tipoAtuacao: row.tipo_atuacao || row.tipoAtuacao || "apoio",
+    diasSemana: row.dias_semana || row.diasSemana || [],
     status: row.status || "ativo",
     observacoes: row.observacoes || "",
     oficinaIds: row.oficina_ids || row.oficinaIds || [],
@@ -115,6 +134,7 @@ async function findById(id) {
        b.email,
        b.funcao,
        b.tipo_atuacao,
+       b.dias_semana,
        b.status,
        b.observacoes,
        b.created_at,
@@ -177,6 +197,7 @@ async function findAll({ search = "", oficinaId = "" } = {}) {
        b.email,
        b.funcao,
        b.tipo_atuacao,
+       b.dias_semana,
        b.status,
        b.observacoes,
        b.created_at,
@@ -206,6 +227,7 @@ async function syncOffices(client, bolsistaId, oficinaIds = []) {
 
 async function create(payload) {
   const oficinaIds = normalizeOfficeIds(payload);
+  const diasSemana = normalizeDays(payload);
   await ensureSchema();
 
   if (!db.hasDatabase) {
@@ -220,6 +242,7 @@ async function create(payload) {
       email: payload.email || "",
       funcao: payload.funcao,
       tipo_atuacao: payload.tipoAtuacao || "apoio",
+      dias_semana: diasSemana,
       status: payload.status || "ativo",
       observacoes: payload.observacoes || "",
       oficinaIds,
@@ -238,8 +261,8 @@ async function create(payload) {
     if (Number(total.rows[0]?.total || 0) >= MAX_BOLSISTAS) throw limitError();
 
     const result = await client.query(
-      `INSERT INTO bolsistas (nome, cpf, idade, telefone, email, funcao, tipo_atuacao, status, observacoes)
-       VALUES ($1, NULLIF($2, ''), $3, NULLIF($4, ''), NULLIF($5, ''), $6, $7, $8, NULLIF($9, ''))
+      `INSERT INTO bolsistas (nome, cpf, idade, telefone, email, funcao, tipo_atuacao, dias_semana, status, observacoes)
+       VALUES ($1, NULLIF($2, ''), $3, NULLIF($4, ''), NULLIF($5, ''), $6, $7, $8, $9, NULLIF($10, ''))
        RETURNING id`,
       [
         payload.nome,
@@ -249,6 +272,7 @@ async function create(payload) {
         payload.email || "",
         payload.funcao,
         payload.tipoAtuacao || "apoio",
+        diasSemana,
         payload.status || "ativo",
         payload.observacoes || ""
       ]
@@ -271,6 +295,7 @@ async function create(payload) {
 
 async function update(id, payload) {
   const oficinaIds = normalizeOfficeIds(payload);
+  const diasSemana = normalizeDays(payload);
   await ensureSchema();
 
   if (!db.hasDatabase) {
@@ -285,6 +310,7 @@ async function update(id, payload) {
       email: payload.email || "",
       funcao: payload.funcao,
       tipo_atuacao: payload.tipoAtuacao || "apoio",
+      dias_semana: diasSemana,
       status: payload.status || "ativo",
       observacoes: payload.observacoes || "",
       oficinaIds,
@@ -306,10 +332,11 @@ async function update(id, payload) {
            email = NULLIF($5, ''),
            funcao = $6,
            tipo_atuacao = $7,
-           status = $8,
-           observacoes = NULLIF($9, ''),
+           dias_semana = $8,
+           status = $9,
+           observacoes = NULLIF($10, ''),
            updated_at = NOW()
-       WHERE id = $10
+       WHERE id = $11
        RETURNING id`,
       [
         payload.nome,
@@ -319,6 +346,7 @@ async function update(id, payload) {
         payload.email || "",
         payload.funcao,
         payload.tipoAtuacao || "apoio",
+        diasSemana,
         payload.status || "ativo",
         payload.observacoes || "",
         id
