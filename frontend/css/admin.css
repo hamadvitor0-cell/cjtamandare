@@ -311,6 +311,98 @@
   gap: 14px;
 }
 
+.reports-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.reports-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.report-metric,
+.report-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-soft);
+  padding: 14px;
+}
+
+.report-metric span,
+.report-card p,
+.report-row span {
+  color: var(--color-muted);
+}
+
+.report-metric span,
+.report-card-header span,
+.report-row strong {
+  display: block;
+  font-weight: 900;
+}
+
+.report-metric strong,
+.report-card-header strong {
+  display: block;
+  color: var(--color-primary);
+  font-family: var(--font-title);
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.reports-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.report-card {
+  display: grid;
+  gap: 12px;
+}
+
+.report-card-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.report-list {
+  display: grid;
+  gap: 8px;
+}
+
+.report-row {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  text-align: left;
+}
+
+.report-row.static {
+  cursor: default;
+}
+
+.document-zip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .automation-column {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -1084,6 +1176,9 @@ td {
 :root[data-theme="dark"] .admin-ai-controls,
 :root[data-theme="dark"] .automation-column,
 :root[data-theme="dark"] .automation-metric,
+:root[data-theme="dark"] .report-card,
+:root[data-theme="dark"] .report-metric,
+:root[data-theme="dark"] .report-row,
 :root[data-theme="dark"] .bolsista-metric,
 :root[data-theme="dark"] .day-picker label,
 :root[data-theme="dark"] .content-thumb,
@@ -1109,6 +1204,10 @@ td {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
+  .reports-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .bolsista-summary {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -1119,6 +1218,10 @@ td {
   }
 
   .automation-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reports-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1218,5 +1321,13 @@ td {
 
   .automation-board {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .reports-summary {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .reports-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

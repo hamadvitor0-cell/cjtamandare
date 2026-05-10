@@ -1,6 +1,7 @@
 const InscricaoService = require("../services/inscricao.service");
 const CsvService = require("../services/csv.service");
 const Captcha = require("../services/captcha.service");
+const ZipService = require("../services/zip.service");
 
 async function create(req, res) {
   const payload = { ...req.validated.body };
@@ -94,6 +95,40 @@ async function downloadDocument(req, res) {
   return res.send(documento.fileContent);
 }
 
+function archiveName(base) {
+  return `${ZipService.sanitizeZipPath(base)}.zip`;
+}
+
+async function downloadDocumentsZip(req, res) {
+  const documentos = await InscricaoService.documentsArchive(req.validated.query);
+
+  if (!documentos.length) {
+    return res.status(404).json({ message: "Nenhum documento encontrado para baixar." });
+  }
+
+  const zip = ZipService.createZip(documentos);
+  const suffix = req.validated.query.oficina || req.validated.query.search || "todos-documentos";
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Length", zip.length);
+  res.setHeader("Content-Disposition", `attachment; filename="${archiveName(`documentos-${suffix}`)}"`);
+  return res.send(zip);
+}
+
+async function downloadInscricaoDocumentsZip(req, res) {
+  const documentos = await InscricaoService.documentsArchive({ inscricaoId: req.validated.params.id });
+
+  if (!documentos.length) {
+    return res.status(404).json({ message: "Nenhum documento encontrado para esta inscricao." });
+  }
+
+  const zip = ZipService.createZip(documentos);
+  const base = documentos[0]?.nome || req.validated.params.id;
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Length", zip.length);
+  res.setHeader("Content-Disposition", `attachment; filename="${archiveName(`documentos-${base}`)}"`);
+  return res.send(zip);
+}
+
 module.exports = {
   create,
   list,
@@ -102,5 +137,7 @@ module.exports = {
   remove,
   exportCsv,
   listDocuments,
-  downloadDocument
+  downloadDocument,
+  downloadDocumentsZip,
+  downloadInscricaoDocumentsZip
 };

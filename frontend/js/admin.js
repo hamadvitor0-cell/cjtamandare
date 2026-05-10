@@ -133,6 +133,7 @@ const pageTitles = {
   dashboard: "Dashboard",
   "ia-adm": "IA ADM",
   automacao: "Automacao",
+  relatorios: "Relatorios",
   inscritos: "Inscritos",
   oficinas: "Oficinas",
   galeria: "Galeria",
@@ -146,6 +147,8 @@ const pageTitles = {
 const pageAliases = {
   ia: "ia-adm",
   assistente: "ia-adm",
+  reports: "relatorios",
+  relatorio: "relatorios",
   "gerenciar-oficinas": "oficinas",
   "gerenciar-galeria": "galeria",
   colaboradores: "colaboradores",
@@ -327,6 +330,7 @@ async function checkSession() {
 
 async function refreshAll() {
   await Promise.all([loadDashboard(), loadInscricoes(), loadAlunos(), loadBolsistas(), loadCalendar(), loadAttendanceHistory()]);
+  renderReports();
 }
 
 async function loadAdminData() {
@@ -348,6 +352,7 @@ async function loadInscricoes() {
   renderTable();
   renderAiStudentSelect();
   renderAutomation();
+  renderReports();
 }
 
 async function loadManagedContent() {
@@ -373,6 +378,7 @@ async function loadAlunos() {
   state.alunos = data.alunos || [];
   renderStudentList();
   renderAutomation();
+  renderReports();
 }
 
 async function loadBolsistas() {
@@ -383,6 +389,7 @@ async function loadBolsistas() {
   state.bolsistas = data.bolsistas || [];
   populateBolsistaSelects();
   renderBolsistaList(data.limite || 40);
+  renderReports();
 }
 
 async function loadCalendar() {
@@ -392,6 +399,7 @@ async function loadCalendar() {
   state.calendar.aulas = calendario.aulas || [];
   state.calendar.eventos = calendario.eventos || [];
   renderCalendar();
+  renderReports();
 }
 
 async function loadAttendanceHistory() {
@@ -605,6 +613,119 @@ function renderAutomation() {
     column.append(list);
     board.append(column);
   });
+}
+
+function filteredDocumentsZipUrl() {
+  const params = new URLSearchParams();
+  if (state.search) params.set("search", state.search);
+  if (state.oficina) params.set("oficina", state.oficina);
+  const query = params.toString();
+  return apiUrl(`/inscricoes/documentos.zip${query ? `?${query}` : ""}`);
+}
+
+function uniquePeople() {
+  const seen = new Set();
+  return actionPeople().filter((person) => {
+    const key = person.cpf || person.id || person.sourceId || person.nome;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function peopleCard(title, description, people, actionLabel = "Abrir ficha") {
+  const card = createElement("article", { className: "report-card" });
+  const header = createElement("div", { className: "report-card-header" });
+  header.append(
+    createElement("span", { text: title }),
+    createElement("strong", { text: String(people.length) })
+  );
+  card.append(
+    header,
+    createElement("p", { text: description })
+  );
+
+  const list = createElement("div", { className: "report-list" });
+  if (!people.length) {
+    list.append(createElement("span", { className: "form-feedback", text: "Nada pendente neste grupo." }));
+  } else {
+    people.slice(0, 8).forEach((person) => {
+      const row = createElement("button", {
+        className: "report-row",
+        attrs: { type: "button" }
+      });
+      row.append(
+        createElement("strong", { text: person.nome || "Sem nome" }),
+        createElement("span", { text: [person.oficina, maskCpfValue(person.cpf || "")].filter(Boolean).join(" - ") || actionLabel })
+      );
+      row.addEventListener("click", () => openStudentProfile(person));
+      list.append(row);
+    });
+    if (people.length > 8) {
+      list.append(createElement("span", { className: "form-feedback", text: `Mais ${people.length - 8} cadastro(s). Use filtros em Inscritos.` }));
+    }
+  }
+  card.append(list);
+  return card;
+}
+
+function renderReports() {
+  const summary = document.querySelector("[data-reports-summary]");
+  const grid = document.querySelector("[data-reports-grid]");
+  if (!summary || !grid) return;
+
+  const people = uniquePeople();
+  const docsMissing = people.filter((person) => Boolean(person.documentosPendentes || Number(person.documentosCount || 0) === 0));
+  const withDocs = people.filter((person) => Number(person.documentosCount || 0) > 0);
+  const absences = people.filter((person) => Number(person.faltasUltimos30Dias || 0) > 2);
+  const waitlist = people.filter((person) => (person.listaEspera || []).length || person.emListaEspera);
+  const activeBolsistas = state.bolsistas.filter((item) => item.ativo !== false);
+  const nextEvents = [...(state.calendar.eventos || [])]
+    .filter((event) => event.data >= new Date().toISOString().slice(0, 10))
+    .sort((a, b) => String(a.data).localeCompare(String(b.data)))
+    .slice(0, 4);
+
+  const metrics = [
+    ["Cadastros filtrados", people.length],
+    ["Com documentos", withDocs.length],
+    ["Pendencia de docs", docsMissing.length],
+    ["Alertas de falta", absences.length],
+    ["Lista de espera", waitlist.length],
+    ["Bolsistas ativos", activeBolsistas.length]
+  ];
+  summary.replaceChildren(...metrics.map(([label, value]) => {
+    const metric = createElement("article", { className: "report-metric" });
+    metric.append(createElement("span", { text: label }), createElement("strong", { text: String(value) }));
+    return metric;
+  }));
+
+  const eventCard = createElement("article", { className: "report-card" });
+  const eventHeader = createElement("div", { className: "report-card-header" });
+  eventHeader.append(
+    createElement("span", { text: "Proximos eventos" }),
+    createElement("strong", { text: String(nextEvents.length) })
+  );
+  eventCard.append(eventHeader, createElement("p", { text: "Reunioes, passeios e eventos cadastrados para acompanhamento interno." }));
+  const eventList = createElement("div", { className: "report-list" });
+  if (!nextEvents.length) {
+    eventList.append(createElement("span", { className: "form-feedback", text: "Nenhum evento futuro neste mes." }));
+  } else {
+    nextEvents.forEach((event) => {
+      eventList.append(createElement("span", {
+        className: "report-row static",
+        text: `${String(event.data).slice(0, 10)} - ${event.titulo || event.tipo || "Evento"}`
+      }));
+    });
+  }
+  eventCard.append(eventList);
+
+  grid.replaceChildren(
+    peopleCard("Documentos pendentes", "Prioridade para conferir ou cobrar por WhatsApp manual.", docsMissing),
+    peopleCard("Faltas acima do limite", "Alunos com mais de 2 faltas nos ultimos 30 dias.", absences),
+    peopleCard("Lista de espera", "Cadastros que precisam de retorno quando houver vaga.", waitlist),
+    peopleCard("Com documentos anexados", "Cadastros disponiveis para baixar em ZIP.", withDocs, "Ver documentos"),
+    eventCard
+  );
 }
 
 function renderTable() {
@@ -931,6 +1052,18 @@ function openStudentProfile(person) {
       openDocuments(person);
     });
     actions.append(docsButton);
+    const zipSource = primaryOnlineSource(person) || person.documentSources?.[0];
+    if (zipSource?.sourceId) {
+      actions.append(createElement("a", {
+        className: "button button-primary",
+        text: "Baixar ZIP",
+        attrs: {
+          href: apiUrl(`/inscricoes/${zipSource.sourceId}/documentos.zip`),
+          target: "_blank",
+          rel: "noopener noreferrer"
+        }
+      }));
+    }
   }
   const warningButton = createElement("button", {
     className: "button button-secondary",
@@ -1883,6 +2016,22 @@ async function openDocuments(item) {
       return;
     }
 
+    const zipActions = createElement("div", { className: "document-zip-actions" });
+    sources
+      .filter((source) => source.sourceId)
+      .forEach((source, index) => {
+        zipActions.append(createElement("a", {
+          className: "button button-primary",
+          text: sources.length > 1 ? `ZIP ${index + 1}` : "Baixar todos em ZIP",
+          attrs: {
+            href: apiUrl(`/inscricoes/${source.sourceId}/documentos.zip`),
+            target: "_blank",
+            rel: "noopener noreferrer"
+          }
+        }));
+      });
+    documentsList.append(zipActions);
+
     documentos.forEach((documento) => {
       const node = createElement("article", { className: "content-item document-item" });
       const main = createElement("div", { className: "content-item-main" });
@@ -2055,6 +2204,16 @@ function setupEvents() {
     if (state.search) params.set("search", state.search);
     if (state.oficina) params.set("oficina", state.oficina);
     window.location.href = apiUrl(`/inscricoes/export/csv?${params.toString()}`);
+  });
+
+  document.querySelectorAll("[data-download-documents-zip]").forEach((button) => {
+    button.addEventListener("click", () => {
+      window.location.href = filteredDocumentsZipUrl();
+    });
+  });
+
+  document.querySelector("[data-print-report]")?.addEventListener("click", () => {
+    window.print();
   });
 
   document.querySelector("[data-close-dialog]")?.addEventListener("click", () => {

@@ -588,6 +588,87 @@ async function findDocument(documentId) {
   return result.rows[0] ? toDocument(result.rows[0]) : null;
 }
 
+async function findDocumentsForArchive(filters = {}) {
+  const search = String(filters.search || "").toLowerCase();
+  const oficina = String(filters.oficina || "");
+  const inscricaoId = String(filters.inscricaoId || "");
+
+  if (!db.hasDatabase) {
+    const normalizedSearchPhone = search.replace(/\D/g, "");
+    return memory
+      .filter((item) => {
+        const matchesId = !inscricaoId || item.id === inscricaoId;
+        const matchesSearch = !search
+          || item.nome.toLowerCase().includes(search)
+          || (normalizedSearchPhone && String(item.cpf || "").includes(normalizedSearchPhone))
+          || item.email.toLowerCase().includes(search)
+          || (normalizedSearchPhone && item.telefone.replace(/\D/g, "").includes(normalizedSearchPhone));
+        const matchesOficina = !oficina || (item.oficinas || [item.oficina]).includes(oficina);
+        return matchesId && matchesSearch && matchesOficina;
+      })
+      .flatMap((item) => (item.documentos || []).map((documento) => ({
+        ...toDocument({
+          id: documento.id,
+          inscricao_id: item.id,
+          original_name: documento.originalName,
+          stored_name: documento.storedName,
+          mime_type: documento.mimeType,
+          size_bytes: documento.sizeBytes,
+          storage_path: documento.storagePath,
+          file_content: documento.fileContent,
+          created_at: documento.created_at
+        }),
+        nome: item.nome,
+        cpf: item.cpf,
+        oficina: (item.oficinas || [item.oficina]).join(", ")
+      })));
+  }
+
+  const where = ["d.file_content IS NOT NULL"];
+  const params = [];
+
+  if (inscricaoId) {
+    params.push(inscricaoId);
+    where.push(`i.id = $${params.length}`);
+  }
+
+  if (search) {
+    params.push(`%${search}%`);
+    const index = params.length;
+    where.push(`(
+      LOWER(i.nome) LIKE $${index}
+      OR i.cpf LIKE REGEXP_REPLACE($${index}, '\\D', '', 'g')
+      OR LOWER(COALESCE(i.email, '')) LIKE $${index}
+      OR REGEXP_REPLACE(i.telefone, '\\D', '', 'g') LIKE REGEXP_REPLACE($${index}, '\\D', '', 'g')
+    )`);
+  }
+
+  if (oficina) {
+    params.push(oficina);
+    where.push(`($${params.length} = ANY(i.oficinas) OR i.oficina = $${params.length})`);
+  }
+
+  const result = await db.query(
+    `SELECT
+       d.id, d.inscricao_id, d.original_name, d.stored_name, d.mime_type, d.size_bytes,
+       d.storage_path, d.file_content, d.created_at,
+       i.nome, i.cpf, COALESCE(NULLIF(array_to_string(i.oficinas, ', '), ''), i.oficina) AS oficina
+     FROM inscricao_documentos d
+     INNER JOIN inscricoes i ON i.id = d.inscricao_id
+     WHERE ${where.join(" AND ")}
+     ORDER BY i.nome ASC, d.created_at ASC
+     LIMIT 800`,
+    params
+  );
+
+  return result.rows.map((row) => ({
+    ...toDocument(row),
+    nome: row.nome,
+    cpf: row.cpf,
+    oficina: row.oficina
+  }));
+}
+
 async function stats() {
   if (!db.hasDatabase) {
     const byOficina = memory.reduce((acc, item) => {
@@ -642,5 +723,6 @@ module.exports = {
   remove,
   findDocuments,
   findDocument,
+  findDocumentsForArchive,
   stats
 };

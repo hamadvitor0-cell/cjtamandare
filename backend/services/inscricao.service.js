@@ -355,6 +355,10 @@ async function getDocument(documentId) {
   return Inscricao.findDocument(documentId);
 }
 
+async function documentsArchive(filters = {}) {
+  return Inscricao.findDocumentsForArchive(filters);
+}
+
 module.exports = {
   create,
   list,
@@ -363,5 +367,6 @@ module.exports = {
   dashboard,
   publicStatusByCpf,
   listDocuments,
-  getDocument
+  getDocument,
+  documentsArchive
 };

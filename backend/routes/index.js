@@ -123,10 +123,24 @@ router.get(
 );
 
 router.get(
+  "/inscricoes/documentos.zip",
+  ...adminOnly,
+  validate(listQuerySchema, "query"),
+  asyncHandler(InscricaoController.downloadDocumentsZip)
+);
+
+router.get(
   "/inscricoes/:id/documentos",
   ...adminOnly,
   validate(idParamSchema, "params"),
   asyncHandler(InscricaoController.listDocuments)
+);
+
+router.get(
+  "/inscricoes/:id/documentos.zip",
+  ...adminOnly,
+  validate(idParamSchema, "params"),
+  asyncHandler(InscricaoController.downloadInscricaoDocumentsZip)
 );
 
 router.get(
