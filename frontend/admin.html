@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/styles.css?v=20260510-2">
-    <link rel="stylesheet" href="/css/admin.css?v=20260510-2">
+    <link rel="stylesheet" href="/css/admin.css?v=20260510-3">
   </head>
   <body class="admin-body">
     <a class="skip-link" href="#admin-conteudo">Ir para o painel</a>
@@ -24,8 +24,8 @@
           <p>Acesso restrito para gestão de inscrições e métricas.</p>
           <form data-login-form novalidate>
             <label>
-              <span>E-mail</span>
-              <input name="email" type="text" inputmode="email" autocomplete="username" spellcheck="false" required>
+              <span>UsuÃ¡rio ou e-mail</span>
+              <input name="email" type="text" autocomplete="username" spellcheck="false" required>
             </label>
             <label>
               <span>Senha</span>
@@ -60,6 +60,8 @@
             <a href="#bolsistas" data-admin-page-link="bolsistas">Bolsistas</a>
             <a href="#calendario" data-admin-page-link="calendario">Calendario</a>
             <a href="#chamada" data-admin-page-link="chamada">Chamada</a>
+            <a href="#usuarios-adm" data-admin-page-link="usuarios-adm" data-master-only>ADMs</a>
+            <a href="#logs" data-admin-page-link="logs">Logs</a>
             <a href="/admin-manual.html">Manual ADM</a>
             <a href="/">Site público</a>
           </nav>
@@ -693,6 +695,83 @@
               <div class="content-list" data-attendance-history></div>
             </div>
           </section>
+
+          <section class="admin-panel manager-panel" id="usuarios-adm" data-admin-page="usuarios-adm" hidden>
+            <div class="panel-title table-title">
+              <div>
+                <h2>UsuÃ¡rios ADM</h2>
+                <p>Somente o ADM master pode cadastrar, editar ou remover contas administrativas.</p>
+              </div>
+              <button class="button button-secondary" type="button" data-reset-admin-user-form>Novo ADM</button>
+            </div>
+
+            <form class="manager-form" data-admin-user-form novalidate>
+              <input type="hidden" name="id">
+              <div class="form-grid">
+                <label>
+                  <span>Nome</span>
+                  <input name="name" type="text" required maxlength="120">
+                </label>
+                <label>
+                  <span>Nome de usuÃ¡rio</span>
+                  <input name="username" type="text" required maxlength="40" placeholder="ex: secretaria1">
+                </label>
+                <label>
+                  <span>E-mail</span>
+                  <input name="email" type="email" required maxlength="160">
+                </label>
+                <label>
+                  <span>Senha</span>
+                  <input name="password" type="password" minlength="8" maxlength="160" autocomplete="new-password">
+                  <small>ObrigatÃ³ria para novo ADM. Em ediÃ§Ã£o, deixe em branco para manter.</small>
+                </label>
+                <label>
+                  <span>NÃ­vel</span>
+                  <select name="role" required>
+                    <option value="admin">ADM</option>
+                    <option value="master">Master</option>
+                  </select>
+                </label>
+                <label class="check-row">
+                  <input name="active" type="checkbox" checked>
+                  <span>Conta ativa</span>
+                </label>
+              </div>
+              <div class="form-actions">
+                <button class="button button-primary" type="submit">Salvar ADM</button>
+                <p class="form-feedback" role="status" aria-live="polite" data-admin-user-feedback></p>
+              </div>
+            </form>
+
+            <div class="content-list" data-admin-user-list></div>
+          </section>
+
+          <section class="admin-panel manager-panel" id="logs" data-admin-page="logs" hidden>
+            <div class="panel-title table-title">
+              <div>
+                <h2>Logs de atividade</h2>
+                <p>HistÃ³rico de login, criaÃ§Ã£o, ediÃ§Ã£o e exclusÃ£o feito por cada usuÃ¡rio ADM.</p>
+              </div>
+              <button class="button button-secondary" type="button" data-refresh-logs>Atualizar logs</button>
+            </div>
+            <div class="admin-filters compact-filters">
+              <label>
+                <span>Buscar</span>
+                <input type="search" placeholder="ADM, e-mail ou item alterado" data-log-search>
+              </label>
+              <label>
+                <span>AÃ§Ã£o</span>
+                <select data-log-action>
+                  <option value="">Todas</option>
+                  <option value="login">Login</option>
+                  <option value="create">CriaÃ§Ã£o</option>
+                  <option value="update">EdiÃ§Ã£o</option>
+                  <option value="delete">ExclusÃ£o</option>
+                </select>
+              </label>
+            </div>
+            <div class="content-list audit-log-list" data-audit-log-list></div>
+          </section>
         </div>
       </section>
     </main>
@@ -792,6 +871,6 @@
     </datalist>
 
     <script src="/js/runtime-config.js?v=20260509-1" defer></script>
-    <script type="module" src="/js/admin.js?v=20260510-2"></script>
+    <script type="module" src="/js/admin.js?v=20260510-3"></script>
   </body>
 </html>

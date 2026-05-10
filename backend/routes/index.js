@@ -4,10 +4,13 @@ const validate = require("../middlewares/validate.middleware");
 const upload = require("../middlewares/upload.middleware");
 const { requireAuth, authorizeRoles } = require("../middlewares/auth.middleware");
 const { requireCsrf, issueCsrfToken } = require("../middlewares/csrf.middleware");
+const { auditAction } = require("../middlewares/audit.middleware");
 const { aiLimiter, inscriptionLimiter, loginLimiter, statusLookupLimiter } = require("../middlewares/rateLimit.middleware");
 const InscricaoController = require("../controllers/inscricao.controller");
 const AiController = require("../controllers/ai.controller");
 const AuthController = require("../controllers/auth.controller");
+const AdminUserController = require("../controllers/admin-user.controller");
+const AuditController = require("../controllers/audit.controller");
 const DashboardController = require("../controllers/dashboard.controller");
 const OficinaController = require("../controllers/oficina.controller");
 const GaleriaController = require("../controllers/galeria.controller");
@@ -27,6 +30,9 @@ const {
   oficinaSchema,
   galeriaSchema,
   colaboradorSchema,
+  adminUserSchema,
+  adminUserUpdateSchema,
+  auditLogQuerySchema,
   alunoSchema,
   bolsistaSchema,
   calendarQuerySchema,
@@ -40,7 +46,8 @@ const {
 } = require("../utils/validators");
 
 const router = express.Router();
-const adminOnly = [requireAuth, authorizeRoles("admin")];
+const adminOnly = [requireAuth, authorizeRoles("admin", "master")];
+const masterOnly = [requireAuth, authorizeRoles("master")];
 
 router.get("/health", (req, res) => {
   res.json({
@@ -99,6 +106,47 @@ router.post(
 router.get("/auth/me", requireAuth, AuthController.me);
 router.post("/auth/logout", requireAuth, requireCsrf, AuthController.logout);
 
+router.get(
+  "/admin/usuarios",
+  ...masterOnly,
+  asyncHandler(AdminUserController.list)
+);
+
+router.post(
+  "/admin/usuarios",
+  ...masterOnly,
+  requireCsrf,
+  validate(adminUserSchema),
+  auditAction("create", "admin_usuario"),
+  asyncHandler(AdminUserController.create)
+);
+
+router.put(
+  "/admin/usuarios/:id",
+  ...masterOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  validate(adminUserUpdateSchema),
+  auditAction("update", "admin_usuario"),
+  asyncHandler(AdminUserController.update)
+);
+
+router.delete(
+  "/admin/usuarios/:id",
+  ...masterOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  auditAction("delete", "admin_usuario"),
+  asyncHandler(AdminUserController.remove)
+);
+
+router.get(
+  "/admin/logs",
+  ...adminOnly,
+  validate(auditLogQuerySchema, "query"),
+  asyncHandler(AuditController.list)
+);
+
 router.post(
   "/ai/admin/student-assist",
   aiLimiter,
@@ -156,6 +204,7 @@ router.put(
   requireCsrf,
   validate(idParamSchema, "params"),
   validate(updateInscriptionSchema),
+  auditAction("update", "inscricao"),
   asyncHandler(InscricaoController.update)
 );
 
@@ -164,6 +213,7 @@ router.delete(
   ...adminOnly,
   requireCsrf,
   validate(idParamSchema, "params"),
+  auditAction("delete", "inscricao"),
   asyncHandler(InscricaoController.remove)
 );
 
@@ -185,6 +235,7 @@ router.post(
   ...adminOnly,
   requireCsrf,
   validate(oficinaSchema),
+  auditAction("create", "oficina"),
   asyncHandler(OficinaController.create)
 );
 
@@ -194,6 +245,7 @@ router.put(
   requireCsrf,
   validate(idParamSchema, "params"),
   validate(oficinaSchema),
+  auditAction("update", "oficina"),
   asyncHandler(OficinaController.update)
 );
 
@@ -202,6 +254,7 @@ router.delete(
   ...adminOnly,
   requireCsrf,
   validate(idParamSchema, "params"),
+  auditAction("delete", "oficina"),
   asyncHandler(OficinaController.remove)
 );
 
@@ -213,6 +266,7 @@ router.post(
   upload.imageUpload.single("imagemArquivo"),
   upload.validateUploadedFiles,
   validate(galeriaSchema),
+  auditAction("create", "galeria"),
   asyncHandler(GaleriaController.create)
 );
 
@@ -232,6 +286,7 @@ router.put(
   upload.validateUploadedFiles,
   validate(idParamSchema, "params"),
   validate(galeriaSchema),
+  auditAction("update", "galeria"),
   asyncHandler(GaleriaController.update)
 );
 
@@ -240,6 +295,7 @@ router.delete(
   ...adminOnly,
   requireCsrf,
   validate(idParamSchema, "params"),
+  auditAction("delete", "galeria"),
   asyncHandler(GaleriaController.remove)
 );
 
@@ -251,6 +307,7 @@ router.post(
   upload.imageUpload.single("imagemArquivo"),
   upload.validateUploadedFiles,
   validate(colaboradorSchema),
+  auditAction("create", "colaborador"),
   asyncHandler(ColaboradorController.create)
 );
 
@@ -270,6 +327,7 @@ router.put(
   upload.validateUploadedFiles,
   validate(idParamSchema, "params"),
   validate(colaboradorSchema),
+  auditAction("update", "colaborador"),
   asyncHandler(ColaboradorController.update)
 );
 
@@ -278,6 +336,7 @@ router.delete(
   ...adminOnly,
   requireCsrf,
   validate(idParamSchema, "params"),
+  auditAction("delete", "colaborador"),
   asyncHandler(ColaboradorController.remove)
 );
 
@@ -293,6 +352,7 @@ router.post(
   ...adminOnly,
   requireCsrf,
   validate(alunoSchema),
+  auditAction("create", "aluno"),
   asyncHandler(AlunoController.create)
 );
 
@@ -302,6 +362,7 @@ router.put(
   requireCsrf,
   validate(idParamSchema, "params"),
   validate(alunoSchema),
+  auditAction("update", "aluno"),
   asyncHandler(AlunoController.update)
 );
 
@@ -310,6 +371,7 @@ router.delete(
   ...adminOnly,
   requireCsrf,
   validate(idParamSchema, "params"),
+  auditAction("delete", "aluno"),
   asyncHandler(AlunoController.remove)
 );
 
@@ -325,6 +387,7 @@ router.post(
   ...adminOnly,
   requireCsrf,
   validate(bolsistaSchema),
+  auditAction("create", "bolsista"),
   asyncHandler(BolsistaController.create)
 );
 
@@ -334,6 +397,7 @@ router.put(
   requireCsrf,
   validate(idParamSchema, "params"),
   validate(bolsistaSchema),
+  auditAction("update", "bolsista"),
   asyncHandler(BolsistaController.update)
 );
 
@@ -342,6 +406,7 @@ router.delete(
   ...adminOnly,
   requireCsrf,
   validate(idParamSchema, "params"),
+  auditAction("delete", "bolsista"),
   asyncHandler(BolsistaController.remove)
 );
 
@@ -357,6 +422,7 @@ router.post(
   ...adminOnly,
   requireCsrf,
   validate(calendarEventSchema),
+  auditAction("create", "calendario_evento"),
   asyncHandler(CalendarioController.createEvent)
 );
 
@@ -366,6 +432,7 @@ router.put(
   requireCsrf,
   validate(idParamSchema, "params"),
   validate(calendarEventSchema),
+  auditAction("update", "calendario_evento"),
   asyncHandler(CalendarioController.updateEvent)
 );
 
@@ -374,6 +441,7 @@ router.delete(
   ...adminOnly,
   requireCsrf,
   validate(idParamSchema, "params"),
+  auditAction("delete", "calendario_evento"),
   asyncHandler(CalendarioController.removeEvent)
 );
 
@@ -396,6 +464,7 @@ router.post(
   ...adminOnly,
   requireCsrf,
   validate(chamadaSchema),
+  auditAction("create", "chamada"),
   asyncHandler(ChamadaController.save)
 );
 

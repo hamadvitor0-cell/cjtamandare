@@ -103,7 +103,7 @@ async function seedAdmin() {
     name: config.adminName,
     email: config.adminEmail,
     passwordHash,
-    role: "admin"
+    role: "master"
   });
 }
 

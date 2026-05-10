@@ -722,6 +722,14 @@ select[multiple] {
   padding: 14px;
 }
 
+.content-item.is-inactive {
+  opacity: 0.68;
+}
+
+.audit-log-item {
+  border-left: 4px solid var(--color-primary);
+}
+
 .content-item-main {
   min-width: 0;
 }

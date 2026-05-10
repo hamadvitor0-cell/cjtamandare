@@ -198,6 +198,40 @@ CREATE TABLE IF NOT EXISTS calendario_evento_bolsistas (
   PRIMARY KEY (evento_id, bolsista_id)
 );
 
+CREATE TABLE IF NOT EXISTS admins (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL CHECK (char_length(name) BETWEEN 2 AND 120),
+  username TEXT UNIQUE CHECK (username IS NULL OR username ~ '^[a-zA-Z0-9._-]{3,40}$'),
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'admin',
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  last_login_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE admins ADD COLUMN IF NOT EXISTS username TEXT;
+ALTER TABLE admins ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE admins ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+ALTER TABLE admins DROP CONSTRAINT IF EXISTS admins_role_check;
+ALTER TABLE admins ADD CONSTRAINT admins_role_check CHECK (role IN ('master', 'admin'));
+
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id TEXT,
+  admin_name TEXT NOT NULL,
+  admin_email TEXT,
+  admin_role TEXT,
+  action TEXT NOT NULL CHECK (action IN ('login', 'create', 'update', 'delete')),
+  entity_type TEXT NOT NULL,
+  entity_id TEXT,
+  entity_label TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  ip TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 ALTER TABLE bolsistas ADD COLUMN IF NOT EXISTS dias_semana TEXT[] NOT NULL DEFAULT '{}';
 DO $$
 BEGIN
@@ -228,6 +262,11 @@ CREATE INDEX IF NOT EXISTS idx_bolsista_oficinas_oficina ON bolsista_oficinas (o
 CREATE INDEX IF NOT EXISTS idx_calendario_eventos_data ON calendario_eventos (data_evento);
 CREATE INDEX IF NOT EXISTS idx_calendario_eventos_oficina ON calendario_eventos (oficina_id);
 CREATE INDEX IF NOT EXISTS idx_calendario_evento_bolsistas_bolsista ON calendario_evento_bolsistas (bolsista_id);
+CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_username ON admins (username) WHERE username IS NOT NULL AND username <> '';
+CREATE INDEX IF NOT EXISTS idx_admin_audit_created_at ON admin_audit_logs (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_admin ON admin_audit_logs (admin_email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_entity ON admin_audit_logs (entity_type, created_at DESC);
 
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$

@@ -17,12 +17,12 @@
         "X-Content-Type-Options": "nosniff",
         "Referrer-Policy": "strict-origin-when-cross-origin",
         "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
-        "Content-Security-Policy": "default-src 'self'; script-src 'self' https://vlibras.gov.br; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://vlibras.gov.br; img-src 'self' data: https:; connect-src 'self' https://vlibras.gov.br; frame-src 'self' https://www.google.com https://maps.google.com https://vlibras.gov.br; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+        "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-src 'self' https://www.google.com https://maps.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
       },
       "continue": true
     },
     {
-      "src": "/admin/(oficinas|galeria|colaboradores|bolsistas|calendario)(.*)",
+      "src": "/admin/(oficinas|galeria|colaboradores|bolsistas|calendario|usuarios|logs)(.*)",
       "dest": "/api/index.js"
     },
     {

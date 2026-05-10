@@ -31,9 +31,10 @@ CREATE TABLE IF NOT EXISTS inscricao_documentos (
 CREATE TABLE IF NOT EXISTS admins (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL CHECK (char_length(name) BETWEEN 2 AND 120),
+  username TEXT UNIQUE CHECK (username IS NULL OR username ~ '^[a-zA-Z0-9._-]{3,40}$'),
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('admin')),
+  role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('master', 'admin')),
   active BOOLEAN NOT NULL DEFAULT TRUE,
   last_login_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -44,6 +45,7 @@ CREATE INDEX IF NOT EXISTS idx_inscricoes_oficina ON inscricoes (oficina);
 CREATE INDEX IF NOT EXISTS idx_inscricoes_created_at ON inscricoes (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_inscricao_documentos_inscricao ON inscricao_documentos (inscricao_id);
 CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_username ON admins (username) WHERE username IS NOT NULL AND username <> '';
 
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficinas TEXT[] NOT NULL DEFAULT '{}';
@@ -67,6 +69,28 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_inscricoes_cpf ON inscricoes (cpf);
 
 ALTER TABLE inscricao_documentos ADD COLUMN IF NOT EXISTS file_content BYTEA;
+ALTER TABLE admins ADD COLUMN IF NOT EXISTS username TEXT;
+ALTER TABLE admins DROP CONSTRAINT IF EXISTS admins_role_check;
+ALTER TABLE admins ADD CONSTRAINT admins_role_check CHECK (role IN ('master', 'admin'));
+
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id TEXT,
+  admin_name TEXT NOT NULL,
+  admin_email TEXT,
+  admin_role TEXT,
+  action TEXT NOT NULL CHECK (action IN ('login', 'create', 'update', 'delete')),
+  entity_type TEXT NOT NULL,
+  entity_id TEXT,
+  entity_label TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  ip TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_audit_created_at ON admin_audit_logs (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_admin ON admin_audit_logs (admin_email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_entity ON admin_audit_logs (entity_type, created_at DESC);
 
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$

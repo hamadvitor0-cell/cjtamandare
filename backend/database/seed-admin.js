@@ -17,7 +17,7 @@ async function run() {
     name: config.adminName,
     email: config.adminEmail,
     passwordHash,
-    role: "admin"
+    role: "master"
   });
 
   console.log(`Administrador pronto: ${admin.email}`);

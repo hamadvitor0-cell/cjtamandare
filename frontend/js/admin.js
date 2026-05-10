@@ -24,6 +24,8 @@ const state = {
   })),
   galeria: [],
   colaboradores: [],
+  adminUsers: [],
+  auditLogs: [],
   alunos: [],
   bolsistas: [],
   attendanceRows: [],
@@ -34,6 +36,8 @@ const state = {
   studentOffice: "",
   bolsistaSearch: "",
   bolsistaOffice: "",
+  logSearch: "",
+  logAction: "",
   calendar: {
     month: new Date().toISOString().slice(0, 7),
     aulas: [],
@@ -141,7 +145,9 @@ const pageTitles = {
   alunos: "Alunos",
   bolsistas: "Bolsistas",
   calendario: "Calendario",
-  chamada: "Chamada"
+  chamada: "Chamada",
+  "usuarios-adm": "ADMs",
+  logs: "Logs"
 };
 
 const pageAliases = {
@@ -155,9 +161,22 @@ const pageAliases = {
   parceiros: "colaboradores"
 };
 
+const roleLabels = {
+  master: "Master",
+  admin: "ADM"
+};
+
+const auditActionLabels = {
+  login: "Login",
+  create: "Criou",
+  update: "Editou",
+  delete: "Excluiu"
+};
+
 function showAdmin() {
   loginView.hidden = true;
   adminView.hidden = false;
+  updateMasterVisibility();
 }
 
 function showLogin() {
@@ -167,7 +186,15 @@ function showLogin() {
 
 function normalizePage(page) {
   const normalized = pageAliases[page] || page;
+  if (normalized === "usuarios-adm" && state.admin?.role !== "master") return "dashboard";
   return pageTitles[normalized] ? normalized : "dashboard";
+}
+
+function updateMasterVisibility() {
+  const isMaster = state.admin?.role === "master";
+  document.querySelectorAll("[data-master-only]").forEach((node) => {
+    node.hidden = !isMaster;
+  });
 }
 
 function showAdminPage(page, updateHash = false) {
@@ -329,13 +356,30 @@ async function checkSession() {
 }
 
 async function refreshAll() {
-  await Promise.all([loadDashboard(), loadInscricoes(), loadAlunos(), loadBolsistas(), loadCalendar(), loadAttendanceHistory()]);
+  await Promise.all([loadDashboard(), loadInscricoes(), loadAlunos(), loadBolsistas(), loadCalendar(), loadAttendanceHistory(), loadAuditLogs()]);
+  if (state.admin?.role === "master") await loadAdminUsers();
   renderReports();
 }
 
 async function loadAdminData() {
   await loadManagedContent();
   await refreshAll();
+}
+
+async function loadAdminUsers() {
+  if (state.admin?.role !== "master") return;
+  const data = await apiRequest("/admin/usuarios");
+  state.adminUsers = data.admins || [];
+  renderAdminUserList();
+}
+
+async function loadAuditLogs() {
+  const params = new URLSearchParams();
+  if (state.logSearch) params.set("search", state.logSearch);
+  if (state.logAction) params.set("action", state.logAction);
+  const data = await apiRequest(`/admin/logs?${params.toString()}`);
+  state.auditLogs = data.logs || [];
+  renderAuditLogs();
 }
 
 async function loadDashboard() {
@@ -817,6 +861,94 @@ function renderTable() {
     actionsCell.append(actions);
     row.append(actionsCell);
     tableBody.append(row);
+  });
+}
+
+function resetAdminUserForm() {
+  const form = document.querySelector("[data-admin-user-form]");
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = "";
+  form.elements.active.checked = true;
+  form.elements.role.value = "admin";
+  form.elements.password.required = true;
+  setFeedback(document.querySelector("[data-admin-user-feedback]"), "");
+}
+
+function editAdminUser(admin) {
+  const form = document.querySelector("[data-admin-user-form]");
+  if (!form) return;
+  setFormValues(form, {
+    id: admin.id,
+    name: admin.name,
+    username: admin.username,
+    email: admin.email,
+    role: admin.role,
+    active: admin.active
+  });
+  form.elements.password.value = "";
+  form.elements.password.required = false;
+  showAdminPage("usuarios-adm", true);
+}
+
+function renderAdminUserList() {
+  const list = document.querySelector("[data-admin-user-list]");
+  if (!list) return;
+  list.replaceChildren();
+  if (state.admin?.role !== "master") {
+    list.append(createElement("p", { className: "form-feedback", text: "Somente o ADM master acessa esta area." }));
+    return;
+  }
+  if (!state.adminUsers.length) {
+    list.append(createElement("p", { className: "form-feedback", text: "Nenhum ADM cadastrado." }));
+    return;
+  }
+  state.adminUsers.forEach((admin) => {
+    const item = createElement("article", { className: `content-item${admin.active ? "" : " is-inactive"}` });
+    const main = createElement("div", { className: "content-item-main" });
+    main.append(
+      createElement("strong", { text: admin.name }),
+      createElement("span", { text: `${admin.username || "-"} - ${admin.email}` }),
+      createElement("span", { text: `${roleLabels[admin.role] || admin.role} - ${admin.active ? "ativo" : "inativo"}${admin.last_login_at ? ` - ultimo login ${formatDate(admin.last_login_at)}` : ""}` })
+    );
+    const actions = createElement("div", { className: "table-actions" });
+    const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
+    edit.addEventListener("click", () => editAdminUser(admin));
+    actions.append(edit);
+    if (admin.id !== state.admin?.id) {
+      const del = createElement("button", { className: "icon-action danger", text: "Excluir", attrs: { type: "button" } });
+      del.addEventListener("click", async () => {
+        if (!window.confirm(`Excluir ADM ${admin.name}?`)) return;
+        await secureRequest(`/admin/usuarios/${admin.id}`, { method: "DELETE" });
+        await loadAdminUsers();
+        await loadAuditLogs();
+      });
+      actions.append(del);
+    }
+    item.append(main, actions);
+    list.append(item);
+  });
+}
+
+function renderAuditLogs() {
+  const list = document.querySelector("[data-audit-log-list]");
+  if (!list) return;
+  list.replaceChildren();
+  if (!state.auditLogs.length) {
+    list.append(createElement("p", { className: "form-feedback", text: "Nenhum log encontrado." }));
+    return;
+  }
+  state.auditLogs.forEach((log) => {
+    const item = createElement("article", { className: "content-item audit-log-item" });
+    const main = createElement("div", { className: "content-item-main" });
+    main.append(
+      createElement("strong", { text: `${auditActionLabels[log.action] || log.action} ${log.entityType || ""}` }),
+      createElement("span", { text: `${log.adminName || "Sistema"} (${log.adminEmail || "sem e-mail"})` }),
+      createElement("span", { text: [log.entityLabel, log.entityId].filter(Boolean).join(" - ") || "Sem item informado" }),
+      createElement("span", { text: `${formatDate(log.created_at)}${log.ip ? ` - IP ${log.ip}` : ""}` })
+    );
+    item.append(main);
+    list.append(item);
   });
 }
 
@@ -2102,6 +2234,7 @@ function setupEvents() {
   document.querySelector("[data-reset-student-form]")?.addEventListener("click", resetStudentForm);
   document.querySelector("[data-reset-bolsista-form]")?.addEventListener("click", resetBolsistaForm);
   document.querySelector("[data-reset-calendar-event-form]")?.addEventListener("click", resetCalendarEventForm);
+  document.querySelector("[data-reset-admin-user-form]")?.addEventListener("click", resetAdminUserForm);
 
   document.querySelector("[data-logout]")?.addEventListener("click", async () => {
     await secureRequest("/auth/logout", { method: "POST" });
@@ -2138,6 +2271,18 @@ function setupEvents() {
     state.bolsistaOffice = event.target.value;
     loadBolsistas();
   });
+
+  document.querySelector("[data-log-search]")?.addEventListener("input", debounce((event) => {
+    state.logSearch = event.target.value.trim();
+    loadAuditLogs();
+  }, 180));
+
+  document.querySelector("[data-log-action]")?.addEventListener("change", (event) => {
+    state.logAction = event.target.value;
+    loadAuditLogs();
+  });
+
+  document.querySelector("[data-refresh-logs]")?.addEventListener("click", loadAuditLogs);
 
   document.querySelector("[data-calendar-month]")?.addEventListener("change", (event) => {
     state.calendar.month = event.target.value || new Date().toISOString().slice(0, 7);
@@ -2214,6 +2359,33 @@ function setupEvents() {
 
   document.querySelector("[data-print-report]")?.addEventListener("click", () => {
     window.print();
+  });
+
+  document.querySelector("[data-admin-user-form]")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const feedback = document.querySelector("[data-admin-user-feedback]");
+    const data = getFormData(form);
+    data.active = form.elements.active.checked;
+    const id = data.id;
+    delete data.id;
+    if (!id && !data.password) {
+      setFeedback(feedback, "Informe uma senha para o novo ADM.", "error");
+      return;
+    }
+    if (id && !data.password) delete data.password;
+    try {
+      await secureRequest(id ? `/admin/usuarios/${id}` : "/admin/usuarios", {
+        method: id ? "PUT" : "POST",
+        body: data
+      });
+      setFeedback(feedback, "ADM salvo com sucesso.", "success");
+      resetAdminUserForm();
+      await loadAdminUsers();
+      await loadAuditLogs();
+    } catch (error) {
+      setFeedback(feedback, error.message, "error");
+    }
   });
 
   document.querySelector("[data-close-dialog]")?.addEventListener("click", () => {

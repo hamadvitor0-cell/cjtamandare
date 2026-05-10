@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/admin.model");
+const Audit = require("../models/audit.model");
 const config = require("../config/env");
 const logger = require("../utils/logger");
 
@@ -12,7 +13,8 @@ function signToken(admin) {
       sub: admin.id,
       email: admin.email,
       role: admin.role,
-      name: admin.name
+      name: admin.name,
+      username: admin.username
     },
     config.jwtSecret,
     {
@@ -31,7 +33,7 @@ function verifyToken(token) {
 }
 
 async function login({ email, password, ip }) {
-  const admin = await Admin.findByEmail(email);
+  const admin = await Admin.findByLogin(email);
   const valid = admin && admin.active && await bcrypt.compare(password, admin.password_hash);
 
   if (!valid) {
@@ -42,6 +44,17 @@ async function login({ email, password, ip }) {
   }
 
   await Admin.updateLastLogin(admin.id);
+  await Audit.create({
+    adminId: admin.id,
+    adminName: admin.name,
+    adminEmail: admin.email,
+    adminRole: admin.role,
+    action: "login",
+    entityType: "auth",
+    entityId: admin.id,
+    entityLabel: admin.name,
+    ip
+  }).catch(() => {});
   logger.info("Login administrativo realizado", { email: admin.email, ip });
 
   return {
@@ -49,6 +62,7 @@ async function login({ email, password, ip }) {
     admin: {
       id: admin.id,
       name: admin.name,
+      username: admin.username,
       email: admin.email,
       role: admin.role
     }

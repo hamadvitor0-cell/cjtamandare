@@ -42,7 +42,7 @@ const updateInscriptionSchema = inscriptionSchema
   .unknown(false);
 
 const loginSchema = Joi.object({
-  email: Joi.string().email({ tlds: { allow: false } }).max(160).required(),
+  email: Joi.string().min(3).max(160).required(),
   password: Joi.string().min(8).max(160).required()
 });
 
@@ -101,6 +101,27 @@ const colaboradorSchema = Joi.object({
   alt: Joi.string().allow("").max(180),
   ordem: Joi.number().integer().min(0).max(9999),
   ativo: Joi.boolean().truthy("true").falsy("false")
+});
+
+const adminUserSchema = Joi.object({
+  name: Joi.string().min(2).max(120).required(),
+  username: Joi.string().pattern(/^[a-zA-Z0-9._-]{3,40}$/).required(),
+  email: Joi.string().email({ tlds: { allow: false } }).max(160).required(),
+  password: Joi.string().min(8).max(160).required(),
+  role: Joi.string().valid("master", "admin").default("admin"),
+  active: Joi.boolean().truthy("true").falsy("false").default(true)
+});
+
+const adminUserUpdateSchema = adminUserSchema.keys({
+  password: Joi.string().allow("").min(8).max(160)
+});
+
+const auditLogQuerySchema = Joi.object({
+  search: Joi.string().allow("").max(120),
+  action: Joi.string().allow("").valid("", "login", "create", "update", "delete"),
+  entityType: Joi.string().allow("").max(80),
+  entity_type: Joi.string().allow("").max(80),
+  limit: Joi.number().integer().min(1).max(300)
 });
 
 const alunoSchema = Joi.object({
@@ -205,6 +226,9 @@ module.exports = {
   oficinaSchema,
   galeriaSchema,
   colaboradorSchema,
+  adminUserSchema,
+  adminUserUpdateSchema,
+  auditLogQuerySchema,
   alunoSchema,
   bolsistaSchema,
   calendarQuerySchema,

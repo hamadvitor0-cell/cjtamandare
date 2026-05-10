@@ -24,6 +24,7 @@ function me(req, res) {
     admin: {
       id: req.user.sub,
       name: req.user.name,
+      username: req.user.username,
       email: req.user.email,
       role: req.user.role
     }
