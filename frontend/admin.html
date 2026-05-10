@@ -24,7 +24,7 @@
           <p>Acesso restrito para gestão de inscrições e métricas.</p>
           <form data-login-form novalidate>
             <label>
-              <span>UsuÃ¡rio ou e-mail</span>
+              <span>Usuário ou e-mail</span>
               <input name="email" type="text" autocomplete="username" spellcheck="false" required>
             </label>
             <label>
@@ -307,7 +307,7 @@
                 <label>
                   <span>Arquivo da imagem</span>
                   <input name="imagemArquivo" type="file" accept=".jpg,.jpeg,.png,.webp">
-                  <small>JPG, PNG ou WEBP atÃ© 5 MB. Se enviado, substitui a URL.</small>
+                  <small>JPG, PNG ou WEBP até 5 MB. Se enviado, substitui a URL.</small>
                 </label>
                 <label>
                   <span>Ordem</span>
@@ -699,7 +699,7 @@
           <section class="admin-panel manager-panel" id="usuarios-adm" data-admin-page="usuarios-adm" hidden>
             <div class="panel-title table-title">
               <div>
-                <h2>UsuÃ¡rios ADM</h2>
+                <h2>Usuários ADM</h2>
                 <p>Somente o ADM master pode cadastrar, editar ou remover contas administrativas.</p>
               </div>
               <button class="button button-secondary" type="button" data-reset-admin-user-form>Novo ADM</button>
@@ -713,7 +713,7 @@
                   <input name="name" type="text" required maxlength="120">
                 </label>
                 <label>
-                  <span>Nome de usuÃ¡rio</span>
+                  <span>Nome de usuário</span>
                   <input name="username" type="text" required maxlength="40" placeholder="ex: secretaria1">
                 </label>
                 <label>
@@ -723,10 +723,10 @@
                 <label>
                   <span>Senha</span>
                   <input name="password" type="password" minlength="8" maxlength="160" autocomplete="new-password">
-                  <small>ObrigatÃ³ria para novo ADM. Em ediÃ§Ã£o, deixe em branco para manter.</small>
+                  <small>Obrigatória para novo ADM. Em edição, deixe em branco para manter.</small>
                 </label>
                 <label>
-                  <span>NÃ­vel</span>
+                  <span>Nível</span>
                   <select name="role" required>
                     <option value="admin">ADM</option>
                     <option value="master">Master</option>
@@ -750,7 +750,7 @@
             <div class="panel-title table-title">
               <div>
                 <h2>Logs de atividade</h2>
-                <p>HistÃ³rico de login, criaÃ§Ã£o, ediÃ§Ã£o e exclusÃ£o feito por cada usuÃ¡rio ADM.</p>
+                <p>Histórico de login, criação, edição e exclusão feito por cada usuário ADM.</p>
               </div>
               <button class="button button-secondary" type="button" data-refresh-logs>Atualizar logs</button>
             </div>
@@ -760,13 +760,13 @@
                 <input type="search" placeholder="ADM, e-mail ou item alterado" data-log-search>
               </label>
               <label>
-                <span>AÃ§Ã£o</span>
+                <span>Ação</span>
                 <select data-log-action>
                   <option value="">Todas</option>
                   <option value="login">Login</option>
-                  <option value="create">CriaÃ§Ã£o</option>
-                  <option value="update">EdiÃ§Ã£o</option>
-                  <option value="delete">ExclusÃ£o</option>
+                  <option value="create">Criação</option>
+                  <option value="update">Edição</option>
+                  <option value="delete">Exclusão</option>
                 </select>
               </label>
             </div>
