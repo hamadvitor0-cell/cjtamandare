@@ -552,6 +552,8 @@ function validateSignup(data, files = []) {
   if (!data.oficinas?.length) return "Selecione pelo menos uma oficina.";
   if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return "Informe um e-mail válido.";
   if (files.length > 8) return "Envie no máximo 8 documentos.";
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+  if (totalSize > 16 * 1024 * 1024) return "O envio completo deve ter no maximo 16 MB.";
   const invalidFile = files.find((file) => !allowedDocumentTypes.has(file.type) || file.size > 5 * 1024 * 1024);
   if (invalidFile) return "Os documentos devem ser PDF, JPG, PNG ou WEBP com até 5 MB por arquivo.";
   if (!captchaState.loaded) return "Aguarde o carregamento do puzzle anti-robô.";

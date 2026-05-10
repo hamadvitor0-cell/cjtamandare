@@ -18,15 +18,23 @@ function errorHandler(error, req, res, next) {
       : "Nao foi possivel receber os documentos enviados.";
   }
 
-  logger.error("Erro na API", {
+  const logMeta = {
     status,
     path: req.originalUrl,
     method: req.method,
     errorMessage: error.message,
     errorCode: error.code,
-    constraint: error.constraint,
-    stack: error.stack
-  });
+    constraint: error.constraint
+  };
+
+  if (status >= 500) {
+    logger.error("Erro na API", {
+      ...logMeta,
+      stack: error.stack
+    });
+  } else {
+    logger.warn("Requisicao recusada", logMeta);
+  }
 
   if (res.headersSent) return next(error);
 

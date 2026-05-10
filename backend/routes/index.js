@@ -61,7 +61,9 @@ router.get(
 router.post(
   "/inscricao",
   inscriptionLimiter,
+  upload.rejectLargeMultipart(16 * 1024 * 1024),
   upload.array("documentos", 8),
+  upload.validateUploadedFiles,
   validate(inscriptionSchema),
   asyncHandler(InscricaoController.create)
 );
@@ -185,7 +187,9 @@ router.post(
   "/admin/galeria",
   ...adminOnly,
   requireCsrf,
+  upload.rejectLargeMultipart(6 * 1024 * 1024),
   upload.imageUpload.single("imagemArquivo"),
+  upload.validateUploadedFiles,
   validate(galeriaSchema),
   asyncHandler(GaleriaController.create)
 );
@@ -201,7 +205,9 @@ router.put(
   "/admin/galeria/:id",
   ...adminOnly,
   requireCsrf,
+  upload.rejectLargeMultipart(6 * 1024 * 1024),
   upload.imageUpload.single("imagemArquivo"),
+  upload.validateUploadedFiles,
   validate(idParamSchema, "params"),
   validate(galeriaSchema),
   asyncHandler(GaleriaController.update)

@@ -1,6 +1,8 @@
 function escapeCsv(value) {
   if (value === null || value === undefined) return "";
-  const stringValue = String(value).replace(/"/g, '""');
+  const rawValue = String(value);
+  const safeValue = /^[=+\-@]/.test(rawValue.trimStart()) ? `'${rawValue}` : rawValue;
+  const stringValue = safeValue.replace(/"/g, '""');
   return /[",\n\r;]/.test(stringValue) ? `"${stringValue}"` : stringValue;
 }
 
