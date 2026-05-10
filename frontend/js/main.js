@@ -832,8 +832,22 @@ function renderStatusLookup(status) {
     header,
     list,
     createElement("p", { text: status.documentos }),
+    createElement("p", { text: `Faltas nos ultimos 30 dias: ${Number(status.frequencia?.faltasUltimos30Dias || 0)}` }),
     createElement("p", { text: `Ultima atualizacao: ${formatStatusDate(status.ultimaAtualizacao || status.dataInscricao)}` })
   );
+  const aulas = status.frequencia?.aulasUltimos30Dias || [];
+  if (aulas.length) {
+    const calls = createElement("ul", { className: "status-list status-attendance-list" });
+    aulas.slice(0, 6).forEach((call) => {
+      const item = createElement("li");
+      item.append(
+        createElement("strong", { text: `${formatStatusDate(call.data)} - ${call.oficina || "Oficina"}` }),
+        createElement("span", { text: `Status: ${call.status || "-"}` })
+      );
+      calls.append(item);
+    });
+    card.append(createElement("p", { className: "status-section-title", text: "Aulas registradas nos ultimos 30 dias" }), calls);
+  }
   result.append(card);
 }
 
@@ -922,9 +936,6 @@ function setupAiChat() {
       });
       state.aiMessages.pop();
       pushAiMessage("assistant", data.message || "Nao consegui responder agora.");
-      if (data.fallback) {
-        pushAiMessage("system", "Modo seguro: resposta gerada sem IA real configurada.");
-      }
     } catch (error) {
       state.aiMessages.pop();
       pushAiMessage("assistant", error.message);
@@ -945,72 +956,6 @@ function setupAiChat() {
     if (!text) return;
     await sendAiMessage(text);
   });
-}
-
-function setupVLibras() {
-  let attempts = 0;
-
-  function ensureMarkup() {
-    let root = document.querySelector("[vw]");
-    if (root) {
-      root.classList.add("enabled");
-      return root;
-    }
-
-    root = createElement("div", { className: "enabled", attrs: { vw: "", "data-vlibras-root": "" } });
-    root.append(
-      createElement("div", {
-        className: "active",
-        attrs: {
-          "vw-access-button": "",
-          role: "button",
-          tabindex: "0",
-          "aria-label": "Abrir VLibras"
-        }
-      }),
-      createElement("div", {
-        attrs: { "vw-plugin-wrapper": "" }
-      })
-    );
-    root.querySelector("[vw-plugin-wrapper]")?.append(createElement("div", { className: "vw-plugin-top-wrapper" }));
-    document.body.append(root);
-    return root;
-  }
-
-  function loadScript() {
-    if (document.querySelector('script[src*="vlibras-plugin.js"]')) return;
-    const script = createElement("script", {
-      attrs: {
-        src: "https://vlibras.gov.br/app/vlibras-plugin.js",
-        defer: ""
-      }
-    });
-    script.addEventListener("load", initWidget, { once: true });
-    document.body.append(script);
-  }
-
-  function initWidget() {
-    ensureMarkup();
-    if (window.VLibras?.Widget) {
-      if (!document.documentElement.dataset.vlibrasReady) {
-        new window.VLibras.Widget("https://vlibras.gov.br/app");
-        document.documentElement.dataset.vlibrasReady = "true";
-      }
-      return;
-    }
-
-    loadScript();
-    attempts += 1;
-    if (attempts < 40) {
-      window.setTimeout(initWidget, 250);
-    }
-  }
-
-  if (document.readyState === "complete" || document.readyState === "interactive") {
-    initWidget();
-  } else {
-    document.addEventListener("DOMContentLoaded", initWidget, { once: true });
-  }
 }
 
 function setupYearAndStats() {
@@ -1064,7 +1009,6 @@ async function init() {
   renderGallery();
   renderCollaborators();
   setupWorkshopDialog();
-  setupVLibras();
   setupPhoneMasks();
   setupCpfMasks();
   await setupPuzzleCaptcha();

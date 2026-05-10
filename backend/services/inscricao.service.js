@@ -236,6 +236,21 @@ function publicStatusFromPerson(person) {
   const detalhes = uniquePublicDetails(person);
   const documentosPendentes = Boolean(person.documentosPendentes || Number(person.documentosCount || 0) === 0);
   const hasWaitlist = detalhes.some((detail) => detail.status === "lista_espera");
+  const ultimasChamadas = (person.ultimasChamadas || [])
+    .slice(0, 8)
+    .map((call) => ({
+      oficina: call.oficina || "Oficina",
+      data: call.data || call.data_chamada || "",
+      status: call.status || "",
+      observacao: call.observacao || ""
+    }));
+  const aulasUltimos30Dias = ultimasChamadas.filter((call) => {
+    const date = new Date(`${String(call.data).slice(0, 10)}T12:00:00Z`);
+    if (Number.isNaN(date.getTime())) return false;
+    const limit = new Date();
+    limit.setDate(limit.getDate() - 30);
+    return date >= limit;
+  });
   const oficinas = detalhes.map((detail) => ({
     oficina: detail.oficina,
     situacao: publicStatusLabel(detail.status),
@@ -252,6 +267,11 @@ function publicStatusFromPerson(person) {
     documentos: documentosPendentes
       ? "Documentos pendentes ou ainda nao conferidos pela equipe."
       : "Sem pendencias marcadas no cadastro.",
+    frequencia: {
+      faltasUltimos30Dias: Number(person.faltasUltimos30Dias || 0),
+      aulasUltimos30Dias,
+      ultimasChamadas
+    },
     dataInscricao: person.created_at,
     ultimaAtualizacao: person.updated_at
   };

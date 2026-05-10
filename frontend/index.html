@@ -384,13 +384,14 @@
 
     <div class="ai-chat" data-ai-chat>
       <button class="ai-chat-toggle" type="button" aria-expanded="false" aria-controls="assistente-ia" data-ai-toggle>
-        Assistente IA
+        <span aria-hidden="true">?</span>
+        Assistente CJ
       </button>
       <section class="ai-chat-panel" id="assistente-ia" data-ai-panel hidden aria-label="Assistente virtual">
         <header>
           <div>
             <strong>Assistente CJ</strong>
-            <span>Oficinas, documentos, status e contato</span>
+            <span>Oficinas, documentos, faltas, status e contato</span>
           </div>
           <button type="button" class="dialog-close" aria-label="Fechar assistente" data-ai-close>Ã—</button>
         </header>
@@ -399,6 +400,7 @@
           <button type="button" data-ai-prompt="Quais oficinas estao disponiveis?">Oficinas</button>
           <button type="button" data-ai-prompt="Quais documentos preciso levar?">Documentos</button>
           <button type="button" data-ai-prompt="Como acompanho minha inscricao pelo CPF?">Status CPF</button>
+          <button type="button" data-ai-prompt="Quero consultar minhas faltas e aulas dos ultimos 30 dias">Faltas</button>
           <button type="button" data-ai-prompt="Qual e o contato do Centro da Juventude?">Contato</button>
         </div>
         <form class="ai-chat-form" data-ai-form>
@@ -409,15 +411,7 @@
       </section>
     </div>
 
-    <div vw class="enabled" data-vlibras-root>
-      <div vw-access-button class="active" role="button" tabindex="0" aria-label="Abrir VLibras"></div>
-      <div vw-plugin-wrapper>
-        <div class="vw-plugin-top-wrapper"></div>
-      </div>
-    </div>
-
     <script src="/js/runtime-config.js?v=20260508-5" defer></script>
-    <script src="https://vlibras.gov.br/app/vlibras-plugin.js" defer></script>
-    <script type="module" src="/js/main.js?v=20260510-2"></script>
+    <script type="module" src="/js/main.js?v=20260510-3"></script>
   </body>
 </html>

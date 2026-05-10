@@ -60,11 +60,18 @@ function statusToText(status) {
   const oficinas = (status.oficinas || [])
     .map((item) => `${item.oficina}: ${item.situacao}`)
     .join("; ");
+  const frequencia = status.frequencia || {};
+  const aulas = (frequencia.aulasUltimos30Dias || [])
+    .slice(0, 6)
+    .map((call) => `${String(call.data || "").slice(0, 10)} - ${call.oficina}: ${call.status}`)
+    .join("; ");
   return [
     `Encontrei o cadastro de ${status.nomeParcial || "uma pessoa"} (${status.cpf}).`,
     `Situacao geral: ${status.situacao}.`,
     oficinas ? `Oficinas: ${oficinas}.` : "",
     status.documentosPendentes ? "Ha documentos pendentes ou ainda nao conferidos." : "Nao ha pendencias de documentos marcadas.",
+    `Faltas nos ultimos 30 dias: ${Number(frequencia.faltasUltimos30Dias || 0)}.`,
+    aulas ? `Aulas registradas nos ultimos 30 dias: ${aulas}.` : "Nao encontrei aulas registradas nos ultimos 30 dias.",
     "Para ajustes, fale com a equipe pelo WhatsApp: (41) 3657-2117."
   ].filter(Boolean).join(" ");
 }
@@ -85,9 +92,9 @@ async function fallbackChat({ messages, cpf }) {
     };
   }
 
-  if (/(status|acompanhar|cpf|inscri[cç][aã]o|matr[ií]cula)/i.test(lower)) {
+  if (lower.includes("falta") || lower.includes("frequ") || lower.includes("presen") || lower.includes("aula") || lower.includes("chamada") || /(status|acompanhar|cpf|inscri)/i.test(lower)) {
     return {
-      message: "Para consultar o andamento da inscricao, informe o CPF no campo de acompanhamento ou envie o CPF aqui no chat. Eu retorno apenas oficinas, situacao, lista de espera e pendencias de documentos.",
+      message: "Para consultar andamento, faltas e aulas recentes, envie o CPF aqui no chat ou use o campo de acompanhamento. Eu retorno apenas oficinas, situacao, documentos, quantidade de faltas e chamadas recentes.",
       aiEnabled: false,
       fallback: true
     };

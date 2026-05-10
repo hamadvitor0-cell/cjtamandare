@@ -19,41 +19,6 @@
   --font-body: "Inter", system-ui, sans-serif;
 }
 
-div[vw].enabled {
-  position: fixed !important;
-  right: 18px !important;
-  bottom: 88px !important;
-  z-index: 320 !important;
-  display: block !important;
-}
-
-div[vw-access-button].active {
-  display: block !important;
-  visibility: visible !important;
-  width: 56px !important;
-  height: 56px !important;
-  border-radius: 50% !important;
-  background: var(--color-primary) !important;
-  box-shadow: var(--shadow-soft) !important;
-  cursor: pointer !important;
-}
-
-div[vw-access-button].active::before {
-  content: "VL";
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-family: var(--font-title);
-  font-weight: 800;
-  letter-spacing: 0;
-}
-
-div[vw-plugin-wrapper] {
-  z-index: 330 !important;
-}
-
 :root[data-theme="dark"] {
   --color-ink: #eef5ff;
   --color-muted: #a8b8ca;
@@ -500,6 +465,9 @@ button {
 :root[data-theme="dark"] .faq-grid details,
 :root[data-theme="dark"] .workshop-page-card,
 :root[data-theme="dark"] .ai-chat-panel,
+:root[data-theme="dark"] .ai-chat-form,
+:root[data-theme="dark"] .ai-chat-prompts,
+:root[data-theme="dark"] .ai-message,
 :root[data-theme="dark"] .metric-card,
 :root[data-theme="dark"] .admin-panel,
 :root[data-theme="dark"] .notice-box,
@@ -941,6 +909,16 @@ textarea:focus {
   padding: 10px;
 }
 
+.status-section-title {
+  margin: 8px 0 0;
+  color: var(--color-ink);
+  font-weight: 900;
+}
+
+.status-attendance-list li {
+  background: var(--color-soft);
+}
+
 .workshop-page-card {
   padding: 24px;
   display: grid;
@@ -993,18 +971,32 @@ textarea:focus {
 
 .ai-chat-toggle {
   border: 0;
-  border-radius: var(--radius);
-  background: var(--color-primary);
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   color: #fff;
   box-shadow: var(--shadow-soft);
-  padding: 13px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 10px 16px 10px 10px;
   font-weight: 900;
 }
 
+.ai-chat-toggle span {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-title);
+}
+
 .ai-chat-panel {
-  width: min(390px, calc(100vw - 32px));
+  width: min(430px, calc(100vw - 32px));
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: 18px;
   background: #fff;
   box-shadow: var(--shadow-soft);
   overflow: hidden;
@@ -1017,6 +1009,7 @@ textarea:focus {
   gap: 12px;
   padding: 14px;
   border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.1), rgba(var(--color-secondary-rgb), 0.08));
 }
 
 .ai-chat-panel header strong,
@@ -1031,25 +1024,32 @@ textarea:focus {
 }
 
 .ai-chat-messages {
-  max-height: min(420px, 58vh);
+  max-height: min(440px, 56vh);
   overflow: auto;
-  padding: 14px;
+  padding: 16px;
   display: grid;
   gap: 10px;
+  background:
+    linear-gradient(180deg, rgba(var(--color-primary-rgb), 0.03), transparent 45%),
+    var(--color-surface);
 }
 
 .ai-message {
   max-width: 88%;
-  border-radius: var(--radius);
-  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px 16px 16px 4px;
+  padding: 11px 13px;
   white-space: pre-wrap;
   color: var(--color-ink);
-  background: var(--color-soft);
+  background: #fff;
   font-weight: 700;
+  line-height: 1.45;
 }
 
 .ai-message.is-user {
   justify-self: end;
+  border-color: transparent;
+  border-radius: 16px 16px 4px 16px;
   background: var(--color-primary);
   color: #fff;
 }
@@ -1065,12 +1065,13 @@ textarea:focus {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 0 14px 14px;
+  padding: 0 16px 16px;
+  background: var(--color-surface);
 }
 
 .ai-chat-prompts button {
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: 999px;
   background: var(--color-soft);
   color: var(--color-primary);
   padding: 8px 10px;
@@ -1082,8 +1083,9 @@ textarea:focus {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
-  padding: 14px;
+  padding: 14px 16px 16px;
   border-top: 1px solid var(--color-border);
+  background: #fff;
 }
 
 .calendar-grid {

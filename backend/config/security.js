@@ -1,18 +1,18 @@
 const config = require("./env");
 
-const allowedConnect = ["'self'", "https://vlibras.gov.br"];
+const allowedConnect = ["'self'"];
 if (config.corsOrigin) {
   allowedConnect.push(...config.corsOrigin.split(",").map((origin) => origin.trim()).filter(Boolean));
 }
 
 const directives = {
   defaultSrc: ["'self'"],
-  scriptSrc: ["'self'", "https://vlibras.gov.br"],
+  scriptSrc: ["'self'"],
   styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-  fontSrc: ["'self'", "https://fonts.gstatic.com", "https://vlibras.gov.br"],
+  fontSrc: ["'self'", "https://fonts.gstatic.com"],
   imgSrc: ["'self'", "data:", "https:"],
   connectSrc: allowedConnect,
-  frameSrc: ["'self'", "https://www.google.com", "https://maps.google.com", "https://vlibras.gov.br"],
+  frameSrc: ["'self'", "https://www.google.com", "https://maps.google.com"],
   objectSrc: ["'none'"],
   baseUri: ["'self'"],
   formAction: ["'self'"],
