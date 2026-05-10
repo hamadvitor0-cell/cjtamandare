@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/styles.css?v=20260509-4">
-    <link rel="stylesheet" href="/css/admin.css?v=20260509-4">
+    <link rel="stylesheet" href="/css/admin.css?v=20260509-5">
   </head>
   <body class="admin-body">
     <a class="skip-link" href="#admin-conteudo">Ir para o painel</a>
@@ -55,6 +55,7 @@
             <a href="#oficinas" data-admin-page-link="oficinas">Oficinas</a>
             <a href="#galeria" data-admin-page-link="galeria">Galeria</a>
             <a href="#alunos" data-admin-page-link="alunos">Alunos</a>
+            <a href="#bolsistas" data-admin-page-link="bolsistas">Bolsistas</a>
             <a href="#chamada" data-admin-page-link="chamada">Chamada</a>
             <a href="/admin-manual.html">Manual ADM</a>
             <a href="/">Site público</a>
@@ -396,6 +397,96 @@
             <div class="content-list" data-student-list></div>
           </section>
 
+          <section class="admin-panel manager-panel" id="bolsistas" data-admin-page="bolsistas" hidden>
+            <div class="panel-title table-title">
+              <div>
+                <h2>Bolsistas</h2>
+                <p>Registre os Agentes da Cidadania e as oficinas em que dao aula ou ajudam.</p>
+              </div>
+              <button class="button button-secondary" type="button" data-reset-bolsista-form>Novo bolsista</button>
+            </div>
+
+            <div class="bolsista-summary" data-bolsista-summary></div>
+
+            <form class="manager-form" data-bolsista-form novalidate>
+              <input type="hidden" name="id">
+              <div class="form-grid">
+                <label>
+                  <span>Nome completo</span>
+                  <input name="nome" type="text" required maxlength="120">
+                </label>
+                <label>
+                  <span>CPF</span>
+                  <input name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" data-cpf-mask>
+                </label>
+                <label>
+                  <span>Idade</span>
+                  <input name="idade" type="number" min="14" max="24" required>
+                </label>
+                <label>
+                  <span>Telefone</span>
+                  <input name="telefone" type="tel" data-phone-mask>
+                </label>
+                <label>
+                  <span>E-mail</span>
+                  <input name="email" type="email" maxlength="160">
+                </label>
+                <label>
+                  <span>Funcao no programa</span>
+                  <select name="funcao" required>
+                    <option value="adm">ADM</option>
+                    <option value="social_media">Social media</option>
+                    <option value="professor">Professor</option>
+                    <option value="ajudante_professor">Ajudante de professor</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Atuacao nas oficinas</span>
+                  <select name="tipoAtuacao" required>
+                    <option value="aula">Da aula</option>
+                    <option value="ajuda">Ajuda professor</option>
+                    <option value="apoio">Apoio</option>
+                    <option value="sem_vinculo">Sem vinculo direto</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Status</span>
+                  <select name="status" required>
+                    <option value="ativo">Ativo</option>
+                    <option value="inativo">Inativo</option>
+                  </select>
+                </label>
+                <label class="full-field">
+                  <span>Oficinas vinculadas</span>
+                  <select name="oficinaIds" multiple size="7" data-bolsista-office-select></select>
+                  <small>Use para professores e ajudantes. ADM e social media podem ficar sem oficina vinculada.</small>
+                </label>
+                <label class="full-field">
+                  <span>Observacoes</span>
+                  <textarea name="observacoes" rows="3" maxlength="1000" placeholder="Atividades, escala, encaminhamentos ou observacoes internas."></textarea>
+                </label>
+              </div>
+              <div class="form-actions">
+                <button class="button button-primary" type="submit">Salvar bolsista</button>
+                <p class="form-feedback" role="status" aria-live="polite" data-bolsista-feedback></p>
+              </div>
+            </form>
+
+            <div class="admin-filters compact-filters">
+              <label>
+                <span>Buscar bolsista</span>
+                <input type="search" placeholder="Nome, CPF, e-mail, telefone ou funcao" data-bolsista-search>
+              </label>
+              <label>
+                <span>Filtrar oficina</span>
+                <select data-bolsista-office-filter>
+                  <option value="">Todas</option>
+                </select>
+              </label>
+            </div>
+            <div class="content-list" data-bolsista-list></div>
+          </section>
+
           <section class="admin-panel manager-panel" id="chamada" data-admin-page="chamada" hidden>
             <div class="panel-title">
               <div>
@@ -531,6 +622,6 @@
     </datalist>
 
     <script src="/js/runtime-config.js?v=20260509-1" defer></script>
-    <script type="module" src="/js/admin.js?v=20260509-7"></script>
+    <script type="module" src="/js/admin.js?v=20260509-8"></script>
   </body>
 </html>

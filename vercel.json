@@ -22,7 +22,7 @@
       "continue": true
     },
     {
-      "src": "/admin/(oficinas|galeria)(.*)",
+      "src": "/admin/(oficinas|galeria|bolsistas)(.*)",
       "dest": "/api/index.js"
     },
     {

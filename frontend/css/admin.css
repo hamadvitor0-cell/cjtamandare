@@ -476,6 +476,37 @@ select[multiple] {
   margin-top: 16px;
 }
 
+.bolsista-summary {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.bolsista-metric {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 12px;
+}
+
+.bolsista-metric span,
+.bolsista-metric strong {
+  display: block;
+}
+
+.bolsista-metric span {
+  color: var(--color-muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.bolsista-metric strong {
+  color: var(--color-ink);
+  font-family: var(--font-title);
+  font-size: 1.45rem;
+}
+
 .content-item {
   display: grid;
   gap: 12px;
@@ -623,6 +654,10 @@ td {
 .content-item.is-attention {
   background: rgba(245, 137, 31, 0.12);
   box-shadow: inset 4px 0 0 #f59e0b;
+}
+
+.content-item.is-muted {
+  opacity: 0.72;
 }
 
 .muted-cell {
@@ -924,6 +959,7 @@ td {
 :root[data-theme="dark"] .admin-ai-controls,
 :root[data-theme="dark"] .automation-column,
 :root[data-theme="dark"] .automation-metric,
+:root[data-theme="dark"] .bolsista-metric,
 :root[data-theme="dark"] .day-picker label,
 :root[data-theme="dark"] .content-thumb,
 :root[data-theme="dark"] .profile-field,
@@ -944,6 +980,10 @@ td {
   }
 
   .automation-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .bolsista-summary {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 

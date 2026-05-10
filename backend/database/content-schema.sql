@@ -131,6 +131,28 @@ CREATE TABLE IF NOT EXISTS presencas (
   UNIQUE (chamada_id, aluno_id)
 );
 
+CREATE TABLE IF NOT EXISTS bolsistas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome TEXT NOT NULL CHECK (char_length(nome) BETWEEN 3 AND 120),
+  cpf TEXT CHECK (cpf IS NULL OR cpf = '' OR cpf ~ '^[0-9]{11}$'),
+  idade INTEGER NOT NULL CHECK (idade BETWEEN 14 AND 24),
+  telefone TEXT CHECK (telefone IS NULL OR char_length(telefone) <= 20),
+  email TEXT CHECK (email IS NULL OR char_length(email) <= 160),
+  funcao TEXT NOT NULL CHECK (funcao IN ('adm', 'social_media', 'professor', 'ajudante_professor')),
+  tipo_atuacao TEXT NOT NULL DEFAULT 'apoio' CHECK (tipo_atuacao IN ('aula', 'ajuda', 'apoio', 'sem_vinculo')),
+  status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo')),
+  observacoes TEXT CHECK (observacoes IS NULL OR char_length(observacoes) <= 1000),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS bolsista_oficinas (
+  bolsista_id UUID NOT NULL REFERENCES bolsistas(id) ON DELETE CASCADE,
+  oficina_id UUID NOT NULL REFERENCES oficinas(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (bolsista_id, oficina_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_oficinas_categoria ON oficinas (categoria);
 CREATE INDEX IF NOT EXISTS idx_galeria_ordem ON galeria (ordem ASC);
 CREATE INDEX IF NOT EXISTS idx_inscricao_documentos_inscricao ON inscricao_documentos (inscricao_id);
@@ -140,6 +162,9 @@ CREATE INDEX IF NOT EXISTS idx_alunos_oficina ON alunos (oficina_id);
 CREATE INDEX IF NOT EXISTS idx_aluno_oficinas_oficina ON aluno_oficinas (oficina_id);
 CREATE INDEX IF NOT EXISTS idx_chamadas_oficina_data ON chamadas (oficina_id, data_chamada DESC);
 CREATE INDEX IF NOT EXISTS idx_presencas_chamada ON presencas (chamada_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bolsistas_cpf_unique ON bolsistas (cpf) WHERE cpf IS NOT NULL AND cpf <> '';
+CREATE INDEX IF NOT EXISTS idx_bolsistas_status ON bolsistas (status);
+CREATE INDEX IF NOT EXISTS idx_bolsista_oficinas_oficina ON bolsista_oficinas (oficina_id);
 
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
@@ -176,5 +201,11 @@ EXECUTE FUNCTION set_updated_at();
 DROP TRIGGER IF EXISTS trg_presencas_updated_at ON presencas;
 CREATE TRIGGER trg_presencas_updated_at
 BEFORE UPDATE ON presencas
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_bolsistas_updated_at ON bolsistas;
+CREATE TRIGGER trg_bolsistas_updated_at
+BEFORE UPDATE ON bolsistas
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();

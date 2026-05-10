@@ -12,6 +12,7 @@ const DashboardController = require("../controllers/dashboard.controller");
 const OficinaController = require("../controllers/oficina.controller");
 const GaleriaController = require("../controllers/galeria.controller");
 const AlunoController = require("../controllers/aluno.controller");
+const BolsistaController = require("../controllers/bolsista.controller");
 const ChamadaController = require("../controllers/chamada.controller");
 const CaptchaController = require("../controllers/captcha.controller");
 const {
@@ -24,6 +25,7 @@ const {
   oficinaSchema,
   galeriaSchema,
   alunoSchema,
+  bolsistaSchema,
   chamadaQuerySchema,
   chamadaHistoryQuerySchema,
   chamadaSchema,
@@ -240,6 +242,38 @@ router.delete(
   requireCsrf,
   validate(idParamSchema, "params"),
   asyncHandler(AlunoController.remove)
+);
+
+router.get(
+  "/admin/bolsistas",
+  ...adminOnly,
+  validate(adminListQuerySchema, "query"),
+  asyncHandler(BolsistaController.list)
+);
+
+router.post(
+  "/admin/bolsistas",
+  ...adminOnly,
+  requireCsrf,
+  validate(bolsistaSchema),
+  asyncHandler(BolsistaController.create)
+);
+
+router.put(
+  "/admin/bolsistas/:id",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  validate(bolsistaSchema),
+  asyncHandler(BolsistaController.update)
+);
+
+router.delete(
+  "/admin/bolsistas/:id",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  asyncHandler(BolsistaController.remove)
 );
 
 router.get(

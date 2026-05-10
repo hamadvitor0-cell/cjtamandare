@@ -109,6 +109,20 @@ const alunoSchema = Joi.object({
   observacoes: Joi.string().allow("").max(500)
 });
 
+const bolsistaSchema = Joi.object({
+  nome: Joi.string().min(3).max(120).required(),
+  cpf: optionalCpfField,
+  idade: Joi.number().integer().min(14).max(24).required(),
+  telefone: Joi.string().allow("").pattern(phonePattern),
+  email: Joi.string().email({ tlds: { allow: false } }).allow("").max(160),
+  funcao: Joi.string().valid("adm", "social_media", "professor", "ajudante_professor").required(),
+  tipoAtuacao: Joi.string().valid("aula", "ajuda", "apoio", "sem_vinculo").required(),
+  oficinaId: Joi.string().allow("").pattern(uuidPattern),
+  oficinaIds: Joi.array().items(Joi.string().pattern(uuidPattern)).max(20).default([]),
+  status: Joi.string().valid("ativo", "inativo").required(),
+  observacoes: Joi.string().allow("").max(1000)
+});
+
 const chamadaQuerySchema = Joi.object({
   oficinaId: Joi.string().pattern(uuidPattern).required(),
   data: Joi.date().iso().required()
@@ -156,6 +170,7 @@ module.exports = {
   oficinaSchema,
   galeriaSchema,
   alunoSchema,
+  bolsistaSchema,
   chamadaQuerySchema,
   chamadaHistoryQuerySchema,
   chamadaSchema,

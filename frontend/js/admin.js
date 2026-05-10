@@ -24,12 +24,15 @@ const state = {
   })),
   galeria: [],
   alunos: [],
+  bolsistas: [],
   attendanceRows: [],
   inscricoes: [],
   search: "",
   oficina: "",
   studentSearch: "",
-  studentOffice: ""
+  studentOffice: "",
+  bolsistaSearch: "",
+  bolsistaOffice: ""
 };
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -59,6 +62,20 @@ function formatPeriod(period = "a definir") {
   return labels[period] || period;
 }
 
+const bolsistaFunctionLabels = {
+  adm: "ADM",
+  social_media: "Social media",
+  professor: "Professor",
+  ajudante_professor: "Ajudante de professor"
+};
+
+const bolsistaActionLabels = {
+  aula: "Da aula",
+  ajuda: "Ajuda professor",
+  apoio: "Apoio",
+  sem_vinculo: "Sem vinculo direto"
+};
+
 const loginView = document.querySelector("[data-login-view]");
 const adminView = document.querySelector("[data-admin-view]");
 const loginForm = document.querySelector("[data-login-form]");
@@ -84,6 +101,7 @@ const pageTitles = {
   oficinas: "Oficinas",
   galeria: "Galeria",
   alunos: "Alunos",
+  bolsistas: "Bolsistas",
   chamada: "Chamada"
 };
 
@@ -203,6 +221,26 @@ function populateSelects() {
       select.value = state.oficinas.some((item) => item.id === current) ? current : (first ? "" : state.oficinas[0]?.id || "");
     }
   });
+
+  document.querySelectorAll("[data-bolsista-office-select], [data-bolsista-office-filter]").forEach((select) => {
+    const current = select.multiple
+      ? Array.from(select.selectedOptions).map((option) => option.value)
+      : select.value;
+    const first = !select.multiple ? select.querySelector("option[value='']")?.cloneNode(true) : null;
+    select.replaceChildren();
+    if (first) select.append(first);
+    state.oficinas.forEach((workshop) => {
+      select.append(createElement("option", {
+        text: workshop.nome,
+        attrs: { value: workshop.id }
+      }));
+    });
+    if (select.multiple) {
+      setSelectedValues(select, current);
+    } else {
+      select.value = state.oficinas.some((item) => item.id === current) ? current : "";
+    }
+  });
 }
 
 async function checkSession() {
@@ -218,7 +256,7 @@ async function checkSession() {
 }
 
 async function refreshAll() {
-  await Promise.all([loadDashboard(), loadInscricoes(), loadAlunos(), loadAttendanceHistory()]);
+  await Promise.all([loadDashboard(), loadInscricoes(), loadAlunos(), loadBolsistas(), loadAttendanceHistory()]);
 }
 
 async function loadAdminData() {
@@ -262,6 +300,15 @@ async function loadAlunos() {
   state.alunos = data.alunos || [];
   renderStudentList();
   renderAutomation();
+}
+
+async function loadBolsistas() {
+  const params = new URLSearchParams();
+  if (state.bolsistaSearch) params.set("search", state.bolsistaSearch);
+  if (state.bolsistaOffice) params.set("oficinaId", state.bolsistaOffice);
+  const data = await apiRequest(`/admin/bolsistas?${params.toString()}`);
+  state.bolsistas = data.bolsistas || [];
+  renderBolsistaList(data.limite || 40);
 }
 
 async function loadAttendanceHistory() {
@@ -1280,6 +1327,99 @@ async function deleteStudent(aluno) {
   await refreshAll();
 }
 
+function renderBolsistaSummary(limit = 40) {
+  const summary = document.querySelector("[data-bolsista-summary]");
+  if (!summary) return;
+  const total = state.bolsistas.length;
+  const ativos = state.bolsistas.filter((item) => item.status === "ativo").length;
+  const professores = state.bolsistas.filter((item) => item.funcao === "professor").length;
+  const ajudantes = state.bolsistas.filter((item) => item.funcao === "ajudante_professor").length;
+  const metrics = [
+    ["Bolsistas", `${total}/${limit}`],
+    ["Ativos", String(ativos)],
+    ["Professores", String(professores)],
+    ["Ajudantes", String(ajudantes)]
+  ];
+
+  summary.replaceChildren();
+  metrics.forEach(([label, value]) => {
+    const metric = createElement("article", { className: "bolsista-metric" });
+    metric.append(
+      createElement("span", { text: label }),
+      createElement("strong", { text: value })
+    );
+    summary.append(metric);
+  });
+}
+
+function renderBolsistaList(limit = 40) {
+  renderBolsistaSummary(limit);
+  const list = document.querySelector("[data-bolsista-list]");
+  if (!list) return;
+  list.replaceChildren();
+
+  if (!state.bolsistas.length) {
+    list.append(createElement("p", { className: "form-feedback", text: "Nenhum bolsista cadastrado para o filtro." }));
+    return;
+  }
+
+  state.bolsistas.forEach((bolsista) => {
+    const item = createElement("article", { className: `content-item${bolsista.status !== "ativo" ? " is-muted" : ""}` });
+    const main = createElement("div", { className: "content-item-main" });
+    main.append(
+      createElement("strong", { text: bolsista.nome }),
+      createElement("span", { text: `${bolsistaFunctionLabels[bolsista.funcao] || bolsista.funcao} - ${bolsistaActionLabels[bolsista.tipoAtuacao] || bolsista.tipoAtuacao}` }),
+      createElement("span", { text: `${bolsista.idade} anos - CPF: ${maskCpfValue(bolsista.cpf || "") || "sem CPF"} - ${bolsista.status}` }),
+      createElement("span", { text: bolsista.telefone || bolsista.email || "sem contato informado" }),
+      createElement("span", { text: (bolsista.oficinas || []).length ? `Oficinas: ${bolsista.oficinas.join(", ")}` : "Sem oficina vinculada" }),
+      createElement("span", { text: bolsista.observacoes || "" })
+    );
+    const actions = createElement("div", { className: "content-actions" });
+    const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
+    const del = createElement("button", { className: "icon-action danger", text: "Excluir", attrs: { type: "button" } });
+    edit.addEventListener("click", () => editBolsista(bolsista));
+    del.addEventListener("click", () => deleteBolsista(bolsista));
+    actions.append(edit, del);
+    item.append(main, actions);
+    list.append(item);
+  });
+}
+
+function resetBolsistaForm() {
+  const form = document.querySelector("[data-bolsista-form]");
+  form.reset();
+  form.elements.id.value = "";
+  form.elements.funcao.value = "adm";
+  form.elements.tipoAtuacao.value = "apoio";
+  form.elements.status.value = "ativo";
+  setSelectedValues(form.elements.oficinaIds, []);
+  setFeedback(document.querySelector("[data-bolsista-feedback]"), "");
+}
+
+function editBolsista(bolsista) {
+  const form = document.querySelector("[data-bolsista-form]");
+  setFormValues(form, {
+    id: bolsista.id,
+    nome: bolsista.nome,
+    cpf: maskCpfValue(bolsista.cpf || ""),
+    idade: bolsista.idade,
+    telefone: bolsista.telefone,
+    email: bolsista.email,
+    funcao: bolsista.funcao,
+    tipoAtuacao: bolsista.tipoAtuacao,
+    status: bolsista.status,
+    observacoes: bolsista.observacoes
+  });
+  setSelectedValues(form.elements.oficinaIds, bolsista.oficinaIds || []);
+  showAdminPage("bolsistas", true);
+}
+
+async function deleteBolsista(bolsista) {
+  if (!window.confirm(`Excluir o bolsista ${bolsista.nome}?`)) return;
+  await secureRequest(`/admin/bolsistas/${bolsista.id}`, { method: "DELETE" });
+  await loadBolsistas();
+}
+
 function renderAttendanceRows(payload) {
   const list = document.querySelector("[data-attendance-list]");
   const notes = document.querySelector("[data-attendance-notes]");
@@ -1497,6 +1637,7 @@ function setupEvents() {
   document.querySelector("[data-reset-office-form]")?.addEventListener("click", resetOfficeForm);
   document.querySelector("[data-reset-gallery-form]")?.addEventListener("click", resetGalleryForm);
   document.querySelector("[data-reset-student-form]")?.addEventListener("click", resetStudentForm);
+  document.querySelector("[data-reset-bolsista-form]")?.addEventListener("click", resetBolsistaForm);
 
   document.querySelector("[data-logout]")?.addEventListener("click", async () => {
     await secureRequest("/auth/logout", { method: "POST" });
@@ -1522,6 +1663,16 @@ function setupEvents() {
   document.querySelector("[data-student-office-filter]")?.addEventListener("change", (event) => {
     state.studentOffice = event.target.value;
     loadAlunos();
+  });
+
+  document.querySelector("[data-bolsista-search]")?.addEventListener("input", debounce((event) => {
+    state.bolsistaSearch = event.target.value.trim();
+    loadBolsistas();
+  }, 180));
+
+  document.querySelector("[data-bolsista-office-filter]")?.addEventListener("change", (event) => {
+    state.bolsistaOffice = event.target.value;
+    loadBolsistas();
   });
 
   document.querySelector("[data-attendance-office]")?.addEventListener("change", () => {
@@ -1699,6 +1850,37 @@ function setupEvents() {
       setFeedback(feedback, "Aluno salvo com sucesso.", "success");
       resetStudentForm();
       await refreshAll();
+    } catch (error) {
+      setFeedback(feedback, error.message, "error");
+    }
+  });
+
+  document.querySelector("[data-bolsista-form]")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const feedback = document.querySelector("[data-bolsista-feedback]");
+    const data = getFormData(form);
+    data.oficinaIds = selectedValues(form.elements.oficinaIds);
+    data.oficinaId = data.oficinaIds[0] || "";
+    data.idade = Number(data.idade || 0);
+    if (data.cpf && !isValidCpf(data.cpf)) {
+      setFeedback(feedback, "Informe um CPF valido.", "error");
+      return;
+    }
+    if (!Number.isInteger(data.idade) || data.idade < 14 || data.idade > 24) {
+      setFeedback(feedback, "A idade do bolsista deve estar entre 14 e 24 anos.", "error");
+      return;
+    }
+    const id = data.id;
+    delete data.id;
+    try {
+      await secureRequest(id ? `/admin/bolsistas/${id}` : "/admin/bolsistas", {
+        method: id ? "PUT" : "POST",
+        body: data
+      });
+      setFeedback(feedback, "Bolsista salvo com sucesso.", "success");
+      resetBolsistaForm();
+      await loadBolsistas();
     } catch (error) {
       setFeedback(feedback, error.message, "error");
     }
