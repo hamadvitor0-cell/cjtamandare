@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css?v=20260510-4">
-    <link rel="stylesheet" href="/css/admin.css?v=20260510-4">
+    <link rel="stylesheet" href="/css/styles.css?v=20260510-5">
+    <link rel="stylesheet" href="/css/admin.css?v=20260510-5">
   </head>
   <body class="admin-body">
     <a class="skip-link" href="#admin-conteudo">Ir para o painel</a>
@@ -56,6 +56,7 @@
             <a href="#oficinas" data-admin-page-link="oficinas">Oficinas</a>
             <a href="#galeria" data-admin-page-link="galeria">Galeria</a>
             <a href="#colaboradores" data-admin-page-link="colaboradores">Colaboradores</a>
+            <a href="#depoimentos" data-admin-page-link="depoimentos">Depoimentos</a>
             <a href="#alunos" data-admin-page-link="alunos">Alunos</a>
             <a href="#bolsistas" data-admin-page-link="bolsistas">Bolsistas</a>
             <a href="#calendario" data-admin-page-link="calendario">Calendário</a>
@@ -389,6 +390,52 @@
             </form>
 
             <div class="content-list collaborator-manager-list" data-collaborator-list></div>
+          </section>
+
+          <section class="admin-panel manager-panel" id="depoimentos" data-admin-page="depoimentos" hidden>
+            <div class="panel-title table-title">
+              <div>
+                <h2>Gerenciar depoimentos</h2>
+                <p>Adicione relatos de alunos que participam ou ja participaram do Centro da Juventude.</p>
+              </div>
+              <button class="button button-secondary" type="button" data-reset-testimonial-form>Novo depoimento</button>
+            </div>
+
+            <form class="manager-form" data-testimonial-form novalidate>
+              <input type="hidden" name="id">
+              <div class="form-grid">
+                <label>
+                  <span>Nome do aluno</span>
+                  <input name="nome" type="text" required maxlength="120">
+                </label>
+                <label>
+                  <span>Vinculo</span>
+                  <input name="vinculo" type="text" maxlength="120" placeholder="Aluno, ex-aluno, familia...">
+                </label>
+                <label>
+                  <span>Oficina ou atividade</span>
+                  <input name="oficina" type="text" maxlength="120" placeholder="Ballet, informatica, esporte...">
+                </label>
+                <label>
+                  <span>Ordem</span>
+                  <input name="ordem" type="number" min="0" max="9999" value="0">
+                </label>
+                <label class="full-field">
+                  <span>Depoimento</span>
+                  <textarea name="texto" rows="5" required maxlength="700"></textarea>
+                </label>
+                <label class="check-row full-field">
+                  <input name="ativo" type="checkbox" checked>
+                  <span>Depoimento ativo no site</span>
+                </label>
+              </div>
+              <div class="form-actions">
+                <button class="button button-primary" type="submit">Salvar depoimento</button>
+                <p class="form-feedback" role="status" aria-live="polite" data-testimonial-feedback></p>
+              </div>
+            </form>
+
+            <div class="content-list testimonial-manager-list" data-testimonial-list></div>
           </section>
 
           <section class="admin-panel manager-panel" id="alunos" data-admin-page="alunos" hidden>
@@ -871,6 +918,6 @@
     </datalist>
 
     <script src="/js/runtime-config.js?v=20260509-1" defer></script>
-    <script type="module" src="/js/admin.js?v=20260510-4"></script>
+    <script type="module" src="/js/admin.js?v=20260510-5"></script>
   </body>
 </html>

@@ -15,6 +15,7 @@ const DashboardController = require("../controllers/dashboard.controller");
 const OficinaController = require("../controllers/oficina.controller");
 const GaleriaController = require("../controllers/galeria.controller");
 const ColaboradorController = require("../controllers/colaborador.controller");
+const DepoimentoController = require("../controllers/depoimento.controller");
 const AlunoController = require("../controllers/aluno.controller");
 const BolsistaController = require("../controllers/bolsista.controller");
 const CalendarioController = require("../controllers/calendario.controller");
@@ -30,6 +31,7 @@ const {
   oficinaSchema,
   galeriaSchema,
   colaboradorSchema,
+  depoimentoSchema,
   adminUserSchema,
   adminUserUpdateSchema,
   auditLogQuerySchema,
@@ -62,6 +64,7 @@ router.get("/captcha/challenge", asyncHandler(CaptchaController.challenge));
 router.get("/oficinas", asyncHandler(OficinaController.list));
 router.get("/galeria", asyncHandler(GaleriaController.list));
 router.get("/colaboradores", asyncHandler(ColaboradorController.list));
+router.get("/depoimentos", asyncHandler(DepoimentoController.list));
 router.get(
   "/galeria/:id/imagem",
   validate(idParamSchema, "params"),
@@ -268,6 +271,41 @@ router.post(
   validate(galeriaSchema),
   auditAction("create", "galeria"),
   asyncHandler(GaleriaController.create)
+);
+
+router.get(
+  "/admin/depoimentos",
+  ...adminOnly,
+  validate(adminListQuerySchema, "query"),
+  asyncHandler(DepoimentoController.list)
+);
+
+router.post(
+  "/admin/depoimentos",
+  ...adminOnly,
+  requireCsrf,
+  validate(depoimentoSchema),
+  auditAction("create", "depoimento"),
+  asyncHandler(DepoimentoController.create)
+);
+
+router.put(
+  "/admin/depoimentos/:id",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  validate(depoimentoSchema),
+  auditAction("update", "depoimento"),
+  asyncHandler(DepoimentoController.update)
+);
+
+router.delete(
+  "/admin/depoimentos/:id",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  auditAction("delete", "depoimento"),
+  asyncHandler(DepoimentoController.remove)
 );
 
 router.get(

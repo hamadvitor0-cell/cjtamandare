@@ -1,4 +1,4 @@
-import { workshops as fallbackWorkshops, categories as fallbackCategories, categoryColors, agenda, galleryItems as fallbackGalleryItems, collaborators as fallbackCollaborators } from "./data.js";
+import { workshops as fallbackWorkshops, categories as fallbackCategories, categoryColors, agenda, galleryItems as fallbackGalleryItems, collaborators as fallbackCollaborators, testimonials as fallbackTestimonials } from "./data.js?v=20260510-5";
 import { apiRequest } from "./api.js?v=20260509-2";
 import {
   createElement,
@@ -22,7 +22,8 @@ const state = {
   workshops: [...fallbackWorkshops],
   categories: [...fallbackCategories],
   galleryItems: [...fallbackGalleryItems],
-  collaborators: [...fallbackCollaborators]
+  collaborators: [...fallbackCollaborators],
+  testimonials: [...fallbackTestimonials]
 };
 
 let revealObserver;
@@ -605,6 +606,29 @@ function renderCollaborators() {
     });
 }
 
+function renderTestimonials() {
+  const grid = document.querySelector("[data-testimonials-grid]");
+  if (!grid) return;
+  grid.replaceChildren();
+
+  state.testimonials
+    .slice()
+    .sort((a, b) => Number(a.ordem || 0) - Number(b.ordem || 0))
+    .forEach((item) => {
+      const card = createElement("article", { className: "testimonial-card" });
+      const author = createElement("div", { className: "testimonial-author" });
+      author.append(
+        createElement("strong", { text: item.nome }),
+        createElement("span", { text: [item.vinculo, item.oficina].filter(Boolean).join(" · ") || "Participante do CJ" })
+      );
+      card.append(
+        createElement("p", { className: "testimonial-text", text: `“${item.texto}”` }),
+        author
+      );
+      grid.append(card);
+    });
+}
+
 function validateSignup(data, files = []) {
   if (!data.nome || data.nome.trim().length < 3) return "Informe o nome completo.";
   if (!isValidCpf(data.cpf)) return "Informe um CPF válido.";
@@ -993,10 +1017,11 @@ function setupYearAndStats() {
 
 async function loadPublicContent() {
   try {
-    const [oficinasData, galeriaData, colaboradoresData] = await Promise.all([
+    const [oficinasData, galeriaData, colaboradoresData, depoimentosData] = await Promise.all([
       apiRequest("/oficinas"),
       apiRequest("/galeria"),
-      apiRequest("/colaboradores")
+      apiRequest("/colaboradores"),
+      apiRequest("/depoimentos")
     ]);
     if (Array.isArray(oficinasData.oficinas) && oficinasData.oficinas.length) {
       state.workshops = oficinasData.oficinas;
@@ -1013,6 +1038,9 @@ async function loadPublicContent() {
     }
     if (Array.isArray(colaboradoresData.colaboradores) && colaboradoresData.colaboradores.length) {
       state.collaborators = colaboradoresData.colaboradores;
+    }
+    if (Array.isArray(depoimentosData.depoimentos) && depoimentosData.depoimentos.length) {
+      state.testimonials = depoimentosData.depoimentos;
     }
   } catch (error) {
     console.warn("Conteúdo dinâmico indisponível. Usando dados locais.", error.message);
@@ -1033,6 +1061,7 @@ async function init() {
   renderAgenda();
   renderGallery();
   renderCollaborators();
+  renderTestimonials();
   setupWorkshopDialog();
   setupPhoneMasks();
   setupCpfMasks();

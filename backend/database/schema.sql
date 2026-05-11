@@ -41,11 +41,28 @@ CREATE TABLE IF NOT EXISTS admins (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS depoimentos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  seed_key TEXT UNIQUE,
+  nome TEXT NOT NULL CHECK (char_length(nome) BETWEEN 2 AND 120),
+  vinculo TEXT CHECK (vinculo IS NULL OR char_length(vinculo) <= 120),
+  texto TEXT NOT NULL CHECK (char_length(texto) BETWEEN 10 AND 700),
+  oficina TEXT CHECK (oficina IS NULL OR char_length(oficina) <= 120),
+  ordem INTEGER NOT NULL DEFAULT 0,
+  ativo BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE depoimentos ADD COLUMN IF NOT EXISTS seed_key TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_inscricoes_oficina ON inscricoes (oficina);
 CREATE INDEX IF NOT EXISTS idx_inscricoes_created_at ON inscricoes (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_inscricao_documentos_inscricao ON inscricao_documentos (inscricao_id);
 CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_username ON admins (username) WHERE username IS NOT NULL AND username <> '';
+CREATE INDEX IF NOT EXISTS idx_depoimentos_ordem ON depoimentos (ordem ASC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_depoimentos_seed_key_unique ON depoimentos (seed_key);
 
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficinas TEXT[] NOT NULL DEFAULT '{}';
@@ -109,5 +126,11 @@ EXECUTE FUNCTION set_updated_at();
 DROP TRIGGER IF EXISTS trg_admins_updated_at ON admins;
 CREATE TRIGGER trg_admins_updated_at
 BEFORE UPDATE ON admins
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_depoimentos_updated_at ON depoimentos;
+CREATE TRIGGER trg_depoimentos_updated_at
+BEFORE UPDATE ON depoimentos
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();

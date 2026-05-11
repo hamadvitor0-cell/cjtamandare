@@ -211,6 +211,21 @@ CREATE TABLE IF NOT EXISTS admins (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS depoimentos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  seed_key TEXT UNIQUE,
+  nome TEXT NOT NULL CHECK (char_length(nome) BETWEEN 2 AND 120),
+  vinculo TEXT CHECK (vinculo IS NULL OR char_length(vinculo) <= 120),
+  texto TEXT NOT NULL CHECK (char_length(texto) BETWEEN 10 AND 700),
+  oficina TEXT CHECK (oficina IS NULL OR char_length(oficina) <= 120),
+  ordem INTEGER NOT NULL DEFAULT 0,
+  ativo BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE depoimentos ADD COLUMN IF NOT EXISTS seed_key TEXT;
+
 ALTER TABLE admins ADD COLUMN IF NOT EXISTS username TEXT;
 ALTER TABLE admins ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE admins ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
@@ -249,6 +264,8 @@ CREATE INDEX IF NOT EXISTS idx_oficinas_categoria ON oficinas (categoria);
 CREATE INDEX IF NOT EXISTS idx_galeria_ordem ON galeria (ordem ASC);
 CREATE INDEX IF NOT EXISTS idx_colaboradores_ordem ON colaboradores (ordem ASC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_colaboradores_seed_key_unique ON colaboradores (seed_key);
+CREATE INDEX IF NOT EXISTS idx_depoimentos_ordem ON depoimentos (ordem ASC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_depoimentos_seed_key_unique ON depoimentos (seed_key);
 CREATE INDEX IF NOT EXISTS idx_inscricao_documentos_inscricao ON inscricao_documentos (inscricao_id);
 CREATE INDEX IF NOT EXISTS idx_inscricoes_cpf ON inscricoes (cpf);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_alunos_cpf_unique ON alunos (cpf) WHERE cpf IS NOT NULL AND cpf <> '';
@@ -291,6 +308,12 @@ EXECUTE FUNCTION set_updated_at();
 DROP TRIGGER IF EXISTS trg_colaboradores_updated_at ON colaboradores;
 CREATE TRIGGER trg_colaboradores_updated_at
 BEFORE UPDATE ON colaboradores
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_depoimentos_updated_at ON depoimentos;
+CREATE TRIGGER trg_depoimentos_updated_at
+BEFORE UPDATE ON depoimentos
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
 

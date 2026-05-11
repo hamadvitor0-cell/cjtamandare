@@ -103,6 +103,15 @@ const colaboradorSchema = Joi.object({
   ativo: Joi.boolean().truthy("true").falsy("false")
 });
 
+const depoimentoSchema = Joi.object({
+  nome: Joi.string().min(2).max(120).required(),
+  vinculo: Joi.string().allow("").max(120),
+  texto: Joi.string().min(10).max(700).required(),
+  oficina: Joi.string().allow("").max(120),
+  ordem: Joi.number().integer().min(0).max(9999),
+  ativo: Joi.boolean().truthy("true").falsy("false")
+});
+
 const adminUserSchema = Joi.object({
   name: Joi.string().min(2).max(120).required(),
   username: Joi.string().pattern(/^[a-zA-Z0-9._-]{3,40}$/).required(),
@@ -226,6 +235,7 @@ module.exports = {
   oficinaSchema,
   galeriaSchema,
   colaboradorSchema,
+  depoimentoSchema,
   adminUserSchema,
   adminUserUpdateSchema,
   auditLogQuerySchema,

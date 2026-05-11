@@ -475,6 +475,7 @@ button {
 :root[data-theme="dark"] .calendar-day,
 :root[data-theme="dark"] .gallery-item,
 :root[data-theme="dark"] .collaborator-card,
+:root[data-theme="dark"] .testimonial-card,
 :root[data-theme="dark"] .site-footer,
 :root[data-theme="dark"] .toast,
 :root[data-theme="dark"] .workshop-dialog,
@@ -772,7 +773,8 @@ textarea:focus {
 }
 
 .how-it-works,
-.faq {
+.faq,
+.testimonials {
   background: var(--color-surface);
 }
 
@@ -1257,6 +1259,59 @@ textarea:focus {
   justify-self: start;
 }
 
+.testimonials-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.testimonial-card {
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-card);
+  padding: 22px;
+  display: grid;
+  gap: 18px;
+}
+
+.testimonial-card::before {
+  content: "“";
+  color: rgba(var(--color-primary-rgb), 0.16);
+  font-family: var(--font-title);
+  font-size: 4rem;
+  line-height: 1;
+  position: absolute;
+  top: 10px;
+  right: 18px;
+}
+
+.testimonial-text {
+  position: relative;
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 1.02rem;
+  font-weight: 750;
+  line-height: 1.6;
+  padding-right: 28px;
+}
+
+.testimonial-author {
+  display: grid;
+  gap: 3px;
+}
+
+.testimonial-author strong {
+  color: var(--color-primary);
+  font-family: var(--font-title);
+}
+
+.testimonial-author span {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
 .signup {
   background:
     linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.08), rgba(var(--color-accent-rgb), 0.07)),
@@ -1728,7 +1783,8 @@ textarea:focus {
   .docs-strip,
   .faq-grid,
   .gallery-grid,
-  .collaborators-grid {
+  .collaborators-grid,
+  .testimonials-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

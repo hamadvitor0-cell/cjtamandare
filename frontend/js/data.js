@@ -103,3 +103,20 @@ export const collaborators = [
     ordem: 2
   }
 ];
+
+export const testimonials = [
+  {
+    nome: "Aluno do CJ",
+    vinculo: "Participante das oficinas",
+    texto: "O Centro da Juventude me ajudou a conhecer novas atividades, fazer amizades e participar mais da comunidade.",
+    oficina: "Oficinas do CJ",
+    ordem: 1
+  },
+  {
+    nome: "Família participante",
+    vinculo: "Comunidade",
+    texto: "As oficinas criam oportunidades importantes para os jovens e aproximam as famílias dos serviços públicos.",
+    oficina: "Atividades comunitárias",
+    ordem: 2
+  }
+];

@@ -22,11 +22,11 @@
       "continue": true
     },
     {
-      "src": "/admin/(oficinas|galeria|colaboradores|bolsistas|calendario|usuarios|logs)(.*)",
+      "src": "/admin/(oficinas|galeria|colaboradores|depoimentos|bolsistas|calendario|usuarios|logs)(.*)",
       "dest": "/api/index.js"
     },
     {
-      "src": "/(ai|inscricao|inscricoes|auth|csrf-token|captcha|dashboard|oficinas|galeria|colaboradores|alunos|chamadas|health)(.*)",
+      "src": "/(ai|inscricao|inscricoes|auth|csrf-token|captcha|dashboard|oficinas|galeria|colaboradores|depoimentos|alunos|chamadas|health)(.*)",
       "dest": "/api/index.js"
     },
     {

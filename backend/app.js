@@ -27,7 +27,7 @@ app.use("/api", notFound);
 app.use("/", routes);
 
 app.use((req, res, next) => {
-  const apiLikePath = /^\/(?:ai|inscricao|inscricoes|auth|csrf-token|captcha|dashboard|oficinas|galeria|colaboradores|alunos|chamadas|health)(?:\/|$)/.test(req.path)
+  const apiLikePath = /^\/(?:ai|inscricao|inscricoes|auth|csrf-token|captcha|dashboard|oficinas|galeria|colaboradores|depoimentos|alunos|chamadas|health)(?:\/|$)/.test(req.path)
     || /^\/admin\/.+/.test(req.path);
   if (!apiLikePath) return next();
   return res.status(404).json({ message: "Rota nao encontrada." });

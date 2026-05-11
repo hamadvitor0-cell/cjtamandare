@@ -24,6 +24,7 @@ const state = {
   })),
   galeria: [],
   colaboradores: [],
+  depoimentos: [],
   adminUsers: [],
   auditLogs: [],
   alunos: [],
@@ -142,6 +143,7 @@ const pageTitles = {
   oficinas: "Oficinas",
   galeria: "Galeria",
   colaboradores: "Colaboradores",
+  depoimentos: "Depoimentos",
   alunos: "Alunos",
   bolsistas: "Bolsistas",
   calendario: "Calendário",
@@ -400,18 +402,21 @@ async function loadInscrições() {
 }
 
 async function loadManagedContent() {
-  const [oficinasData, galeriaData, colaboradoresData] = await Promise.all([
+  const [oficinasData, galeriaData, colaboradoresData, depoimentosData] = await Promise.all([
     apiRequest("/admin/oficinas?includeInactive=true"),
     apiRequest("/admin/galeria?includeInactive=true"),
-    apiRequest("/admin/colaboradores?includeInactive=true")
+    apiRequest("/admin/colaboradores?includeInactive=true"),
+    apiRequest("/admin/depoimentos?includeInactive=true")
   ]);
   state.oficinas = oficinasData.oficinas || [];
   state.galeria = galeriaData.galeria || [];
   state.colaboradores = colaboradoresData.colaboradores || [];
+  state.depoimentos = depoimentosData.depoimentos || [];
   populateSelects();
   renderOfficeList();
   renderGalleryList();
   renderCollaboratorList();
+  renderTestimonialList();
 }
 
 async function loadAlunos() {
@@ -1694,6 +1699,65 @@ async function deleteCollaborator(item) {
   await loadManagedContent();
 }
 
+function renderTestimonialList() {
+  const list = document.querySelector("[data-testimonial-list]");
+  if (!list) return;
+  list.replaceChildren();
+
+  if (!state.depoimentos.length) {
+    list.append(createElement("p", { className: "form-feedback", text: "Nenhum depoimento cadastrado." }));
+    return;
+  }
+
+  state.depoimentos.forEach((itemData) => {
+    const item = createElement("article", { className: "content-item" });
+    const main = createElement("div", { className: "content-item-main" });
+    main.append(
+      createElement("strong", { text: itemData.nome }),
+      createElement("span", { text: itemData.texto || "Sem depoimento." }),
+      createElement("span", { text: [itemData.vinculo, itemData.oficina].filter(Boolean).join(" · ") || "Sem vínculo informado" }),
+      createElement("span", { text: itemData.ativo ? `Ativo - ordem ${itemData.ordem}` : `Inativo - ordem ${itemData.ordem}` })
+    );
+    const actions = createElement("div", { className: "content-actions" });
+    const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
+    const del = createElement("button", { className: "icon-action danger", text: "Excluir", attrs: { type: "button" } });
+    edit.addEventListener("click", () => editTestimonial(itemData));
+    del.addEventListener("click", () => deleteTestimonial(itemData));
+    actions.append(edit, del);
+    item.append(main, actions);
+    list.append(item);
+  });
+}
+
+function resetTestimonialForm() {
+  const form = document.querySelector("[data-testimonial-form]");
+  form.reset();
+  form.elements.id.value = "";
+  form.elements.ordem.value = String(state.depoimentos.length + 1);
+  form.elements.ativo.checked = true;
+  setFeedback(document.querySelector("[data-testimonial-feedback]"), "");
+}
+
+function editTestimonial(item) {
+  const form = document.querySelector("[data-testimonial-form]");
+  setFormValues(form, {
+    id: item.id,
+    nome: item.nome,
+    vinculo: item.vinculo,
+    texto: item.texto,
+    oficina: item.oficina,
+    ordem: item.ordem,
+    ativo: item.ativo
+  });
+  showAdminPage("depoimentos", true);
+}
+
+async function deleteTestimonial(item) {
+  if (!window.confirm(`Excluir o depoimento de ${item.nome}?`)) return;
+  await secureRequest(`/admin/depoimentos/${item.id}`, { method: "DELETE" });
+  await loadManagedContent();
+}
+
 function renderStudentList() {
   const list = document.querySelector("[data-student-list]");
   if (!list) return;
@@ -2231,6 +2295,7 @@ function setupEvents() {
   document.querySelector("[data-reset-office-form]")?.addEventListener("click", resetOfficeForm);
   document.querySelector("[data-reset-gallery-form]")?.addEventListener("click", resetGalleryForm);
   document.querySelector("[data-reset-collaborator-form]")?.addEventListener("click", resetCollaboratorForm);
+  document.querySelector("[data-reset-testimonial-form]")?.addEventListener("click", resetTestimonialForm);
   document.querySelector("[data-reset-student-form]")?.addEventListener("click", resetStudentForm);
   document.querySelector("[data-reset-bolsista-form]")?.addEventListener("click", resetBolsistaForm);
   document.querySelector("[data-reset-calendar-event-form]")?.addEventListener("click", resetCalendarEventForm);
@@ -2519,6 +2584,35 @@ function setupEvents() {
       });
       resetCollaboratorForm();
       setFeedback(feedback, "Colaborador salvo com sucesso.", "success");
+      await loadManagedContent();
+    } catch (error) {
+      setFeedback(feedback, error.message, "error");
+    }
+  });
+
+  document.querySelector("[data-testimonial-form]")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const feedback = document.querySelector("[data-testimonial-feedback]");
+    const data = getFormData(form);
+    const id = data.id;
+
+    data.ativo = activeFromForm(form);
+    data.ordem = Number(data.ordem || 0);
+    delete data.id;
+
+    if (!String(data.texto || "").trim()) {
+      setFeedback(feedback, "Informe o texto do depoimento.", "error");
+      return;
+    }
+
+    try {
+      await secureRequest(id ? `/admin/depoimentos/${id}` : "/admin/depoimentos", {
+        method: id ? "PUT" : "POST",
+        body: data
+      });
+      resetTestimonialForm();
+      setFeedback(feedback, "Depoimento salvo com sucesso.", "success");
       await loadManagedContent();
     } catch (error) {
       setFeedback(feedback, error.message, "error");
