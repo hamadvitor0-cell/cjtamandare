@@ -42,7 +42,7 @@ function alunoToInscricaoRows(aluno) {
 }
 
 function sourceLabel(source) {
-  return source === "aluno" ? "Aluno ADM" : "Inscricao online";
+  return source === "aluno" ? "Aluno ADM" : "Inscrição online";
 }
 
 function uniqueValues(values) {
@@ -265,7 +265,7 @@ function publicStatusFromPerson(person) {
     oficinas,
     documentosPendentes,
     documentos: documentosPendentes
-      ? "Documentos pendentes ou ainda nao conferidos pela equipe."
+      ? "Documentos pendentes ou ainda não conferidos pela equipe."
       : "Sem pendencias marcadas no cadastro.",
     frequencia: {
       faltasUltimos30Dias: Number(person.faltasUltimos30Dias || 0),

@@ -274,7 +274,7 @@ function renderWorkshops() {
     });
     button.addEventListener("click", () => {
       selectWorkshopForSignup(workshop);
-      document.querySelector("#inscricao")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector("#inscrição")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
 
     const actions = createElement("div", { className: "card-actions" });
@@ -347,7 +347,7 @@ function renderWorkshopPage(workshop) {
   const signup = createElement("button", { className: "button button-primary", text: "Inscrever-se", attrs: { type: "button" } });
   signup.addEventListener("click", () => {
     selectWorkshopForSignup(workshop);
-    document.querySelector("#inscricao")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.querySelector("#inscrição")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
   const back = createElement("button", { className: "button button-secondary", text: "Ver outras oficinas", attrs: { type: "button" } });
   back.addEventListener("click", () => {
@@ -426,7 +426,7 @@ function openWorkshopDialog(workshop) {
   signup.addEventListener("click", () => {
     selectWorkshopForSignup(workshop);
     dialog.close();
-    document.querySelector("#inscricao")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.querySelector("#inscrição")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
   content.append(signup);
   dialog.showModal();
@@ -607,7 +607,7 @@ function renderCollaborators() {
 
 function validateSignup(data, files = []) {
   if (!data.nome || data.nome.trim().length < 3) return "Informe o nome completo.";
-  if (!isValidCpf(data.cpf)) return "Informe um CPF valido.";
+  if (!isValidCpf(data.cpf)) return "Informe um CPF válido.";
   const idade = Number(data.idade);
   if (!Number.isInteger(idade) || idade < 10 || idade > 99) return "Informe uma idade válida.";
   if (!/^[0-9()+\-\s]{10,20}$/.test(data.telefone || "")) return "Informe um telefone válido.";
@@ -615,7 +615,7 @@ function validateSignup(data, files = []) {
   if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return "Informe um e-mail válido.";
   if (files.length > 8) return "Envie no máximo 8 documentos.";
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-  if (totalSize > 16 * 1024 * 1024) return "O envio completo deve ter no maximo 16 MB.";
+  if (totalSize > 16 * 1024 * 1024) return "O envio completo deve ter no máximo 16 MB.";
   const invalidFile = files.find((file) => !allowedDocumentTypes.has(file.type) || file.size > 5 * 1024 * 1024);
   if (invalidFile) return "Os documentos devem ser PDF, JPG, PNG ou WEBP com até 5 MB por arquivo.";
   if (!captchaState.loaded) return "Aguarde o carregamento do puzzle anti-robô.";
@@ -765,11 +765,11 @@ function setupSignupForm() {
       formData.set("captchaToken", captchaState.token);
       formData.set("captchaX", document.querySelector("[data-captcha-slider]")?.value || "");
       formData.set("captchaMoves", String(captchaState.moves));
-      const result = await apiRequest("/inscricao", {
+      const result = await apiRequest("/inscrição", {
         method: "POST",
         body: formData
       });
-      const listaEspera = result.inscricao?.listaEspera || [];
+      const listaEspera = result.inscrição?.listaEspera || [];
       const message = listaEspera.length
         ? `Inscrição recebida. ${listaEspera.join(", ")} ficou em lista de espera; a equipe entrará em contato.`
         : "Inscrição enviada com sucesso. A equipe entrará em contato.";
@@ -791,7 +791,7 @@ function setupSignupForm() {
 }
 
 function formatStatusDate(value) {
-  if (!value) return "Data nao informada";
+  if (!value) return "Data não informada";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleDateString("pt-BR");
@@ -805,7 +805,7 @@ function renderStatusLookup(status) {
   if (!status?.encontrado) {
     result.append(createElement("p", {
       className: "form-feedback is-error",
-      text: status?.message || "Nenhuma inscricao encontrada para este CPF."
+      text: status?.message || "Nenhuma inscrição encontrada para este CPF."
     }));
     return;
   }
@@ -814,7 +814,7 @@ function renderStatusLookup(status) {
   const header = createElement("header");
   const badgeClass = status.situacao === "Lista de espera" ? "status-badge is-waitlist" : "status-badge";
   header.append(
-    createElement("h3", { text: `${status.nomeParcial || "Inscricao"} - ${maskCpfValue(status.cpf || "")}` }),
+    createElement("h3", { text: `${status.nomeParcial || "Inscrição"} - ${maskCpfValue(status.cpf || "")}` }),
     createElement("span", { className: badgeClass, text: status.situacao })
   );
 
@@ -823,7 +823,7 @@ function renderStatusLookup(status) {
     const item = createElement("li");
     item.append(
       createElement("strong", { text: office.oficina }),
-      createElement("span", { text: `${office.situacao} - ${formatStatusDate(office.dataInscricao)}` })
+      createElement("span", { text: `${office.situacao} - ${formatStatusDate(office.dataInscrição)}` })
     );
     list.append(item);
   });
@@ -832,8 +832,8 @@ function renderStatusLookup(status) {
     header,
     list,
     createElement("p", { text: status.documentos }),
-    createElement("p", { text: `Faltas nos ultimos 30 dias: ${Number(status.frequencia?.faltasUltimos30Dias || 0)}` }),
-    createElement("p", { text: `Ultima atualizacao: ${formatStatusDate(status.ultimaAtualizacao || status.dataInscricao)}` })
+    createElement("p", { text: `Faltas nos últimos 30 dias: ${Number(status.frequencia?.faltasUltimos30Dias || 0)}` }),
+    createElement("p", { text: `Última atualização: ${formatStatusDate(status.ultimaAtualizacao || status.dataInscrição)}` })
   );
   const aulas = status.frequencia?.aulasUltimos30Dias || [];
   if (aulas.length) {
@@ -846,7 +846,7 @@ function renderStatusLookup(status) {
       );
       calls.append(item);
     });
-    card.append(createElement("p", { className: "status-section-title", text: "Aulas registradas nos ultimos 30 dias" }), calls);
+    card.append(createElement("p", { className: "status-section-title", text: "Aulas registradas nos últimos 30 dias" }), calls);
   }
   result.append(card);
 }
@@ -859,13 +859,13 @@ function setupStatusLookup() {
     const result = document.querySelector("[data-status-result]");
     const cpf = normalizeCpf(form.elements.cpf?.value || "");
     if (!isValidCpf(cpf)) {
-      renderStatusLookup({ encontrado: false, message: "Informe um CPF valido." });
+      renderStatusLookup({ encontrado: false, message: "Informe um CPF válido." });
       return;
     }
 
     const button = form.querySelector("button[type='submit']");
     button.disabled = true;
-    if (result) result.replaceChildren(createElement("p", { className: "form-feedback", text: "Consultando inscricao..." }));
+    if (result) result.replaceChildren(createElement("p", { className: "form-feedback", text: "Consultando inscrição..." }));
     try {
       const data = await apiRequest("/inscricoes/status", {
         method: "POST",
@@ -880,15 +880,40 @@ function setupStatusLookup() {
   });
 }
 
+function appendAiMessageContent(node, content) {
+  const lines = String(content || "").split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  if (!lines.length) {
+    node.append(createElement("p", { text: "" }));
+    return;
+  }
+
+  let list = null;
+  lines.forEach((line) => {
+    const bullet = line.match(/^[•*-]\s+(.+)$/);
+    if (bullet) {
+      if (!list) {
+        list = createElement("ul", { className: "ai-message-list" });
+        node.append(list);
+      }
+      list.append(createElement("li", { text: bullet[1] }));
+      return;
+    }
+
+    list = null;
+    node.append(createElement("p", { text: line }));
+  });
+}
+
 function renderAiMessages() {
   const container = document.querySelector("[data-ai-messages]");
   if (!container) return;
   container.replaceChildren();
   state.aiMessages.forEach((message) => {
-    container.append(createElement("div", {
-      className: `ai-message ${message.role === "user" ? "is-user" : message.role === "system" ? "is-system" : "is-assistant"}`,
-      text: message.content
-    }));
+    const item = createElement("div", {
+      className: `ai-message ${message.role === "user" ? "is-user" : message.role === "system" ? "is-system" : "is-assistant"}`
+    });
+    appendAiMessageContent(item, message.content);
+    container.append(item);
   });
   container.scrollTop = container.scrollHeight;
 }
@@ -911,7 +936,7 @@ function setupAiChat() {
     panel.hidden = !open;
     toggle.setAttribute("aria-expanded", String(open));
     if (open && !state.aiMessages.length) {
-      pushAiMessage("assistant", "Ola! Posso ajudar com oficinas, documentos, inscricao, lista de espera, status por CPF e contato.");
+      pushAiMessage("assistant", "Olá! Posso ajudar com oficinas, documentos, inscrição, lista de espera, status por CPF, faltas e aulas recentes.");
     }
     if (open) form.elements.message?.focus();
   }
@@ -935,7 +960,7 @@ function setupAiChat() {
         body: { messages: chatMessages }
       });
       state.aiMessages.pop();
-      pushAiMessage("assistant", data.message || "Nao consegui responder agora.");
+      pushAiMessage("assistant", data.message || "Não consegui responder agora.");
     } catch (error) {
       state.aiMessages.pop();
       pushAiMessage("assistant", error.message);

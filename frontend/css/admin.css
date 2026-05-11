@@ -1067,8 +1067,9 @@ td {
 
 .ai-assist-section p {
   margin: 0;
-  color: var(--color-muted);
+  color: var(--color-ink);
   white-space: pre-wrap;
+  line-height: 1.6;
 }
 
 .ai-alert-list {
@@ -1086,14 +1087,22 @@ td {
 .ai-message-card {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  background: var(--color-soft);
+  background: #fff;
   padding: 14px;
   display: grid;
   gap: 10px;
+  align-content: start;
 }
 
 .ai-message-card strong {
   color: var(--color-ink);
+  font-size: 1rem;
+}
+
+.ai-message-card p {
+  color: var(--color-muted);
+  font-weight: 650;
+  line-height: 1.55;
 }
 
 .ai-message-card .button {

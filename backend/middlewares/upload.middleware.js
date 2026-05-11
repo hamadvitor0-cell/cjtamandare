@@ -84,7 +84,7 @@ function validateUploadedFiles(req, res, next) {
   ];
   const invalid = files.find((file) => !hasValidSignature(file));
   if (invalid) {
-    return next(uploadError("O conteudo do arquivo nao corresponde ao tipo informado.", 415));
+    return next(uploadError("O conteúdo do arquivo não corresponde ao tipo informado.", 415));
   }
   return next();
 }

@@ -61,7 +61,7 @@ async function seedGaleria() {
      SELECT $5, $6, $7, $8, 2, true
      WHERE NOT EXISTS (SELECT 1 FROM galeria WHERE imagem_url = $7)`,
     [
-      "Oficinas disponiveis",
+      "Oficinas disponíveis",
       "Quadro oficial com lista de oficinas do Centro da Juventude",
       "/img/oficinas.png",
       "Quadro oficial com lista de oficinas do Centro da Juventude",

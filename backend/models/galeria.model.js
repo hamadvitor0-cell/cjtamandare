@@ -5,7 +5,7 @@ const db = require("../database/pool");
 const memory = [
   {
     id: crypto.randomUUID(),
-    titulo: "Oficinas disponiveis",
+    titulo: "Oficinas disponíveis",
     descricao: "Quadro oficial com lista de oficinas do Centro da Juventude",
     imagem_url: "/img/oficinas.png",
     alt: "Quadro oficial com lista de oficinas do Centro da Juventude",

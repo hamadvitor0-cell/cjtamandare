@@ -2,7 +2,7 @@ const logger = require("../utils/logger");
 const config = require("../config/env");
 
 function notFound(req, res, next) {
-  const error = new Error("Rota nao encontrada.");
+  const error = new Error("Rota não encontrada.");
   error.statusCode = 404;
   next(error);
 }
@@ -14,8 +14,8 @@ function errorHandler(error, req, res, next) {
   if (error.name === "MulterError") {
     status = error.code === "LIMIT_FILE_SIZE" ? 413 : 400;
     safeMessage = error.code === "LIMIT_FILE_SIZE"
-      ? "Cada documento deve ter no maximo 5 MB."
-      : "Nao foi possivel receber os documentos enviados.";
+      ? "Cada documento deve ter no máximo 5 MB."
+      : "Não foi possível receber os documentos enviados.";
   }
 
   const logMeta = {
@@ -39,7 +39,7 @@ function errorHandler(error, req, res, next) {
   if (res.headersSent) return next(error);
 
   const message = status >= 500 && config.isProduction
-    ? "Nao foi possivel concluir a solicitacao."
+    ? "Não foi possível concluir a solicitação."
     : safeMessage;
 
   return res.status(status).json({

@@ -3,7 +3,11 @@ const Oficina = require("../models/oficina.model");
 const InscricaoService = require("./inscricao.service");
 const { isValidCpf, normalizeCpf } = require("../utils/cpf");
 
-const contactText = "WhatsApp: (41) 3657-2117. Endereco: Rua Deputado Max Rosemann, 100, Almirante Tamandare, PR.";
+const contactText = [
+  "Contato do Centro da Juventude:",
+  "\u2022 WhatsApp: (41) 3657-2117",
+  "\u2022 Endere\u00e7o: Rua Deputado Max Rosemann, 100, Almirante Tamandar\u00e9, PR"
+].join("\n");
 
 function lastUserMessage(messages = []) {
   return [...messages].reverse().find((message) => message.role === "user")?.content || "";
@@ -54,26 +58,33 @@ async function workshopSummaries(filter = "") {
 
 function statusToText(status) {
   if (!status?.encontrado) {
-    return "Nao encontrei inscricao para este CPF. Confira os numeros digitados ou fale com a equipe pelo WhatsApp: (41) 3657-2117.";
+    return [
+      "N\u00e3o encontrei inscri\u00e7\u00e3o para este CPF.",
+      "",
+      "Confira se os n\u00fameros foram digitados corretamente.",
+      "Se o problema continuar, fale com a equipe pelo WhatsApp: (41) 3657-2117."
+    ].join("\n");
   }
 
   const oficinas = (status.oficinas || [])
     .map((item) => `${item.oficina}: ${item.situacao}`)
-    .join("; ");
+    .join("\n\u2022 ");
   const frequencia = status.frequencia || {};
   const aulas = (frequencia.aulasUltimos30Dias || [])
     .slice(0, 6)
     .map((call) => `${String(call.data || "").slice(0, 10)} - ${call.oficina}: ${call.status}`)
-    .join("; ");
+    .join("\n\u2022 ");
   return [
-    `Encontrei o cadastro de ${status.nomeParcial || "uma pessoa"} (${status.cpf}).`,
-    `Situacao geral: ${status.situacao}.`,
-    oficinas ? `Oficinas: ${oficinas}.` : "",
-    status.documentosPendentes ? "Ha documentos pendentes ou ainda nao conferidos." : "Nao ha pendencias de documentos marcadas.",
-    `Faltas nos ultimos 30 dias: ${Number(frequencia.faltasUltimos30Dias || 0)}.`,
-    aulas ? `Aulas registradas nos ultimos 30 dias: ${aulas}.` : "Nao encontrei aulas registradas nos ultimos 30 dias.",
-    "Para ajustes, fale com a equipe pelo WhatsApp: (41) 3657-2117."
-  ].filter(Boolean).join(" ");
+    `Encontrei o cadastro de ${status.nomeParcial || "uma pessoa"}.`,
+    "",
+    `Situa\u00e7\u00e3o geral: ${status.situacao}.`,
+    oficinas ? `Oficinas:\n\u2022 ${oficinas}` : "",
+    status.documentosPendentes ? "Documentos: h\u00e1 pend\u00eancias ou itens ainda n\u00e3o conferidos." : "Documentos: n\u00e3o h\u00e1 pend\u00eancias marcadas.",
+    `Faltas nos \u00faltimos 30 dias: ${Number(frequencia.faltasUltimos30Dias || 0)}.`,
+    aulas ? `Aulas registradas nos \u00faltimos 30 dias:\n\u2022 ${aulas}` : "Aulas registradas nos \u00faltimos 30 dias: nenhuma encontrada.",
+    "",
+    "Para corrigir informa\u00e7\u00f5es, fale com a equipe pelo WhatsApp: (41) 3657-2117."
+  ].filter(Boolean).join("\n");
 }
 
 async function fallbackChat({ messages, cpf }) {
@@ -94,7 +105,16 @@ async function fallbackChat({ messages, cpf }) {
 
   if (lower.includes("falta") || lower.includes("frequ") || lower.includes("presen") || lower.includes("aula") || lower.includes("chamada") || /(status|acompanhar|cpf|inscri)/i.test(lower)) {
     return {
-      message: "Para consultar andamento, faltas e aulas recentes, envie o CPF aqui no chat ou use o campo de acompanhamento. Eu retorno apenas oficinas, situacao, documentos, quantidade de faltas e chamadas recentes.",
+      message: [
+        "Para consultar andamento, faltas e aulas recentes, envie o CPF aqui no chat ou use o campo de acompanhamento.",
+        "",
+        "Por seguran\u00e7a, eu mostro apenas:",
+        "\u2022 oficinas vinculadas",
+        "\u2022 situa\u00e7\u00e3o da inscri\u00e7\u00e3o",
+        "\u2022 documentos pendentes",
+        "\u2022 quantidade de faltas",
+        "\u2022 aulas registradas recentemente"
+      ].join("\n"),
       aiEnabled: false,
       fallback: true
     };
@@ -102,7 +122,20 @@ async function fallbackChat({ messages, cpf }) {
 
   if (/(document|rg|comprovante|declara[cç][aã]o|cpf)/i.test(lower)) {
     return {
-      message: "Documentos: maiores de 18 anos precisam de RG, CPF e comprovante de residencia. Menores precisam dos documentos do aluno e responsavel, declaracao escolar e comprovante de residencia.",
+      message: [
+        "Documentos necess\u00e1rios:",
+        "",
+        "Maiores de 18 anos:",
+        "\u2022 RG",
+        "\u2022 CPF",
+        "\u2022 comprovante de resid\u00eancia",
+        "",
+        "Menores de idade:",
+        "\u2022 documentos do aluno",
+        "\u2022 documentos do respons\u00e1vel",
+        "\u2022 declara\u00e7\u00e3o escolar",
+        "\u2022 comprovante de resid\u00eancia"
+      ].join("\n"),
       aiEnabled: false,
       fallback: true
     };
@@ -118,10 +151,10 @@ async function fallbackChat({ messages, cpf }) {
 
   if (/(oficina|atividade|vaga|hor[aá]rio|turma|curso)/i.test(lower)) {
     const oficinas = await workshopSummaries();
-    const listed = oficinas.slice(0, 8).map((workshop) => `${workshop.nome} (${workshop.situacao})`).join("; ");
-    const suffix = oficinas.length > 8 ? " Use a busca de oficinas para ver todas." : "";
+    const listed = oficinas.slice(0, 8).map((workshop) => `\u2022 ${workshop.nome}: ${workshop.situacao}`).join("\n");
+    const suffix = oficinas.length > 8 ? "\n\nUse a busca de oficinas no site para ver todas as atividades." : "";
     return {
-      message: `Oficinas disponiveis: ${listed}.${suffix}`,
+      message: `Oficinas dispon\u00edveis:\n${listed}${suffix}`,
       aiEnabled: false,
       fallback: true,
       oficinas
@@ -129,7 +162,17 @@ async function fallbackChat({ messages, cpf }) {
   }
 
   return {
-    message: `Posso ajudar com oficinas, documentos, inscricao, lista de espera, status por CPF e contato. ${contactText}`,
+    message: [
+      "Posso ajudar com:",
+      "\u2022 oficinas e vagas",
+      "\u2022 documentos necess\u00e1rios",
+      "\u2022 lista de espera",
+      "\u2022 status por CPF",
+      "\u2022 faltas e aulas recentes",
+      "\u2022 contato da equipe",
+      "",
+      contactText
+    ].join("\n"),
     aiEnabled: false,
     fallback: true
   };
@@ -153,26 +196,26 @@ function baseAdminAssist(student = {}) {
   const firstName = String(student.nome || "aluno").trim().split(/\s+/)[0] || "aluno";
   const officeText = oficinas.length ? oficinas.join(", ") : "oficinas vinculadas";
   const alerts = [
-    docsPending ? "Documentos pendentes ou nao conferidos." : "",
-    faltas > 2 ? `Alerta de frequencia: ${faltas} faltas nos ultimos 30 dias.` : "",
+    docsPending ? "Documentos pendentes ou n\u00e3o conferidos." : "",
+    faltas > 2 ? `Alerta de frequ\u00eancia: ${faltas} faltas nos \u00faltimos 30 dias.` : "",
     waitlist.length ? `Lista de espera: ${waitlist.join(", ")}.` : "",
-    String(student.observacoes || "").trim() ? "Ha observacoes registradas na ficha." : ""
+    String(student.observacoes || "").trim() ? "H\u00e1 observa\u00e7\u00f5es registradas na ficha." : ""
   ].filter(Boolean);
 
   return {
-    summary: `${student.nome || "Aluno"} esta vinculado a ${officeText}. ${confirmed.length ? `Confirmadas: ${confirmed.join(", ")}. ` : ""}${waitlist.length ? `Em lista de espera: ${waitlist.join(", ")}. ` : ""}${docsPending ? "Documentos pendentes. " : "Sem pendencias de documentos marcadas. "}${faltas ? `Faltas nos ultimos 30 dias: ${faltas}.` : "Sem faltas recentes registradas."}`,
+    summary: `${student.nome || "Aluno"} est\u00e1 vinculado a ${officeText}. ${confirmed.length ? `Confirmadas: ${confirmed.join(", ")}. ` : ""}${waitlist.length ? `Em lista de espera: ${waitlist.join(", ")}. ` : ""}${docsPending ? "Documentos pendentes. " : "Sem pend\u00eancias de documentos marcadas. "}${faltas ? `Faltas nos \u00faltimos 30 dias: ${faltas}.` : "Sem faltas recentes registradas."}`,
     alerts,
     messages: {
-      confirmacao: `Ola, ${firstName}! Sua inscricao no Centro da Juventude foi registrada para ${officeText}. A confirmacao final depende da conferencia da equipe e da disponibilidade de vagas.`,
+      confirmacao: `Ol\u00e1, ${firstName}! Sua inscri\u00e7\u00e3o no Centro da Juventude foi registrada para ${officeText}. A confirma\u00e7\u00e3o final depende da confer\u00eancia da equipe e da disponibilidade de vagas.`,
       documentos: docsPending
-        ? `Ola, ${firstName}! Para concluir sua matricula no Centro da Juventude, precisamos que voce entregue ou regularize os documentos pendentes. Em caso de duvida, responda esta mensagem.`
-        : `Ola, ${firstName}! No momento nao ha pendencias de documentos marcadas no seu cadastro do Centro da Juventude.`,
+        ? `Ol\u00e1, ${firstName}! Para concluir sua matr\u00edcula no Centro da Juventude, precisamos que voc\u00ea entregue ou regularize os documentos pendentes. Em caso de d\u00favida, responda esta mensagem.`
+        : `Ol\u00e1, ${firstName}! No momento n\u00e3o h\u00e1 pend\u00eancias de documentos marcadas no seu cadastro do Centro da Juventude.`,
       faltas: faltas > 0
-        ? `Ola, ${firstName}! Identificamos ${faltas} falta(s) recente(s) nas atividades do Centro da Juventude. Procure a equipe para justificar ou regularizar a frequencia.`
-        : `Ola, ${firstName}! Nao constam faltas recentes no seu acompanhamento do Centro da Juventude.`,
+        ? `Ol\u00e1, ${firstName}! Identificamos ${faltas} falta(s) recente(s) nas atividades do Centro da Juventude. Procure a equipe para justificar ou regularizar a frequ\u00eancia.`
+        : `Ol\u00e1, ${firstName}! N\u00e3o constam faltas recentes no seu acompanhamento do Centro da Juventude.`,
       listaEspera: waitlist.length
-        ? `Ola, ${firstName}! Voce esta em lista de espera para ${waitlist.join(", ")}. A equipe avisara quando houver vaga disponivel.`
-        : `Ola, ${firstName}! No momento nao ha oficinas em lista de espera marcadas no seu cadastro.`
+        ? `Ol\u00e1, ${firstName}! Voc\u00ea est\u00e1 em lista de espera para ${waitlist.join(", ")}. A equipe avisar\u00e1 quando houver vaga dispon\u00edvel.`
+        : `Ol\u00e1, ${firstName}! No momento n\u00e3o h\u00e1 oficinas em lista de espera marcadas no seu cadastro.`
     }
   };
 }
@@ -213,11 +256,11 @@ async function createAgent(tools = {}) {
     stopWhen: stepCountIs(5),
     tools,
     instructions: [
-      "Voce e o assistente virtual do Centro da Juventude Almirante Tamandare.",
-      "Responda sempre em portugues do Brasil, com frases curtas e tom institucional.",
-      "Use apenas dados retornados pelas ferramentas ou informacoes presentes no prompt.",
-      "Nao exponha dados administrativos nem dados sensiveis. Para status por CPF, retorne somente oficinas, situacao, lista de espera, documentos pendentes e data.",
-      "Nao tome decisoes finais. Oriente a pessoa a falar com a equipe quando houver duvida."
+      "Voc\u00ea e o assistente virtual do Centro da Juventude Almirante Tamandar\u00e9.",
+      "Responda sempre em portugu\u00eas do Brasil, com frases curtas e tom institucional.",
+      "Use apenas dados retornados pelas ferramentas ou informa\u00e7\u00f5es presentes no prompt.",
+      "N\u00e3o exponha dados administrativos nem dados sens\u00edveis. Para status por CPF, retorne somente oficinas, situa\u00e7\u00e3o, lista de espera, documentos pendentes e data.",
+      "N\u00e3o tome decis\u00f5es finais. Oriente a pessoa a falar com a equipe quando houver d\u00favida."
     ].join("\n")
   });
 }
@@ -233,14 +276,14 @@ async function chat({ messages, cpf }) {
       const { z } = await import("zod");
       const agent = await createAgent({
         listarOficinas: tool({
-          description: "Lista oficinas publicas, horarios e situacao de vagas.",
+          description: "Lista oficinas p\u00fablicas, hor\u00e1rios e situa\u00e7\u00e3o de vagas.",
           inputSchema: z.object({
             busca: z.string().optional().describe("Nome, categoria ou termo de busca opcional.")
           }),
           execute: async ({ busca }) => workshopSummaries(busca)
         }),
         consultarStatusCpf: tool({
-          description: "Consulta status publico e minimo de uma inscricao por CPF.",
+          description: "Consulta status p\u00fablico e m\u00ednimo de uma inscri\u00e7\u00e3o por CPF.",
           inputSchema: z.object({
             cpf: z.string().describe("CPF com ou sem mascara.")
           }),
@@ -264,7 +307,7 @@ async function chat({ messages, cpf }) {
     const fallback = await fallbackChat({ messages, cpf });
     return {
       ...fallback,
-      message: `${fallback.message}\n\nA IA configurada nao respondeu agora; usei a orientacao segura do sistema.`,
+      message: `${fallback.message}\n\nA IA configurada n\u00e3o respondeu agora; usei a orienta\u00e7\u00e3o segura do sistema.`,
       aiEnabled: false,
       fallback: true
     };
@@ -287,9 +330,9 @@ async function adminStudentAssist({ student }) {
       const agent = await createAgent();
       return agent.generate({
         prompt: [
-          "Voce esta ajudando um administrador do Centro da Juventude.",
+          "Voc\u00ea est\u00e1 ajudando um administrador do Centro da Juventude.",
           "Com base nos dados abaixo, gere um resumo operacional curto, alertas e mensagens prontas para WhatsApp.",
-          "Nao invente informacoes. Nao diga que enviou mensagem. Retorne somente JSON valido no formato:",
+          "N\u00e3o invente informa\u00e7\u00f5es. N\u00e3o diga que enviou mensagem. Retorne somente JSON v\u00e1lido no formato:",
           '{"summary":"texto","alerts":["texto"],"messages":{"confirmacao":"texto","documentos":"texto","faltas":"texto","listaEspera":"texto"}}',
           `Dados: ${JSON.stringify({ student, base }).slice(0, 9000)}`
         ].join("\n"),

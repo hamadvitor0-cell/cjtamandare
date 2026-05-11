@@ -136,15 +136,15 @@ const pageTitle = document.querySelector("[data-page-title]");
 const pageTitles = {
   dashboard: "Dashboard",
   "ia-adm": "IA ADM",
-  automacao: "Automacao",
-  relatorios: "Relatorios",
+  automacao: "Automação",
+  relatorios: "Relatórios",
   inscritos: "Inscritos",
   oficinas: "Oficinas",
   galeria: "Galeria",
   colaboradores: "Colaboradores",
   alunos: "Alunos",
   bolsistas: "Bolsistas",
-  calendario: "Calendario",
+  calendario: "Calendário",
   chamada: "Chamada",
   "usuarios-adm": "ADMs",
   logs: "Logs"
@@ -356,7 +356,7 @@ async function checkSession() {
 }
 
 async function refreshAll() {
-  await Promise.all([loadDashboard(), loadInscricoes(), loadAlunos(), loadBolsistas(), loadCalendar(), loadAttendanceHistory(), loadAuditLogs()]);
+  await Promise.all([loadDashboard(), loadInscrições(), loadAlunos(), loadBolsistas(), loadCalendar(), loadAttendanceHistory(), loadAuditLogs()]);
   if (state.admin?.role === "master") await loadAdminUsers();
   renderReports();
 }
@@ -387,7 +387,7 @@ async function loadDashboard() {
   renderDashboard(data.dashboard);
 }
 
-async function loadInscricoes() {
+async function loadInscrições() {
   const params = new URLSearchParams();
   if (state.search) params.set("search", state.search);
   if (state.oficina) params.set("oficina", state.oficina);
@@ -525,10 +525,10 @@ function automationMessages(person) {
   const faltas = Number(person.faltasUltimos30Dias || 0);
 
   return {
-    documentos: `Ola, ${name}! Para concluir sua matricula no Centro da Juventude, precisamos regularizar documentos pendentes do cadastro. Em caso de duvida, responda esta mensagem.`,
-    faltas: `Ola, ${name}! Identificamos ${faltas} falta(s) recente(s) em ${oficinas}. Procure a equipe para justificar ou regularizar a frequencia.`,
-    listaEspera: `Ola, ${name}! Voce esta em lista de espera para ${lista || oficinas}. A equipe avisara quando houver vaga disponivel.`,
-    contato: `Ola, ${name}! Estamos entrando em contato pelo Centro da Juventude sobre seu cadastro em ${oficinas}.`
+    documentos: `Olá, ${name}! Para concluir sua matrícula no Centro da Juventude, precisamos regularizar documentos pendentes do cadastro. Em caso de dúvida, responda esta mensagem.`,
+    faltas: `Olá, ${name}! Identificamos ${faltas} falta(s) recente(s) em ${oficinas}. Procure a equipe para justificar ou regularizar a frequência.`,
+    listaEspera: `Olá, ${name}! Você esta em lista de espera para ${lista || oficinas}. A equipe avisará quando houver vaga disponível.`,
+    contato: `Olá, ${name}! Estamos entrando em contato pelo Centro da Juventude sobre seu cadastro em ${oficinas}.`
   };
 }
 
@@ -542,28 +542,28 @@ function automationQueues() {
     {
       key: "documentos",
       title: "Documentos pendentes",
-      description: "Cadastros sem documentos anexados ou com pendencia marcada.",
+      description: "Cadastros sem documentos anexados ou com pendência marcada.",
       people: people.filter((person) => Boolean(person.documentosPendentes || Number(person.documentosCount || 0) === 0)),
       message: (person) => automationMessages(person).documentos
     },
     {
       key: "faltas",
       title: "Alerta de faltas",
-      description: "Alunos com mais de duas faltas nos ultimos 30 dias.",
+      description: "Alunos com mais de duas faltas nos últimos 30 dias.",
       people: people.filter((person) => Number(person.faltasUltimos30Dias || 0) > 2),
       message: (person) => automationMessages(person).faltas
     },
     {
       key: "listaEspera",
       title: "Lista de espera",
-      description: "Inscricoes aguardando vaga em uma ou mais oficinas.",
+      description: "Inscrições aguardando vaga em uma ou mais oficinas.",
       people: people.filter((person) => waitlistOficinas(person).length > 0),
       message: (person) => automationMessages(person).listaEspera
     },
     {
       key: "semTelefone",
-      title: "Sem telefone valido",
-      description: "Cadastros que precisam de revisao antes do contato por WhatsApp.",
+      title: "Sem telefone válido",
+      description: "Cadastros que precisam de revisão antes do contato por WhatsApp.",
       people: people.filter((person) => !hasPhone(person)),
       message: (person) => automationMessages(person).contato
     }
@@ -571,9 +571,9 @@ function automationQueues() {
 }
 
 function automationDetail(person, queueKey) {
-  if (queueKey === "faltas") return `${person.faltasUltimos30Dias || 0} faltas nos ultimos 30 dias`;
+  if (queueKey === "faltas") return `${person.faltasUltimos30Dias || 0} faltas nos últimos 30 dias`;
   if (queueKey === "listaEspera") return `Lista: ${waitlistOficinas(person).join(", ")}`;
-  if (queueKey === "documentos") return Number(person.documentosCount || 0) ? "Pendencia marcada na ficha" : "Sem documento anexado";
+  if (queueKey === "documentos") return Number(person.documentosCount || 0) ? "Pendência marcada na ficha" : "Sem documento anexado";
   return "Revisar telefone antes do contato";
 }
 
@@ -732,7 +732,7 @@ function renderReports() {
   const metrics = [
     ["Cadastros filtrados", people.length],
     ["Com documentos", withDocs.length],
-    ["Pendencia de docs", docsMissing.length],
+    ["Pendência de docs", docsMissing.length],
     ["Alertas de falta", absences.length],
     ["Lista de espera", waitlist.length],
     ["Bolsistas ativos", activeBolsistas.length]
@@ -765,9 +765,9 @@ function renderReports() {
 
   grid.replaceChildren(
     peopleCard("Documentos pendentes", "Prioridade para conferir ou cobrar por WhatsApp manual.", docsMissing),
-    peopleCard("Faltas acima do limite", "Alunos com mais de 2 faltas nos ultimos 30 dias.", absences),
+    peopleCard("Faltas acima do limite", "Alunos com mais de 2 faltas nos últimos 30 dias.", absences),
     peopleCard("Lista de espera", "Cadastros que precisam de retorno quando houver vaga.", waitlist),
-    peopleCard("Com documentos anexados", "Cadastros disponiveis para baixar em ZIP.", withDocs, "Ver documentos"),
+    peopleCard("Com documentos anexados", "Cadastros disponíveis para baixar em ZIP.", withDocs, "Ver documentos"),
     eventCard
   );
 }
@@ -809,7 +809,7 @@ function renderTable() {
       createElement("td", { text: item.idade === "" || item.idade === undefined ? "-" : String(item.idade) }),
       createElement("td", { text: item.telefone || "-" }),
       createElement("td", { text: item.oficina || "-" }),
-      createElement("td", { text: item.sourceSummary || (item.source === "aluno" ? "Aluno ADM" : "Inscricao online") })
+      createElement("td", { text: item.sourceSummary || (item.source === "aluno" ? "Aluno ADM" : "Inscrição online") })
     );
 
     const docsCell = createElement("td");
@@ -909,7 +909,7 @@ function renderAdminUserList() {
     main.append(
       createElement("strong", { text: admin.name }),
       createElement("span", { text: `${admin.username || "-"} - ${admin.email}` }),
-      createElement("span", { text: `${roleLabels[admin.role] || admin.role} - ${admin.active ? "ativo" : "inativo"}${admin.last_login_at ? ` - ultimo login ${formatDate(admin.last_login_at)}` : ""}` })
+      createElement("span", { text: `${roleLabels[admin.role] || admin.role} - ${admin.active ? "ativo" : "inativo"}${admin.last_login_at ? ` - último login ${formatDate(admin.last_login_at)}` : ""}` })
     );
     const actions = createElement("div", { className: "table-actions" });
     const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
@@ -1009,7 +1009,7 @@ function primaryStudentSource(person) {
 }
 
 function sourceName(source) {
-  return source === "aluno" ? "Aluno ADM" : "Inscricao online";
+  return source === "aluno" ? "Aluno ADM" : "Inscrição online";
 }
 
 function oficinaStatusLabel(status) {
@@ -1051,7 +1051,7 @@ function openStudentProfile(person) {
   const sources = person.sources?.length ? person.sources : [person];
   const online = primaryOnlineSource(person);
   const student = primaryStudentSource(person);
-  const cpf = maskCpfValue(person.cpf || "") || "CPF nao informado";
+  const cpf = maskCpfValue(person.cpf || "") || "CPF não informado";
   profileDialog.classList.toggle("is-attention", Number(person.faltasUltimos30Dias || 0) > 2);
   if (profileSubtitle) {
     profileSubtitle.textContent = `${cpf} - ${person.sourceSummary || sourceName(person.primarySource || person.source)}`;
@@ -1063,15 +1063,15 @@ function openStudentProfile(person) {
   addProfileField(grid, "CPF", cpf);
   addProfileField(grid, "Idade", person.idade === "" || person.idade === undefined ? "-" : `${person.idade} anos`);
   addProfileField(grid, "Telefone", person.telefone);
-  addProfileField(grid, "Responsavel", person.responsavel);
+  addProfileField(grid, "Responsável", person.responsavel);
   addProfileField(grid, "E-mail", person.email);
   addProfileField(grid, "Status", person.status || "inscrito");
-  addProfileField(grid, "Faltas nos ultimos 30 dias", String(person.faltasUltimos30Dias || 0));
-  addProfileField(grid, "Documentos", person.documentosPendentes ? "Faltando" : "Sem pendencias marcadas");
+  addProfileField(grid, "Faltas nos últimos 30 dias", String(person.faltasUltimos30Dias || 0));
+  addProfileField(grid, "Documentos", person.documentosPendentes ? "Faltando" : "Sem pendências marcadas");
   addProfileField(grid, "Primeiro cadastro", formatDate(person.created_at));
   summary.append(grid);
 
-  const officesSection = makeProfileSection("Oficinas e matriculas");
+  const officesSection = makeProfileSection("Oficinas e matrículas");
   const timeline = createElement("div", { className: "profile-timeline" });
   const detalhes = person.oficinaDetalhes?.length
     ? person.oficinaDetalhes
@@ -1131,7 +1131,7 @@ function openStudentProfile(person) {
       createElement("strong", { text: source.sourceLabel || sourceName(source.source) }),
       createElement("span", { text: source.oficina || "Sem oficina" }),
       createElement("span", { text: `Criado em ${formatDate(source.created_at)}` }),
-      createElement("span", { text: `Telefone: ${source.telefone || "nao informado"}` })
+      createElement("span", { text: `Telefone: ${source.telefone || "não informado"}` })
     );
     if (source.documentosCount) {
       item.append(createElement("span", { text: `Documentos: ${source.documentosCount}` }));
@@ -1164,7 +1164,7 @@ function openStudentProfile(person) {
   if (online) {
     const editOnlineButton = createElement("button", {
       className: "button button-secondary",
-      text: "Editar inscricao online",
+      text: "Editar inscrição online",
       attrs: { type: "button" }
     });
     editOnlineButton.addEventListener("click", () => {
@@ -1226,7 +1226,7 @@ function whatsappUrl(phone, message) {
 
 function messageTitle(key) {
   const titles = {
-    confirmacao: "Confirmacao",
+    confirmacao: "Confirmação",
     documentos: "Documentos",
     faltas: "Faltas",
     listaEspera: "Lista de espera"
@@ -1247,18 +1247,18 @@ function renderAiAssistInto(target, result, person) {
     className: `form-feedback${result.fallback ? "" : " is-success"}`,
     text: result.aiEnabled
       ? "Resumo gerado com IA configurada."
-      : "IA real nao configurada. Usando resumo seguro por regras."
+      : "Assistente automático ativo. Resumo gerado pelas regras do sistema."
   });
   const summary = createElement("section", { className: "ai-assist-section" });
   summary.append(
     createElement("h3", { text: "Resumo" }),
-    createElement("p", { text: result.summary || "Nao foi possivel gerar resumo." })
+    createElement("p", { text: result.summary || "Não foi possível gerar resumo." })
   );
 
   const alerts = createElement("section", { className: "ai-assist-section" });
   alerts.append(createElement("h3", { text: "Alertas" }));
   const alertList = createElement("ul", { className: "ai-alert-list" });
-  const alertItems = result.alerts?.length ? result.alerts : ["Sem alertas automaticos."];
+  const alertItems = result.alerts?.length ? result.alerts : ["Sem alertas automáticos."];
   alertItems.forEach((alert) => alertList.append(createElement("li", { text: alert })));
   alerts.append(alertList);
 
@@ -1371,7 +1371,7 @@ async function getStudentForPerson(person) {
 
   const oficinaIds = officeIdsForPerson(person);
   if (!oficinaIds.length) {
-    throw new Error("Nao foi possivel vincular uma oficina cadastrada para criar a ficha ADM.");
+    throw new Error("Não foi possível vincular uma oficina cadastrada para criar a ficha ADM.");
   }
 
   const response = await secureRequest("/alunos", {
@@ -1412,7 +1412,7 @@ async function addWarningToStudent(person) {
     await refreshAll();
     window.alert("Advertencia registrada na ficha do aluno.");
   } catch (error) {
-    window.alert(error.message || "Nao foi possivel registrar a advertencia.");
+    window.alert(error.message || "Não foi possível registrar a advertência.");
   }
 }
 
@@ -1714,7 +1714,7 @@ function renderStudentList() {
       createElement("span", { text: `${(aluno.oficinas || []).join(", ") || "Sem oficina"} · CPF: ${maskCpfValue(aluno.cpf || "") || "sem CPF"} · ${aluno.status}` }),
       createElement("span", { text: aluno.telefone || "sem telefone" }),
       createElement("span", { text: aluno.responsavel ? `Responsável: ${aluno.responsavel}` : aluno.email || "" }),
-      createElement("span", { text: `Faltas nos ultimos 30 dias: ${aluno.faltasUltimos30Dias || 0}${aluno.documentosPendentes ? " · documentos faltando" : ""}` })
+      createElement("span", { text: `Faltas nos últimos 30 dias: ${aluno.faltasUltimos30Dias || 0}${aluno.documentosPendentes ? " · documentos faltando" : ""}` })
     );
     const actions = createElement("div", { className: "content-actions" });
     const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
@@ -2106,7 +2106,7 @@ function openEdit(item) {
 
 function validateInscricao(data) {
   if (!data.nome || data.nome.trim().length < 3) return "Informe o nome completo.";
-  if (data.cpf && !isValidCpf(data.cpf)) return "Informe um CPF valido.";
+  if (data.cpf && !isValidCpf(data.cpf)) return "Informe um CPF válido.";
   const idade = Number(data.idade);
   if (!Number.isInteger(idade) || idade < 10 || idade > 99) return "Informe uma idade válida.";
   if (!/^[0-9()+\-\s]{10,20}$/.test(data.telefone || "")) return "Informe um telefone válido.";
@@ -2138,7 +2138,7 @@ async function openDocuments(item) {
       const data = await apiRequest(`/inscricoes/${source.sourceId}/documentos`);
       documentos.push(...(data.documentos || []).map((documento) => ({
         ...documento,
-        sourceLabel: source.sourceLabel || "Inscricao online"
+        sourceLabel: source.sourceLabel || "Inscrição online"
       })));
     }
     documentsList.replaceChildren();
@@ -2244,12 +2244,12 @@ function setupEvents() {
 
   document.querySelector("[data-admin-search]")?.addEventListener("input", debounce((event) => {
     state.search = event.target.value.trim();
-    loadInscricoes();
+    loadInscrições();
   }, 180));
 
   document.querySelector("[data-admin-office-filter]")?.addEventListener("change", (event) => {
     state.oficina = event.target.value;
-    loadInscricoes();
+    loadInscrições();
   });
 
   document.querySelector("[data-student-search]")?.addEventListener("input", debounce((event) => {
@@ -2534,7 +2534,7 @@ function setupEvents() {
     data.oficinaId = data.oficinaIds[0] || "";
     data.documentosPendentes = Boolean(form.elements.documentosPendentes?.checked);
     if (data.cpf && !isValidCpf(data.cpf)) {
-      setFeedback(feedback, "Informe um CPF valido.", "error");
+      setFeedback(feedback, "Informe um CPF válido.", "error");
       return;
     }
     const id = data.id;
@@ -2562,7 +2562,7 @@ function setupEvents() {
     data.diasSemana = checkedValues(form, "diasSemana");
     data.idade = Number(data.idade || 0);
     if (data.cpf && !isValidCpf(data.cpf)) {
-      setFeedback(feedback, "Informe um CPF valido.", "error");
+      setFeedback(feedback, "Informe um CPF válido.", "error");
       return;
     }
     if (!Number.isInteger(data.idade) || data.idade < 14 || data.idade > 24) {
@@ -2570,7 +2570,7 @@ function setupEvents() {
       return;
     }
     if (data.diasSemana.length > 2) {
-      setFeedback(feedback, "Selecione no maximo 2 dias de trabalho para o bolsista.", "error");
+      setFeedback(feedback, "Selecione no máximo 2 dias de trabalho para o bolsista.", "error");
       return;
     }
     const id = data.id;
