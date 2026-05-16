@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css?v=20260510-5">
-    <link rel="stylesheet" href="/css/admin.css?v=20260510-5">
+    <link rel="stylesheet" href="/css/styles.css?v=20260511-5">
+    <link rel="stylesheet" href="/css/admin.css?v=20260511-5">
   </head>
   <body class="admin-body">
     <a class="skip-link" href="#admin-conteudo">Ir para o painel</a>
@@ -24,12 +24,16 @@
           <p>Acesso restrito para gestão de inscrições e métricas.</p>
           <form data-login-form novalidate>
             <label>
-              <span>Usuário ou e-mail</span>
-              <input name="email" type="text" autocomplete="username" spellcheck="false" required>
+              <span>Usuario</span>
+              <input name="username" type="text" autocomplete="off" spellcheck="false" required>
             </label>
             <label>
-              <span>Senha</span>
-              <input name="password" type="password" autocomplete="current-password" minlength="8" required>
+              <span>Codigo de cadastro</span>
+              <input name="registrationCode" type="password" inputmode="numeric" pattern="[0-9]{6}" autocomplete="one-time-code" minlength="6" maxlength="6" required>
+            </label>
+            <label class="security-hp" aria-hidden="true">
+              <span>Site</span>
+              <input name="website" type="text" tabindex="-1" autocomplete="off">
             </label>
             <button class="button button-primary" type="submit">Entrar</button>
             <p class="form-feedback" role="status" aria-live="polite" data-login-feedback></p>
@@ -442,10 +446,25 @@
             <div class="panel-title table-title">
               <div>
                 <h2>Alunos</h2>
-                <p>Cadastre alunos por oficina para usar no sistema de chamada.</p>
+                <p>Cadastre, importe e organize alunos por oficina para chamada e acompanhamento.</p>
               </div>
-              <button class="button button-secondary" type="button" data-reset-student-form>Novo aluno</button>
+              <div class="panel-actions">
+                <button class="button button-secondary" type="button" data-reset-student-form>Novo aluno</button>
+              </div>
             </div>
+
+            <form class="import-panel" data-student-import-form enctype="multipart/form-data">
+              <div>
+                <strong>Importar planilha Excel</strong>
+                <p>Use colunas como Nome, CPF, Idade, Telefone, Responsavel, Email, Oficina, Status, Documentos Pendentes e Observacoes. Para mais de uma oficina, separe por ponto e virgula.</p>
+              </div>
+              <label>
+                <span>Arquivo XLSX ou CSV</span>
+                <input name="planilha" type="file" accept=".xlsx,.csv" required>
+              </label>
+              <button class="button button-primary" type="submit">Importar alunos</button>
+              <p class="form-feedback" role="status" aria-live="polite" data-student-import-feedback></p>
+            </form>
 
             <form class="manager-form" data-student-form novalidate>
               <input type="hidden" name="id">
@@ -460,7 +479,11 @@
                 </label>
                 <label>
                   <span>Idade</span>
-                  <input name="idade" type="number" min="10" max="99">
+                  <input name="idade" type="number" min="0" max="120">
+                </label>
+                <label>
+                  <span>Data de nascimento</span>
+                  <input name="dataNascimento" type="date">
                 </label>
                 <label>
                   <span>Telefone</span>
@@ -471,8 +494,16 @@
                   <input name="responsavel" type="text" maxlength="120">
                 </label>
                 <label>
+                  <span>Contato do responsÃ¡vel</span>
+                  <input name="contatoResponsavel" type="tel" data-phone-mask>
+                </label>
+                <label>
                   <span>E-mail</span>
                   <input name="email" type="email" maxlength="160">
+                </label>
+                <label>
+                  <span>Bairro</span>
+                  <input name="bairro" type="text" maxlength="120">
                 </label>
                 <label>
                   <span>Oficinas</span>
@@ -488,6 +519,18 @@
                 <label class="check-row full-field">
                   <input name="documentosPendentes" type="checkbox">
                   <span>Documentos faltando</span>
+                </label>
+                <label class="full-field">
+                  <span>Links dos documentos</span>
+                  <textarea name="documentosLinks" rows="3" maxlength="2000" placeholder="Um link por linha"></textarea>
+                </label>
+                <label class="full-field">
+                  <span>Doença, deficiência ou problema físico/psicológico</span>
+                  <textarea name="condicaoSaude" rows="3" maxlength="500"></textarea>
+                </label>
+                <label class="full-field">
+                  <span>Alerta destacado na ficha</span>
+                  <textarea name="fichaAlerta" rows="3" maxlength="500"></textarea>
                 </label>
                 <label class="full-field">
                   <span>Advertências</span>
@@ -764,13 +807,9 @@
                   <input name="username" type="text" required maxlength="40" placeholder="ex: secretaria1">
                 </label>
                 <label>
-                  <span>E-mail</span>
-                  <input name="email" type="email" required maxlength="160">
-                </label>
-                <label>
-                  <span>Senha</span>
-                  <input name="password" type="password" minlength="8" maxlength="160" autocomplete="new-password">
-                  <small>Obrigatória para novo ADM. Em edição, deixe em branco para manter.</small>
+                  <span>Codigo de cadastro</span>
+                  <input name="registrationCode" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password">
+                  <small>Use exatamente 6 digitos. Em edicao, deixe em branco para manter.</small>
                 </label>
                 <label>
                   <span>Nível</span>
@@ -804,7 +843,7 @@
             <div class="admin-filters compact-filters">
               <label>
                 <span>Buscar</span>
-                <input type="search" placeholder="ADM, e-mail ou item alterado" data-log-search>
+                <input type="search" placeholder="ADM, usuario ou item alterado" data-log-search>
               </label>
               <label>
                 <span>Ação</span>
@@ -918,6 +957,6 @@
     </datalist>
 
     <script src="/js/runtime-config.js?v=20260509-1" defer></script>
-    <script type="module" src="/js/admin.js?v=20260510-5"></script>
+    <script src="/js/admin.secure.js?v=20260511-5" defer></script>
   </body>
 </html>

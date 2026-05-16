@@ -25,6 +25,12 @@
   --color-soft: #101827;
   --color-surface: #07111f;
   --color-border: #25354b;
+  --color-primary: #5aa7ff;
+  --color-primary-rgb: 90, 167, 255;
+  --color-secondary: #43d38b;
+  --color-secondary-rgb: 67, 211, 139;
+  --color-accent: #ffb15c;
+  --color-accent-rgb: 255, 177, 92;
   --shadow-soft: 0 22px 52px rgba(0, 0, 0, 0.34);
   --shadow-card: 0 14px 34px rgba(0, 0, 0, 0.28);
 }
@@ -144,6 +150,17 @@ button {
 :root[data-theme="dark"] .site-header,
 :root[data-theme="dark"] .nav-links {
   background: rgba(7, 17, 31, 0.9);
+}
+
+:root[data-theme="dark"] .section-block,
+:root[data-theme="dark"] .status-lookup,
+:root[data-theme="dark"] .agenda,
+:root[data-theme="dark"] .gallery,
+:root[data-theme="dark"] .collaborators,
+:root[data-theme="dark"] .testimonials,
+:root[data-theme="dark"] .faq,
+:root[data-theme="dark"] .contact {
+  background: var(--color-surface);
 }
 
 .nav-shell {
@@ -578,6 +595,14 @@ button {
   font-weight: 800;
 }
 
+.signup-form label:has([required]) > span::after,
+.status-form label:has([required]) > span::after,
+.edit-form label:has([required]) > span::after,
+.login-panel label:has([required]) > span::after {
+  content: " *";
+  color: var(--color-danger);
+}
+
 input,
 select,
 textarea {
@@ -593,6 +618,26 @@ textarea {
 
 textarea {
   resize: vertical;
+}
+
+label.is-invalid > span {
+  color: var(--color-danger);
+}
+
+label.is-invalid input,
+label.is-invalid select,
+label.is-invalid textarea,
+.terms-box.is-invalid,
+.captcha-puzzle.is-invalid,
+.health-field.is-invalid {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 4px rgba(217, 45, 32, 0.12);
+}
+
+label.is-invalid small,
+.terms-box.is-invalid .terms-accept span,
+.health-field.is-invalid small {
+  color: var(--color-danger);
 }
 
 select[multiple] {
@@ -1350,6 +1395,9 @@ textarea:focus {
 .captcha-puzzle {
   display: grid;
   gap: 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 2px;
 }
 
 .captcha-heading {
@@ -1476,6 +1524,88 @@ textarea:focus {
 
 .full-field {
   grid-column: 1 / -1;
+}
+
+.terms-box,
+.health-field {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-soft);
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.health-field {
+  margin: 0;
+}
+
+.health-field legend {
+  font-family: var(--font-title);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.terms-box h3,
+.terms-box h4,
+.terms-box p {
+  margin: 0;
+}
+
+.terms-box h3 {
+  font-family: var(--font-title);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.terms-box h4 {
+  color: var(--color-primary);
+  font-size: 0.95rem;
+}
+
+.terms-box p,
+.terms-box li {
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.terms-box ul {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.term-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.term-steps {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.term-steps li {
+  color: var(--color-muted);
+  line-height: 1.55;
+}
+
+.check-row,
+.terms-accept {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 10px;
+}
+
+.check-row input,
+.terms-accept input {
+  width: auto;
+  margin-top: 4px;
 }
 
 .honeypot {
@@ -1745,9 +1875,14 @@ textarea:focus {
 }
 
 .reveal {
-  opacity: 0;
-  transform: translateY(18px);
+  opacity: 1;
+  transform: translateY(0);
   transition: opacity 500ms ease, transform 500ms ease;
+}
+
+.js.reveal-ready .reveal:not(.is-visible) {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .reveal.is-visible {

@@ -5,11 +5,46 @@ const ZipService = require("../services/zip.service");
 
 async function create(req, res) {
   const payload = { ...req.validated.body };
+  const fieldFiles = req.files && !Array.isArray(req.files) ? req.files : {};
+  const documentos = Array.isArray(req.files) ? req.files : (fieldFiles.documentos || []);
+  const termoAssinado = (fieldFiles.termoAssinado || [])[0] || null;
+  const laudoSaude = (fieldFiles.laudoSaude || [])[0] || null;
+  const files = [documentos, termoAssinado ? [termoAssinado] : [], laudoSaude ? [laudoSaude] : []].flat();
 
   if (payload.website) {
     return res.status(200).json({
       message: "Inscricao recebida com sucesso."
     });
+  }
+
+  if (!documentos.length) {
+    return res.status(400).json({ message: "Adicione os documentos obrigatorios para finalizar a inscricao." });
+  }
+
+  if (!termoAssinado) {
+    return res.status(400).json({ message: "Anexe o termo de compromisso assinado eletronicamente pelo gov.br em PDF." });
+  }
+
+  if (termoAssinado.mimetype !== "application/pdf") {
+    return res.status(400).json({ message: "O termo assinado deve ser enviado em PDF." });
+  }
+
+  if (Number(payload.idade) < 18) {
+    if (!String(payload.responsavel || "").trim()) {
+      return res.status(400).json({ message: "Informe o responsavel legal para menor de idade." });
+    }
+    if (documentos.length < 2) {
+      return res.status(400).json({ message: "Para menor de idade, envie documentos do aluno e do responsavel." });
+    }
+  }
+
+  if (payload.possuiDoenca === true) {
+    if (!String(payload.condicaoSaude || "").trim()) {
+      return res.status(400).json({ message: "Descreva a doenca ou problema fisico informado." });
+    }
+    if (!laudoSaude) {
+      return res.status(400).json({ message: "Envie um laudo ou comprovante da doenca/problema fisico informado." });
+    }
   }
 
   await Captcha.verify({
@@ -22,7 +57,7 @@ async function create(req, res) {
   delete payload.captchaToken;
   delete payload.captchaX;
   delete payload.captchaMoves;
-  const inscricao = await InscricaoService.create(payload, req.files || []);
+  const inscricao = await InscricaoService.create(payload, files);
 
   return res.status(201).json({
     message: "Inscricao realizada com sucesso.",

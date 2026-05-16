@@ -34,9 +34,12 @@ function toPublic(row) {
     nome: row.nome,
     cpf: row.cpf || "",
     idade: row.idade === null || row.idade === undefined ? "" : Number(row.idade),
+    dataNascimento: row.data_nascimento || row.dataNascimento || "",
     telefone: row.telefone || "",
     responsavel: row.responsavel || "",
+    contatoResponsavel: row.contato_responsavel || row.contatoResponsavel || "",
     email: row.email || "",
+    bairro: row.bairro || "",
     oficinaId: oficinaIds[0] || "",
     oficinaIds,
     oficina: oficinas[0] || "",
@@ -44,6 +47,9 @@ function toPublic(row) {
     oficinaDetalhes,
     status: row.status || "ativo",
     documentosPendentes: Boolean(row.documentos_pendentes ?? row.documentosPendentes),
+    documentosLinks: row.documentos_links || row.documentosLinks || [],
+    condicaoSaude: row.condicao_saude || row.condicaoSaude || "",
+    fichaAlerta: row.ficha_alerta || row.fichaAlerta || "",
     advertencias: row.advertencias || "",
     historicoOficinas: row.historico_oficinas || row.historicoOficinas || "",
     faltasUltimos30Dias: Number(row.faltas_ultimos_30_dias ?? row.faltasUltimos30Dias ?? 0),
@@ -77,7 +83,9 @@ async function findAll(filters = {}) {
           || item.nome.toLowerCase().includes(search)
           || (normalizedSearchPhone && String(item.cpf || "").includes(normalizedSearchPhone))
           || (normalizedSearchPhone && item.telefone.replace(/\D/g, "").includes(normalizedSearchPhone))
-          || item.email.toLowerCase().includes(search);
+          || item.email.toLowerCase().includes(search)
+          || String(item.bairro || "").toLowerCase().includes(search)
+          || String(item.responsavel || "").toLowerCase().includes(search);
         const matchesOficina = !oficinaId || item.oficina_ids.includes(oficinaId);
         return matchesSearch && matchesOficina;
       })
@@ -95,7 +103,10 @@ async function findAll(filters = {}) {
       LOWER(a.nome) LIKE $${index}
       OR a.cpf LIKE REGEXP_REPLACE($${index}, '\\D', '', 'g')
       OR LOWER(COALESCE(a.email, '')) LIKE $${index}
+      OR LOWER(COALESCE(a.bairro, '')) LIKE $${index}
+      OR LOWER(COALESCE(a.responsavel, '')) LIKE $${index}
       OR REGEXP_REPLACE(COALESCE(a.telefone, ''), '\\D', '', 'g') LIKE REGEXP_REPLACE($${index}, '\\D', '', 'g')
+      OR REGEXP_REPLACE(COALESCE(a.contato_responsavel, ''), '\\D', '', 'g') LIKE REGEXP_REPLACE($${index}, '\\D', '', 'g')
     )`);
   }
 
@@ -108,8 +119,8 @@ async function findAll(filters = {}) {
   }
 
   const result = await db.query(
-    `SELECT a.id, a.nome, a.idade, a.telefone, a.responsavel, a.email, a.oficina_id,
-            a.cpf, a.status, a.documentos_pendentes, a.advertencias, a.historico_oficinas, a.observacoes, a.created_at, a.updated_at,
+    `SELECT a.id, a.nome, a.idade, a.data_nascimento, a.telefone, a.responsavel, a.contato_responsavel, a.email, a.bairro, a.oficina_id,
+            a.cpf, a.status, a.documentos_pendentes, a.documentos_links, a.condicao_saude, a.ficha_alerta, a.advertencias, a.historico_oficinas, a.observacoes, a.created_at, a.updated_at,
             (
               SELECT COUNT(*)::int
               FROM presencas p
@@ -172,14 +183,20 @@ async function create(payload) {
         ...memory[existingIndex],
         nome: payload.nome,
         idade: payload.idade || null,
+        data_nascimento: payload.dataNascimento || null,
         telefone: payload.telefone || "",
         responsavel: payload.responsavel || "",
+        contato_responsavel: payload.contatoResponsavel || "",
         email: payload.email || "",
+        bairro: payload.bairro || "",
         oficina_id: oficinaIds[0] || memory[existingIndex].oficina_id || "",
         oficina_ids: Array.from(new Set([...(memory[existingIndex].oficina_ids || []), ...oficinaIds])),
         oficinas: Array.from(new Set([...(memory[existingIndex].oficinas || []), ...oficinas])),
         status: payload.status || "ativo",
         documentos_pendentes: payload.documentosPendentes ?? memory[existingIndex].documentos_pendentes ?? false,
+        documentos_links: payload.documentosLinks || memory[existingIndex].documentos_links || [],
+        condicao_saude: payload.condicaoSaude || memory[existingIndex].condicao_saude || "",
+        ficha_alerta: payload.fichaAlerta || memory[existingIndex].ficha_alerta || "",
         advertencias: payload.advertencias || memory[existingIndex].advertencias || "",
         historico_oficinas: payload.historicoOficinas || payload.historico_oficinas || memory[existingIndex].historico_oficinas || "",
         observacoes: payload.observacoes || memory[existingIndex].observacoes || "",
@@ -195,14 +212,20 @@ async function create(payload) {
       nome: payload.nome,
       cpf,
       idade: payload.idade || null,
+      data_nascimento: payload.dataNascimento || null,
       telefone: payload.telefone || "",
       responsavel: payload.responsavel || "",
+      contato_responsavel: payload.contatoResponsavel || "",
       email: payload.email || "",
+      bairro: payload.bairro || "",
       oficina_id: oficinaIds[0] || "",
       oficina_ids: oficinaIds,
       oficinas,
       status: payload.status || "ativo",
       documentos_pendentes: payload.documentosPendentes === true,
+      documentos_links: payload.documentosLinks || [],
+      condicao_saude: payload.condicaoSaude || "",
+      ficha_alerta: payload.fichaAlerta || "",
       advertencias: payload.advertencias || "",
       historico_oficinas: payload.historicoOficinas || payload.historico_oficinas || "",
       observacoes: payload.observacoes || "",
@@ -238,26 +261,38 @@ async function create(payload) {
         `UPDATE alunos
          SET nome = $1,
              idade = $2,
-             telefone = $3,
-             responsavel = $4,
-             email = $5,
-             oficina_id = $6,
-             status = $7,
-             documentos_pendentes = $8,
-             advertencias = COALESCE(NULLIF($9, ''), advertencias),
-             historico_oficinas = COALESCE(NULLIF($10, ''), historico_oficinas),
-             observacoes = COALESCE(NULLIF($11, ''), observacoes),
+             data_nascimento = $3,
+             telefone = $4,
+             responsavel = $5,
+             contato_responsavel = $6,
+             email = $7,
+             bairro = $8,
+             oficina_id = $9,
+             status = $10,
+             documentos_pendentes = $11,
+             documentos_links = $12,
+             condicao_saude = COALESCE(NULLIF($13, ''), condicao_saude),
+             ficha_alerta = COALESCE(NULLIF($14, ''), ficha_alerta),
+             advertencias = COALESCE(NULLIF($15, ''), advertencias),
+             historico_oficinas = COALESCE(NULLIF($16, ''), historico_oficinas),
+             observacoes = COALESCE(NULLIF($17, ''), observacoes),
              updated_at = NOW()
-         WHERE id = $12`,
+         WHERE id = $18`,
         [
           payload.nome,
           payload.idade || null,
+          payload.dataNascimento || null,
           payload.telefone || null,
           payload.responsavel || null,
+          payload.contatoResponsavel || null,
           payload.email || null,
+          payload.bairro || null,
           mergedOfficeIds[0] || null,
           payload.status || "ativo",
           payload.documentosPendentes === true,
+          payload.documentosLinks || [],
+          payload.condicaoSaude || null,
+          payload.fichaAlerta || null,
           payload.advertencias || null,
           payload.historicoOficinas || payload.historico_oficinas || null,
           payload.observacoes || null,
@@ -266,19 +301,25 @@ async function create(payload) {
       );
     } else {
       const result = await client.query(
-        `INSERT INTO alunos (nome, cpf, idade, telefone, responsavel, email, oficina_id, status, documentos_pendentes, advertencias, historico_oficinas, observacoes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        `INSERT INTO alunos (nome, cpf, idade, data_nascimento, telefone, responsavel, contato_responsavel, email, bairro, oficina_id, status, documentos_pendentes, documentos_links, condicao_saude, ficha_alerta, advertencias, historico_oficinas, observacoes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
          RETURNING id`,
         [
           payload.nome,
           cpf || null,
           payload.idade || null,
+          payload.dataNascimento || null,
           payload.telefone || null,
           payload.responsavel || null,
+          payload.contatoResponsavel || null,
           payload.email || null,
+          payload.bairro || null,
           mergedOfficeIds[0] || null,
           payload.status || "ativo",
           payload.documentosPendentes === true,
+          payload.documentosLinks || [],
+          payload.condicaoSaude || null,
+          payload.fichaAlerta || null,
           payload.advertencias || null,
           payload.historicoOficinas || payload.historico_oficinas || null,
           payload.observacoes || null
@@ -321,14 +362,20 @@ async function update(id, payload) {
       nome: payload.nome,
       cpf,
       idade: payload.idade || null,
+      data_nascimento: payload.dataNascimento || null,
       telefone: payload.telefone || "",
       responsavel: payload.responsavel || "",
+      contato_responsavel: payload.contatoResponsavel || "",
       email: payload.email || "",
+      bairro: payload.bairro || "",
       oficina_id: oficinaIds[0] || "",
       oficina_ids: oficinaIds,
       oficinas,
       status: payload.status || "ativo",
       documentos_pendentes: payload.documentosPendentes === true,
+      documentos_links: payload.documentosLinks || [],
+      condicao_saude: payload.condicaoSaude || "",
+      ficha_alerta: payload.fichaAlerta || "",
       advertencias: payload.advertencias || "",
       historico_oficinas: payload.historicoOficinas || payload.historico_oficinas || "",
       observacoes: payload.observacoes || "",
@@ -345,28 +392,40 @@ async function update(id, payload) {
        SET nome = $1,
            cpf = $2,
            idade = $3,
-           telefone = $4,
-           responsavel = $5,
-           email = $6,
-           oficina_id = $7,
-           status = $8,
-           documentos_pendentes = $9,
-           advertencias = $10,
-           historico_oficinas = $11,
-           observacoes = $12,
+           data_nascimento = $4,
+           telefone = $5,
+           responsavel = $6,
+           contato_responsavel = $7,
+           email = $8,
+           bairro = $9,
+           oficina_id = $10,
+           status = $11,
+           documentos_pendentes = $12,
+           documentos_links = $13,
+           condicao_saude = $14,
+           ficha_alerta = $15,
+           advertencias = $16,
+           historico_oficinas = $17,
+           observacoes = $18,
            updated_at = NOW()
-       WHERE id = $13
+       WHERE id = $19
        RETURNING id`,
       [
         payload.nome,
         cpf || null,
         payload.idade || null,
+        payload.dataNascimento || null,
         payload.telefone || null,
         payload.responsavel || null,
+        payload.contatoResponsavel || null,
         payload.email || null,
+        payload.bairro || null,
         oficinaIds[0] || null,
         payload.status || "ativo",
         payload.documentosPendentes === true,
+        payload.documentosLinks || [],
+        payload.condicaoSaude || null,
+        payload.fichaAlerta || null,
         payload.advertencias || null,
         payload.historicoOficinas || payload.historico_oficinas || null,
         payload.observacoes || null,

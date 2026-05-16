@@ -1,5 +1,5 @@
-import { workshops as fallbackWorkshops, categories as fallbackCategories, categoryColors, agenda, galleryItems as fallbackGalleryItems, collaborators as fallbackCollaborators, testimonials as fallbackTestimonials } from "./data.js?v=20260510-5";
-import { apiRequest } from "./api.js?v=20260509-2";
+﻿import { workshops as fallbackWorkshops, categories as fallbackCategories, categoryColors, agenda, galleryItems as fallbackGalleryItems, collaborators as fallbackCollaborators, testimonials as fallbackTestimonials } from "./data.js?v=20260510-5";
+import { apiRequest } from "./api.js?v=20260511-3";
 import {
   createElement,
   debounce,
@@ -30,6 +30,8 @@ let revealObserver;
 const initialWorkshopRatio = 0.3;
 
 const allowedDocumentTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
+const documentNamePattern = /(rg|cpf|comprovante|residencia|resid\u00eancia|declaracao|declara\u00e7\u00e3o|responsavel|respons\u00e1vel|aluno|certidao|certid\u00e3o)/i;
+const pdfNamePattern = /\.pdf$/i;
 const captchaState = {
   loaded: false,
   solved: false,
@@ -44,11 +46,11 @@ const captchaState = {
 
 const dayNames = {
   segunda: "Segunda",
-  terca: "Terça",
+  terca: "Ter\u00e7a",
   quarta: "Quarta",
   quinta: "Quinta",
   sexta: "Sexta",
-  sabado: "Sábado",
+  sabado: "S\u00e1bado",
   domingo: "Domingo"
 };
 
@@ -113,6 +115,10 @@ function observeReveal(root = document) {
 }
 
 function setupReveal() {
+  if (!("IntersectionObserver" in window)) {
+    document.querySelectorAll(".reveal").forEach((node) => node.classList.add("is-visible"));
+    return;
+  }
   revealObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
@@ -122,6 +128,7 @@ function setupReveal() {
     });
   }, { threshold: 0.12 });
   observeReveal();
+  document.documentElement.classList.add("reveal-ready");
 }
 
 function setupNavigation() {
@@ -148,6 +155,7 @@ function setupNavigation() {
 }
 
 function setupTheme() {
+  if (document.querySelector("[data-theme-toggle]")?.dataset.themeReady === "true") return;
   const button = document.querySelector("[data-theme-toggle]");
   const saved = localStorage.getItem("cj-theme");
   const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
@@ -159,7 +167,7 @@ function setupTheme() {
     button?.setAttribute("aria-label", theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro");
     button?.setAttribute("aria-pressed", String(theme === "dark"));
     const icon = button?.querySelector("[aria-hidden='true']");
-    if (icon) icon.textContent = theme === "dark" ? "☀" : "◐";
+    if (icon) icon.textContent = theme === "dark" ? "\u2600" : "\u25d0";
   }
 
   apply(initial);
@@ -251,10 +259,10 @@ function renderWorkshops() {
 
     const meta = createElement("div", { className: "workshop-meta" });
     meta.append(
-      createElement("span", { text: `Faixa etária: ${workshop.faixaEtaria}` }),
+      createElement("span", { text: `Faixa et\u00e1ria: ${workshop.faixaEtaria}` }),
       createElement("span", { text: `Dias: ${formatDays(workshop.diasSemana)}` }),
-      createElement("span", { text: `Período: ${formatPeriod(workshop.periodo)}` }),
-      createElement("span", { text: `Horário: ${workshop.horario}` }),
+      createElement("span", { text: `Per\u00edodo: ${formatPeriod(workshop.periodo)}` }),
+      createElement("span", { text: `Hor\u00e1rio: ${workshop.horario}` }),
       createElement("span", { text: `Vagas: ${workshop.capacidade || 30}` })
     );
 
@@ -275,7 +283,7 @@ function renderWorkshops() {
     });
     button.addEventListener("click", () => {
       selectWorkshopForSignup(workshop);
-      document.querySelector("#inscrição")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector("#inscricao")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
 
     const actions = createElement("div", { className: "card-actions" });
@@ -348,7 +356,7 @@ function renderWorkshopPage(workshop) {
   const signup = createElement("button", { className: "button button-primary", text: "Inscrever-se", attrs: { type: "button" } });
   signup.addEventListener("click", () => {
     selectWorkshopForSignup(workshop);
-    document.querySelector("#inscrição")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.querySelector("#inscricao")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
   const back = createElement("button", { className: "button button-secondary", text: "Ver outras oficinas", attrs: { type: "button" } });
   back.addEventListener("click", () => {
@@ -411,10 +419,10 @@ function openWorkshopDialog(workshop) {
   );
   const grid = content.querySelector(".dialog-detail-grid");
   [
-    ["Faixa etária", workshop.faixaEtaria],
+    ["Faixa et\u00e1ria", workshop.faixaEtaria],
     ["Dias", formatDays(workshop.diasSemana)],
-    ["Período", formatPeriod(workshop.periodo)],
-    ["Horário", workshop.horario],
+    ["Per\u00edodo", formatPeriod(workshop.periodo)],
+    ["Hor\u00e1rio", workshop.horario],
     ["Vagas", String(workshop.capacidade || 30)],
     ["Situacao", status.label],
     ["Documentos", "RG, CPF, comprovante e declaracao escolar quando for menor de idade"]
@@ -427,7 +435,7 @@ function openWorkshopDialog(workshop) {
   signup.addEventListener("click", () => {
     selectWorkshopForSignup(workshop);
     dialog.close();
-    document.querySelector("#inscrição")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.querySelector("#inscricao")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
   content.append(signup);
   dialog.showModal();
@@ -619,31 +627,71 @@ function renderTestimonials() {
       const author = createElement("div", { className: "testimonial-author" });
       author.append(
         createElement("strong", { text: item.nome }),
-        createElement("span", { text: [item.vinculo, item.oficina].filter(Boolean).join(" · ") || "Participante do CJ" })
+      createElement("span", { text: [item.vinculo, item.oficina].filter(Boolean).join(" \u00b7 ") || "Participante do CJ" })
       );
       card.append(
-        createElement("p", { className: "testimonial-text", text: `“${item.texto}”` }),
+        createElement("p", { className: "testimonial-text", text: `\u201c${item.texto}\u201d` }),
         author
       );
       grid.append(card);
     });
 }
 
-function validateSignup(data, files = []) {
-  if (!data.nome || data.nome.trim().length < 3) return "Informe o nome completo.";
-  if (!isValidCpf(data.cpf)) return "Informe um CPF válido.";
+function clearSignupInvalidFields(form) {
+  form.querySelectorAll(".is-invalid").forEach((node) => node.classList.remove("is-invalid"));
+}
+
+function markSignupInvalid(form, fieldName) {
+  const field = form.elements[fieldName];
+  const node = field instanceof RadioNodeList ? field[0] : field;
+  const wrapper = node?.closest("label") || node?.closest("[data-terms-box]") || node?.closest("[data-captcha]");
+  wrapper?.classList.add("is-invalid");
+  wrapper?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+  node?.focus?.({ preventScroll: true });
+}
+
+function isPdfFile(file) {
+  return file
+    && file.name
+    && pdfNamePattern.test(file.name)
+    && (!file.type || file.type === "application/pdf")
+    && file.size > 0
+    && file.size <= 5 * 1024 * 1024;
+}
+
+function validateSignup(data, files = [], signedTerm = null, form = null) {
+  const fail = (field, message) => {
+    if (form && field) markSignupInvalid(form, field);
+    return message;
+  };
+
+  if (!data.nome || data.nome.trim().length < 3) return fail("nome", "Informe o nome completo.");
+  if (!isValidCpf(data.cpf)) return fail("cpf", "Informe um CPF v\u00e1lido.");
   const idade = Number(data.idade);
-  if (!Number.isInteger(idade) || idade < 10 || idade > 99) return "Informe uma idade válida.";
-  if (!/^[0-9()+\-\s]{10,20}$/.test(data.telefone || "")) return "Informe um telefone válido.";
-  if (!data.oficinas?.length) return "Selecione pelo menos uma oficina.";
-  if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return "Informe um e-mail válido.";
-  if (files.length > 8) return "Envie no máximo 8 documentos.";
-  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-  if (totalSize > 16 * 1024 * 1024) return "O envio completo deve ter no máximo 16 MB.";
+  if (!Number.isInteger(idade) || idade < 0 || idade > 120) return fail("idade", "Informe uma idade v\u00e1lida.");
+  if (!/^[0-9()+\-\s]{10,20}$/.test(data.telefone || "")) return fail("telefone", "Informe um telefone v\u00e1lido.");
+  if (idade < 18 && !String(data.responsavel || "").trim()) return fail("responsavel", "Informe o respons\u00e1vel legal para menor de idade.");
+  if (idade < 18 && data.contatoResponsavel && !/^[0-9()+\-\s]{10,20}$/.test(data.contatoResponsavel || "")) return fail("contatoResponsavel", "Informe um contato do respons\u00e1vel v\u00e1lido.");
+  if (!data.oficinas?.length) return fail("oficina", "Selecione pelo menos uma oficina.");
+  if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return fail("email", "Informe um e-mail v\u00e1lido.");
+  if (String(data.possuiDoenca) === "true") {
+    if (!String(data.condicaoSaude || "").trim()) return fail("condicaoSaude", "Descreva a doen\u00e7a ou problema f\u00edsico/psicol\u00f3gico.");
+    if (!data.laudoSaude?.name) return fail("laudoSaude", "Anexe o laudo ou comprovante da condi\u00e7\u00e3o informada.");
+    if (!allowedDocumentTypes.has(data.laudoSaude.type) || data.laudoSaude.size > 5 * 1024 * 1024) return fail("laudoSaude", "O laudo deve ser PDF, JPG, PNG ou WEBP com at\u00e9 5 MB.");
+  }
+  if (!files.length) return fail("documentos", "Adicione os documentos obrigat\u00f3rios para finalizar a inscri\u00e7\u00e3o.");
+  if (idade < 18 && files.length < 2) return fail("documentos", "Para menor de idade, envie documentos do aluno e do respons\u00e1vel.");
+  if (files.length > 8) return fail("documentos", "Envie no m\u00e1ximo 8 documentos.");
+  if (!signedTerm?.name) return fail("termoAssinado", "Baixe o termo, assine eletronicamente no gov.br e anexe o PDF assinado.");
+  if (!isPdfFile(signedTerm)) return fail("termoAssinado", "O termo assinado deve ser um PDF valido com ate 5 MB.");
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0) + signedTerm.size + (data.laudoSaude?.size || 0);
+  if (totalSize > 21 * 1024 * 1024) return fail("documentos", "O envio completo deve ter no maximo 21 MB.");
   const invalidFile = files.find((file) => !allowedDocumentTypes.has(file.type) || file.size > 5 * 1024 * 1024);
-  if (invalidFile) return "Os documentos devem ser PDF, JPG, PNG ou WEBP com até 5 MB por arquivo.";
-  if (!captchaState.loaded) return "Aguarde o carregamento do puzzle anti-robô.";
-  if (!captchaState.solved) return "Arraste a peça até encaixar no puzzle anti-robô.";
+  if (invalidFile) return fail("documentos", "Os documentos devem ser PDF, JPG, PNG ou WEBP com at\u00e9 5 MB por arquivo.");
+  const unclearFile = files.find((file) => !documentNamePattern.test(file.name || ""));
+  if (unclearFile) return fail("documentos", `Renomeie o arquivo "${unclearFile.name}" informando o tipo do documento, por exemplo CPF.png.`);
+  if (!captchaState.loaded) return fail("captchaX", "Aguarde o carregamento do puzzle anti-rob\u00f4.");
+  if (!captchaState.solved) return fail("captchaX", "Arraste a pe\u00e7a at\u00e9 encaixar no puzzle anti-rob\u00f4.");
   return "";
 }
 
@@ -702,9 +750,9 @@ function updatePuzzlePosition(countMove = true) {
 
   if (isSolved) {
     slider.value = String(captchaState.target);
-    setCaptchaStatus("Puzzle encaixado. Pode enviar a inscrição.", "success");
+    setCaptchaStatus("Puzzle encaixado. Pode enviar a inscri\u00e7\u00e3o.", "success");
   } else {
-    setCaptchaStatus("Arraste a peça até alinhar com o encaixe.", "");
+    setCaptchaStatus("Arraste a pe\u00e7a at\u00e9 alinhar com o encaixe.", "");
   }
 
   setCaptchaHiddenFields();
@@ -723,7 +771,7 @@ async function loadPuzzleCaptcha() {
   slider.value = "0";
   slider.disabled = true;
   puzzle.classList.remove("is-solved");
-  setCaptchaStatus("Carregando puzzle anti-robô...");
+  setCaptchaStatus("Carregando puzzle anti-rob\u00f4...");
   setCaptchaHiddenFields();
 
   try {
@@ -738,11 +786,11 @@ async function loadPuzzleCaptcha() {
     captchaState.pieceSize = Number(challenge.pieceSize || 46);
     slider.max = String(captchaState.max);
     slider.disabled = false;
-    setCaptchaStatus("Arraste a peça até encaixar no espaço marcado.");
+    setCaptchaStatus("Arraste a pe\u00e7a at\u00e9 encaixar no espa\u00e7o marcado.");
     setCaptchaHiddenFields();
     positionPuzzle();
   } catch (error) {
-    setCaptchaStatus("Não foi possível carregar o puzzle. Tente atualizar.", "error");
+    setCaptchaStatus("N\u00e3o foi poss\u00edvel carregar o puzzle. Tente atualizar.", "error");
   }
 }
 
@@ -762,15 +810,53 @@ function setupSignupForm() {
   const feedback = document.querySelector("[data-form-feedback]");
   if (!form) return;
 
+  const updateDocumentGuidance = () => {
+    const idade = Number(form.elements.idade?.value || 0);
+    const responsibleField = form.elements.responsavel;
+    const responsibleContact = form.elements.contatoResponsavel;
+    const help = form.querySelector("[data-documents-help]");
+    if (responsibleField) responsibleField.required = idade > 0 && idade < 18;
+    if (responsibleContact) responsibleContact.required = idade > 0 && idade < 18;
+    if (help) {
+      help.textContent = idade > 0 && idade < 18
+    ? "Obrigat\u00f3rio para menor de idade: documentos do aluno e do respons\u00e1vel, declara\u00e7\u00e3o escolar e comprovante. Use arquivos leg\u00edveis e nomes como CPF-aluno.png ou RG-responsavel.pdf. Limite de 5 MB por arquivo."
+    : "Obrigat\u00f3rio. Maiores: RG, CPF e comprovante de resid\u00eancia. Use arquivos leg\u00edveis e nomes como CPF.png ou Comprovante-residencia.pdf. Limite de 5 MB por arquivo.";
+    }
+  };
+
+  const updateHealthRequirements = () => {
+    const hasCondition = form.elements.possuiDoenca?.value === "true";
+    const description = form.elements.condicaoSaude;
+    const documentField = form.elements.laudoSaude;
+    if (description) description.required = hasCondition;
+    if (documentField) documentField.required = hasCondition;
+  };
+
+  form.addEventListener("input", (event) => {
+    event.target?.closest("label, [data-terms-box], [data-captcha]")?.classList.remove("is-invalid");
+    if (event.target?.name === "idade") updateDocumentGuidance();
+    if (event.target?.name === "possuiDoenca") updateHealthRequirements();
+  });
+  form.addEventListener("change", (event) => {
+    event.target?.closest("label, [data-terms-box], [data-captcha]")?.classList.remove("is-invalid");
+    if (event.target?.name === "idade") updateDocumentGuidance();
+    if (event.target?.name === "possuiDoenca") updateHealthRequirements();
+  });
+  updateDocumentGuidance();
+  updateHealthRequirements();
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     setFeedback(feedback, "");
+    clearSignupInvalidFields(form);
 
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
     data.oficinas = formData.getAll("oficina").filter(Boolean);
     const files = formData.getAll("documentos").filter((file) => file && file.name);
-    const validation = validateSignup(data, files);
+    const signedTerm = formData.get("termoAssinado");
+    data.laudoSaude = formData.get("laudoSaude");
+    const validation = validateSignup(data, files, signedTerm, form);
     if (validation) {
       setFeedback(feedback, validation, "error");
       showToast(validation, "error");
@@ -789,14 +875,14 @@ function setupSignupForm() {
       formData.set("captchaToken", captchaState.token);
       formData.set("captchaX", document.querySelector("[data-captcha-slider]")?.value || "");
       formData.set("captchaMoves", String(captchaState.moves));
-      const result = await apiRequest("/inscrição", {
+      const result = await apiRequest("/inscricao", {
         method: "POST",
         body: formData
       });
-      const listaEspera = result.inscrição?.listaEspera || [];
+      const listaEspera = result.inscricao?.listaEspera || [];
       const message = listaEspera.length
-        ? `Inscrição recebida. ${listaEspera.join(", ")} ficou em lista de espera; a equipe entrará em contato.`
-        : "Inscrição enviada com sucesso. A equipe entrará em contato.";
+      ? `Inscri\u00e7\u00e3o recebida. ${listaEspera.join(", ")} ficou em lista de espera; a equipe entrar\u00e1 em contato.`
+      : "Inscri\u00e7\u00e3o enviada com sucesso. A equipe entrar\u00e1 em contato.";
       form.reset();
       await loadPuzzleCaptcha();
       setFeedback(feedback, message, "success");
@@ -809,13 +895,13 @@ function setupSignupForm() {
       }
     } finally {
       submit.disabled = false;
-      submit.textContent = "Enviar inscrição";
+    submit.textContent = "Enviar inscri\u00e7\u00e3o";
     }
   });
 }
 
 function formatStatusDate(value) {
-  if (!value) return "Data não informada";
+  if (!value) return "Data n\u00e3o informada";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleDateString("pt-BR");
@@ -829,7 +915,7 @@ function renderStatusLookup(status) {
   if (!status?.encontrado) {
     result.append(createElement("p", {
       className: "form-feedback is-error",
-      text: status?.message || "Nenhuma inscrição encontrada para este CPF."
+    text: status?.message || "Nenhuma inscri\u00e7\u00e3o encontrada para este CPF."
     }));
     return;
   }
@@ -838,7 +924,7 @@ function renderStatusLookup(status) {
   const header = createElement("header");
   const badgeClass = status.situacao === "Lista de espera" ? "status-badge is-waitlist" : "status-badge";
   header.append(
-    createElement("h3", { text: `${status.nomeParcial || "Inscrição"} - ${maskCpfValue(status.cpf || "")}` }),
+    createElement("h3", { text: `${status.nomeParcial || "Inscri\u00e7\u00e3o"} - ${maskCpfValue(status.cpf || "")}` }),
     createElement("span", { className: badgeClass, text: status.situacao })
   );
 
@@ -847,7 +933,7 @@ function renderStatusLookup(status) {
     const item = createElement("li");
     item.append(
       createElement("strong", { text: office.oficina }),
-      createElement("span", { text: `${office.situacao} - ${formatStatusDate(office.dataInscrição)}` })
+      createElement("span", { text: `${office.situacao} - ${formatStatusDate(office["dataInscri\u00e7\u00e3o"])}` })
     );
     list.append(item);
   });
@@ -856,8 +942,8 @@ function renderStatusLookup(status) {
     header,
     list,
     createElement("p", { text: status.documentos }),
-    createElement("p", { text: `Faltas nos últimos 30 dias: ${Number(status.frequencia?.faltasUltimos30Dias || 0)}` }),
-    createElement("p", { text: `Última atualização: ${formatStatusDate(status.ultimaAtualizacao || status.dataInscrição)}` })
+    createElement("p", { text: `Faltas nos \u00faltimos 30 dias: ${Number(status.frequencia?.faltasUltimos30Dias || 0)}` }),
+    createElement("p", { text: `\u00daltima atualiza\u00e7\u00e3o: ${formatStatusDate(status.ultimaAtualizacao || status["dataInscri\u00e7\u00e3o"])}` })
   );
   const aulas = status.frequencia?.aulasUltimos30Dias || [];
   if (aulas.length) {
@@ -870,7 +956,7 @@ function renderStatusLookup(status) {
       );
       calls.append(item);
     });
-    card.append(createElement("p", { className: "status-section-title", text: "Aulas registradas nos últimos 30 dias" }), calls);
+    card.append(createElement("p", { className: "status-section-title", text: "Aulas registradas nos \u00faltimos 30 dias" }), calls);
   }
   result.append(card);
 }
@@ -883,13 +969,13 @@ function setupStatusLookup() {
     const result = document.querySelector("[data-status-result]");
     const cpf = normalizeCpf(form.elements.cpf?.value || "");
     if (!isValidCpf(cpf)) {
-      renderStatusLookup({ encontrado: false, message: "Informe um CPF válido." });
+    renderStatusLookup({ encontrado: false, message: "Informe um CPF v\u00e1lido." });
       return;
     }
 
     const button = form.querySelector("button[type='submit']");
     button.disabled = true;
-    if (result) result.replaceChildren(createElement("p", { className: "form-feedback", text: "Consultando inscrição..." }));
+  if (result) result.replaceChildren(createElement("p", { className: "form-feedback", text: "Consultando inscri\u00e7\u00e3o..." }));
     try {
       const data = await apiRequest("/inscricoes/status", {
         method: "POST",
@@ -913,7 +999,7 @@ function appendAiMessageContent(node, content) {
 
   let list = null;
   lines.forEach((line) => {
-    const bullet = line.match(/^[•*-]\s+(.+)$/);
+      const bullet = line.match(/^[\u2022*-]\s+(.+)$/);
     if (bullet) {
       if (!list) {
         list = createElement("ul", { className: "ai-message-list" });
@@ -960,7 +1046,7 @@ function setupAiChat() {
     panel.hidden = !open;
     toggle.setAttribute("aria-expanded", String(open));
     if (open && !state.aiMessages.length) {
-      pushAiMessage("assistant", "Olá! Posso ajudar com oficinas, documentos, inscrição, lista de espera, status por CPF, faltas e aulas recentes.");
+      pushAiMessage("assistant", "Ol\u00e1! Posso ajudar com oficinas, documentos, inscri\u00e7\u00e3o, lista de espera, status por CPF, faltas e aulas recentes.");
     }
     if (open) form.elements.message?.focus();
   }
@@ -984,7 +1070,7 @@ function setupAiChat() {
         body: { messages: chatMessages }
       });
       state.aiMessages.pop();
-      pushAiMessage("assistant", data.message || "Não consegui responder agora.");
+    pushAiMessage("assistant", data.message || "N\u00e3o consegui responder agora.");
     } catch (error) {
       state.aiMessages.pop();
       pushAiMessage("assistant", error.message);
@@ -1043,7 +1129,7 @@ async function loadPublicContent() {
       state.testimonials = depoimentosData.depoimentos;
     }
   } catch (error) {
-    console.warn("Conteúdo dinâmico indisponível. Usando dados locais.", error.message);
+    console.warn("Conte\u00fado din\u00e2mico indispon\u00edvel. Usando dados locais.", error.message);
   }
 }
 

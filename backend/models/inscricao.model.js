@@ -86,7 +86,12 @@ function toPublic(row) {
     idade: Number(row.idade),
     telefone: row.telefone,
     responsavel: row.responsavel || "",
+    contatoResponsavel: row.contato_responsavel || row.contatoResponsavel || "",
     email: row.email || "",
+    dataNascimento: row.data_nascimento || row.dataNascimento || "",
+    bairro: row.bairro || "",
+    possuiDoenca: Boolean(row.possui_doenca ?? row.possuiDoenca),
+    condicaoSaude: row.condicao_saude || row.condicaoSaude || "",
     oficina: oficinas.join(", "),
     oficinas,
     oficinaDetalhes,
@@ -209,7 +214,12 @@ async function create(payload, files = []) {
       existing.idade = payload.idade;
       existing.telefone = payload.telefone;
       existing.responsavel = payload.responsavel || "";
+      existing.contatoResponsavel = payload.contatoResponsavel || "";
       existing.email = payload.email || "";
+      existing.dataNascimento = payload.dataNascimento || "";
+      existing.bairro = payload.bairro || "";
+      existing.possuiDoenca = payload.possuiDoenca === true;
+      existing.condicaoSaude = payload.condicaoSaude || "";
       existing.observacoes = payload.observacoes || existing.observacoes || "";
       existing.updated_at = now;
       const documentos = files.map((file) => documentFromFile(file, existing.id, now));
@@ -270,25 +280,35 @@ async function create(payload, files = []) {
         `UPDATE inscricoes
          SET nome = $1,
              idade = $2,
-             telefone = $3,
-             responsavel = $4,
-             email = $5,
-             oficina = $6,
-             oficinas = $7,
-             oficina_detalhes = $8,
-             observacoes = $9,
+             data_nascimento = $3,
+             telefone = $4,
+             responsavel = $5,
+             contato_responsavel = $6,
+             email = $7,
+             bairro = $8,
+             oficina = $9,
+             oficinas = $10,
+             oficina_detalhes = $11,
+             possui_doenca = $12,
+             condicao_saude = $13,
+             observacoes = $14,
              updated_at = NOW()
-         WHERE id = $10
-         RETURNING id, nome, cpf, idade, telefone, responsavel, email, oficina, oficinas, oficina_detalhes, observacoes, created_at, updated_at`,
+         WHERE id = $15
+         RETURNING id, nome, cpf, idade, data_nascimento, telefone, responsavel, contato_responsavel, email, bairro, oficina, oficinas, oficina_detalhes, possui_doenca, condicao_saude, observacoes, created_at, updated_at`,
         [
           payload.nome,
           payload.idade,
+          payload.dataNascimento || null,
           payload.telefone,
           payload.responsavel || null,
+          payload.contatoResponsavel || null,
           payload.email || null,
+          payload.bairro || null,
           mergedOficinas[0],
           mergedOficinas,
           JSON.stringify(detalhes),
+          payload.possuiDoenca === true,
+          payload.condicaoSaude || null,
           payload.observacoes || null,
           existing.rows[0].id
         ]
@@ -298,19 +318,24 @@ async function create(payload, files = []) {
       const statusByOficina = await waitlistStatusForDatabase(client, oficinas);
       const result = await client.query(
         `INSERT INTO inscricoes
-          (nome, cpf, idade, telefone, responsavel, email, oficina, oficinas, oficina_detalhes, observacoes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         RETURNING id, nome, cpf, idade, telefone, responsavel, email, oficina, oficinas, oficina_detalhes, observacoes, created_at, updated_at`,
+          (nome, cpf, idade, data_nascimento, telefone, responsavel, contato_responsavel, email, bairro, oficina, oficinas, oficina_detalhes, possui_doenca, condicao_saude, observacoes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+         RETURNING id, nome, cpf, idade, data_nascimento, telefone, responsavel, contato_responsavel, email, bairro, oficina, oficinas, oficina_detalhes, possui_doenca, condicao_saude, observacoes, created_at, updated_at`,
         [
           payload.nome,
           cpf,
           payload.idade,
+          payload.dataNascimento || null,
           payload.telefone,
           payload.responsavel || null,
+          payload.contatoResponsavel || null,
           payload.email || null,
+          payload.bairro || null,
           oficinas[0],
           oficinas,
           JSON.stringify(detailsForOficinas(oficinas, new Date().toISOString(), "inscricao", statusByOficina)),
+          payload.possuiDoenca === true,
+          payload.condicaoSaude || null,
           payload.observacoes || null
         ]
       );
@@ -398,10 +423,15 @@ async function findAll(filters = {}) {
       idade,
       telefone,
       responsavel,
+      contato_responsavel,
       email,
+      data_nascimento,
+      bairro,
       oficina,
       oficinas,
       oficina_detalhes,
+      possui_doenca,
+      condicao_saude,
       observacoes,
       created_at,
       updated_at,
@@ -467,26 +497,36 @@ async function update(id, payload) {
        SET nome = $1,
            cpf = COALESCE($2, cpf),
            idade = $3,
-           telefone = $4,
-           responsavel = $5,
-           email = $6,
-           oficina = $7,
-           oficinas = $8,
-           oficina_detalhes = $9,
-           observacoes = $10,
+           data_nascimento = $4,
+           telefone = $5,
+           responsavel = $6,
+           contato_responsavel = $7,
+           email = $8,
+           bairro = $9,
+           oficina = $10,
+           oficinas = $11,
+           oficina_detalhes = $12,
+           possui_doenca = $13,
+           condicao_saude = $14,
+           observacoes = $15,
            updated_at = NOW()
-       WHERE id = $11
+       WHERE id = $16
        RETURNING
          id,
          nome,
          cpf,
          idade,
+         data_nascimento,
          telefone,
          responsavel,
+         contato_responsavel,
          email,
+         bairro,
          oficina,
          oficinas,
          oficina_detalhes,
+         possui_doenca,
+         condicao_saude,
          observacoes,
          created_at,
          updated_at,
@@ -499,12 +539,17 @@ async function update(id, payload) {
         payload.nome,
         cpf || null,
         payload.idade,
+        payload.dataNascimento || null,
         payload.telefone,
         payload.responsavel || null,
+        payload.contatoResponsavel || null,
         payload.email || null,
+        payload.bairro || null,
         nextOficinas[0] || payload.oficina,
         nextOficinas,
         JSON.stringify(detalhes),
+        payload.possuiDoenca === true,
+        payload.condicaoSaude || null,
         payload.observacoes || null,
         id
       ]
@@ -690,12 +735,17 @@ async function stats() {
                 nome,
                 cpf,
                 idade,
+                data_nascimento,
                 telefone,
                 responsavel,
+                contato_responsavel,
                 email,
+                bairro,
                 oficina,
                 oficinas,
                 oficina_detalhes,
+                possui_doenca,
+                condicao_saude,
                 observacoes,
                 created_at,
                 updated_at,

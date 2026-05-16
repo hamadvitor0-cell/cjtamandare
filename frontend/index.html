@@ -14,10 +14,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css?v=20260510-5">
+    <link rel="stylesheet" href="/css/styles.css?v=20260513-8">
+    <script src="/js/theme.js?v=20260513-8" defer></script>
   </head>
   <body>
-
 
 
   <div vw class="enabled">
@@ -26,10 +26,6 @@
       <div class="vw-plugin-top-wrapper"></div>
     </div>
   </div>
-  <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
-  <script>
-    new window.VLibras.Widget('https://vlibras.gov.br/app');
-  </script>
 
     <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
 
@@ -131,7 +127,7 @@
       <section class="section-block how-it-works" id="como-funciona" aria-labelledby="como-funciona-titulo">
         <div class="container section-heading reveal">
           <h2 id="como-funciona-titulo">Como funciona</h2>
-          <p>O processo é simples: escolha as oficinas, preencha a inscrição online, acompanhe a situação pelo CPF e aguarde a orientação da equipe.</p>
+          <p>O processo é simples: escolha as oficinas, preencha a inscrição online, anexe documentos obrigatórios e envie o termo assinado eletronicamente pelo gov.br.</p>
         </div>
         <div class="container process-grid reveal" aria-label="Etapas da inscricao">
           <article class="process-step">
@@ -142,7 +138,7 @@
           <article class="process-step">
             <strong>02</strong>
             <h3>Inscricao</h3>
-            <p>Envie os dados e, quando possivel, anexe os documentos solicitados.</p>
+            <p>Envie os dados, os documentos legíveis e o termo em PDF assinado eletronicamente pelo gov.br.</p>
           </article>
           <article class="process-step">
             <strong>03</strong>
@@ -245,7 +241,7 @@
             <p>Preencha os dados com atenção. A equipe entrará em contato pelos canais informados para orientar a confirmação.</p>
             <div class="notice-box">
               <strong>Documentação</strong>
-              <span>Maiores de 18 anos: RG, CPF e comprovante de residência. Menores: documentos do aluno e responsável, declaração escolar e comprovante.</span>
+              <span>Maiores de 18 anos: RG, CPF, comprovante de residência e termo assinado em PDF. Menores: documentos do aluno e do responsável, declaração escolar, comprovante e termo assinado pelo responsável no gov.br. Arquivos claros, legíveis e nomeados pelo tipo, por exemplo CPF.png.</span>
             </div>
           </div>
 
@@ -261,7 +257,11 @@
               </label>
               <label>
                 <span>Idade</span>
-                <input name="idade" type="number" inputmode="numeric" min="10" max="99" required>
+                <input name="idade" type="number" inputmode="numeric" min="0" max="120" required>
+              </label>
+              <label>
+                <span>Data de nascimento</span>
+                <input name="dataNascimento" type="date" autocomplete="bday">
               </label>
               <label>
                 <span>Telefone</span>
@@ -269,11 +269,19 @@
               </label>
               <label>
                 <span>Responsável</span>
-                <input name="responsável" type="text" autocomplete="name" maxlength="120">
+                <input name="responsavel" type="text" autocomplete="name" maxlength="120" data-responsible-field>
+              </label>
+              <label>
+                <span>Contato do responsÃ¡vel</span>
+                <input name="contatoResponsavel" type="tel" data-phone-mask>
               </label>
               <label>
                 <span>E-mail</span>
                 <input name="email" type="email" autocomplete="email" maxlength="160">
+              </label>
+              <label>
+                <span>Bairro</span>
+                <input name="bairro" type="text" maxlength="120">
               </label>
               <label>
                 <span>Oficinas</span>
@@ -284,9 +292,47 @@
               </label>
               <label>
                 <span>Documentos</span>
-                <input name="documentos" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp">
-                <small>RG, CPF, comprovante e declaração escolar em PDF ou imagem. Limite de 5 MB por arquivo.</small>
+                <input name="documentos" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" required data-documents-input>
+                <small data-documents-help>Obrigatório. Maiores: RG, CPF e comprovante de residência. Menores: documentos do aluno e do responsável, declaração escolar e comprovante. Use arquivos legíveis e nomes como CPF.png ou RG-responsavel.pdf. Limite de 5 MB por arquivo.</small>
               </label>
+              <div class="terms-box full-field" data-terms-box>
+                <h3>Termo de compromisso - assinatura gov.br</h3>
+                <p>Baixe o termo em PDF, assine eletronicamente no portal oficial gov.br e anexe abaixo o PDF assinado. A inscrição não será validada se o termo enviado estiver sem assinatura eletrônica válida ou estiver ilegível/corrompido.</p>
+                <div class="term-actions">
+                  <a class="button button-primary" href="/docs/termo-compromisso-cj.pdf" download>Baixar termo em PDF</a>
+                  <a class="button button-secondary" href="https://www.gov.br/governodigital/pt-br/identidade/assinatura-eletronica" target="_blank" rel="noopener noreferrer">Como assinar no gov.br</a>
+                </div>
+                <ol class="term-steps">
+                  <li>Baixe o termo em PDF.</li>
+                  <li>Acesse a página oficial do governo, entre com sua conta gov.br e assine o arquivo.</li>
+                  <li>Baixe o PDF assinado pelo gov.br e envie no campo abaixo.</li>
+                </ol>
+              </div>
+              <label class="full-field" data-signed-term-field>
+                <span>Termo assinado pelo gov.br em PDF</span>
+                <input name="termoAssinado" type="file" accept=".pdf,application/pdf" required data-signed-term-input>
+                <small>Obrigatório. Envie o PDF assinado eletronicamente no gov.br. Se o documento for inválido, sem assinatura eletrônica ou não puder ser conferido, a inscrição não será validada.</small>
+              </label>
+              <fieldset class="full-field health-field" data-health-field>
+                <legend>Doença ou problema físico/psicológico</legend>
+                <label class="check-row">
+                  <input name="possuiDoenca" type="radio" value="false" required checked>
+                  <span>Não possui</span>
+                </label>
+                <label class="check-row">
+                  <input name="possuiDoenca" type="radio" value="true" required>
+                  <span>Possui</span>
+                </label>
+                <label>
+                  <span>Qual doença ou problema?</span>
+                  <textarea name="condicaoSaude" rows="3" maxlength="500" data-health-description></textarea>
+                </label>
+                <label>
+                  <span>Laudo ou comprovante</span>
+                  <input name="laudoSaude" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" data-health-document>
+                  <small>Obrigatório quando houver doença ou problema informado.</small>
+                </label>
+              </fieldset>
               <label class="full-field">
                 <span>Observações</span>
                 <textarea name="observacoes" rows="4" maxlength="500"></textarea>
@@ -436,6 +482,7 @@
     </div>
 
     <script src="/js/runtime-config.js?v=20260508-5" defer></script>
-    <script type="module" src="/js/main.js?v=20260510-5"></script>
+    <script type="module" src="/js/main.js?v=20260513-8"></script>
+    <script src="/js/vlibras.js?v=20260513-8" defer></script>
   </body>
 </html>

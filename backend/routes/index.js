@@ -5,6 +5,7 @@ const upload = require("../middlewares/upload.middleware");
 const { requireAuth, authorizeRoles } = require("../middlewares/auth.middleware");
 const { requireCsrf, issueCsrfToken } = require("../middlewares/csrf.middleware");
 const { auditAction } = require("../middlewares/audit.middleware");
+const { loginHoneypot } = require("../middlewares/admin-security.middleware");
 const { aiLimiter, inscriptionLimiter, loginLimiter, statusLookupLimiter } = require("../middlewares/rateLimit.middleware");
 const InscricaoController = require("../controllers/inscricao.controller");
 const AiController = require("../controllers/ai.controller");
@@ -79,8 +80,12 @@ router.get(
 router.post(
   "/inscricao",
   inscriptionLimiter,
-  upload.rejectLargeMultipart(16 * 1024 * 1024),
-  upload.array("documentos", 8),
+  upload.rejectLargeMultipart(21 * 1024 * 1024),
+  upload.inscriptionUpload.fields([
+    { name: "documentos", maxCount: 8 },
+    { name: "termoAssinado", maxCount: 1 },
+    { name: "laudoSaude", maxCount: 1 }
+  ]),
   upload.validateUploadedFiles,
   validate(inscriptionSchema),
   asyncHandler(InscricaoController.create)
@@ -103,6 +108,7 @@ router.post(
 router.post(
   "/auth/login",
   loginLimiter,
+  loginHoneypot,
   validate(loginSchema),
   asyncHandler(AuthController.login)
 );
@@ -392,6 +398,16 @@ router.post(
   validate(alunoSchema),
   auditAction("create", "aluno"),
   asyncHandler(AlunoController.create)
+);
+
+router.post(
+  "/alunos/importar",
+  ...adminOnly,
+  requireCsrf,
+  upload.rejectLargeMultipart(8 * 1024 * 1024),
+  upload.spreadsheetUpload.single("planilha"),
+  auditAction("create", "aluno_importacao"),
+  asyncHandler(AlunoController.importFromSpreadsheet)
 );
 
 router.put(

@@ -1,6 +1,12 @@
 const crypto = require("crypto");
+const fs = require("fs");
 const path = require("path");
-require("dotenv").config({ path: path.resolve(process.cwd(), ".env") });
+const dotenv = require("dotenv");
+
+const envPath = path.resolve(process.cwd(), ".env");
+const localEnvPath = path.resolve(process.cwd(), ".env.local");
+if (fs.existsSync(envPath)) dotenv.config({ path: envPath });
+if (fs.existsSync(localEnvPath)) dotenv.config({ path: localEnvPath, override: true });
 
 function bool(value, fallback = false) {
   if (value === undefined || value === null || value === "") return fallback;
@@ -66,8 +72,11 @@ const config = {
   aiModel: process.env.AI_MODEL || "openai/gpt-5.4",
   aiRequestTimeoutMs: Number(process.env.AI_REQUEST_TIMEOUT_MS || 6500),
   adminName: process.env.ADMIN_NAME || "Administrador",
+  adminUsername: process.env.ADMIN_USERNAME || "master",
+  adminResetAdmins: bool(process.env.ADMIN_RESET_ADMINS, false),
   adminEmail: process.env.ADMIN_EMAIL || "",
-  adminPassword: process.env.ADMIN_PASSWORD || ""
+  adminPassword: process.env.ADMIN_PASSWORD || "",
+  adminRegistrationCode: process.env.ADMIN_REGISTRATION_CODE || process.env.ADMIN_CODE || ""
 };
 
 config.isProduction = config.nodeEnv === "production";

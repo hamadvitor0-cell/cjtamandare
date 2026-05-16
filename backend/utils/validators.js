@@ -23,12 +23,17 @@ const inscriptionSchema = Joi.object({
     "string.min": "Informe o nome completo."
   }),
   cpf: cpfField.required(),
-  idade: Joi.number().integer().min(10).max(99).required(),
+  idade: Joi.number().integer().min(0).max(120).required(),
+  dataNascimento: Joi.date().iso().allow("", null),
   telefone: Joi.string().pattern(phonePattern).required(),
   responsavel: Joi.string().allow("").max(120),
+  contatoResponsavel: Joi.string().allow("").max(40),
   email: Joi.string().email({ tlds: { allow: false } }).allow("").max(160),
+  bairro: Joi.string().allow("").max(120),
   oficina: Joi.string().min(2).max(100),
   oficinas: Joi.array().items(Joi.string().min(2).max(100)).single().min(1).max(20),
+  possuiDoenca: Joi.boolean().truthy("true").falsy("false").required(),
+  condicaoSaude: Joi.string().allow("").max(500),
   observacoes: Joi.string().allow("").max(500),
   website: Joi.string().allow("").max(120),
   captchaToken: Joi.string().required().max(2048),
@@ -42,8 +47,8 @@ const updateInscriptionSchema = inscriptionSchema
   .unknown(false);
 
 const loginSchema = Joi.object({
-  email: Joi.string().min(3).max(160).required(),
-  password: Joi.string().min(8).max(160).required()
+  username: Joi.string().pattern(/^[a-zA-Z0-9._-]{3,40}$/).required(),
+  registrationCode: Joi.string().pattern(/^\d{6}$/).required()
 });
 
 const listQuerySchema = Joi.object({
@@ -115,14 +120,13 @@ const depoimentoSchema = Joi.object({
 const adminUserSchema = Joi.object({
   name: Joi.string().min(2).max(120).required(),
   username: Joi.string().pattern(/^[a-zA-Z0-9._-]{3,40}$/).required(),
-  email: Joi.string().email({ tlds: { allow: false } }).max(160).required(),
-  password: Joi.string().min(8).max(160).required(),
+  registrationCode: Joi.string().pattern(/^\d{6}$/).required(),
   role: Joi.string().valid("master", "admin").default("admin"),
   active: Joi.boolean().truthy("true").falsy("false").default(true)
 });
 
 const adminUserUpdateSchema = adminUserSchema.keys({
-  password: Joi.string().allow("").min(8).max(160)
+  registrationCode: Joi.string().allow("").pattern(/^\d{6}$/)
 });
 
 const auditLogQuerySchema = Joi.object({
@@ -136,14 +140,20 @@ const auditLogQuerySchema = Joi.object({
 const alunoSchema = Joi.object({
   nome: Joi.string().min(3).max(120).required(),
   cpf: optionalCpfField,
-  idade: Joi.number().integer().min(10).max(99).allow("", null),
+  idade: Joi.number().integer().min(0).max(120).allow("", null),
+  dataNascimento: Joi.date().iso().allow("", null),
   telefone: Joi.string().allow("").pattern(phonePattern),
   responsavel: Joi.string().allow("").max(120),
+  contatoResponsavel: Joi.string().allow("").max(40),
   email: Joi.string().email({ tlds: { allow: false } }).allow("").max(160),
+  bairro: Joi.string().allow("").max(120),
   oficinaId: Joi.string().allow("").pattern(uuidPattern),
   oficinaIds: Joi.array().items(Joi.string().pattern(uuidPattern)).min(1).max(20).required(),
   status: Joi.string().valid("ativo", "inativo").required(),
   documentosPendentes: Joi.boolean().truthy("true").falsy("false"),
+  documentosLinks: Joi.array().items(Joi.string().uri({ scheme: ["http", "https"] }).max(500)).max(20).default([]),
+  condicaoSaude: Joi.string().allow("").max(500),
+  fichaAlerta: Joi.string().allow("").max(500),
   advertencias: Joi.string().allow("").max(1000),
   historicoOficinas: Joi.string().allow("").max(1000),
   observacoes: Joi.string().allow("").max(500)

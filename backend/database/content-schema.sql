@@ -67,13 +67,22 @@ CREATE TABLE IF NOT EXISTS alunos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome TEXT NOT NULL CHECK (char_length(nome) BETWEEN 3 AND 120),
   cpf TEXT CHECK (cpf IS NULL OR cpf ~ '^[0-9]{11}$'),
-  idade INTEGER CHECK (idade IS NULL OR idade BETWEEN 10 AND 99),
+  idade INTEGER CHECK (idade IS NULL OR idade BETWEEN 0 AND 120),
+  data_nascimento DATE,
   telefone TEXT CHECK (telefone IS NULL OR char_length(telefone) <= 20),
   responsavel TEXT CHECK (responsavel IS NULL OR char_length(responsavel) <= 120),
+  contato_responsavel TEXT CHECK (contato_responsavel IS NULL OR char_length(contato_responsavel) <= 40),
   email TEXT CHECK (email IS NULL OR char_length(email) <= 160),
+  bairro TEXT CHECK (bairro IS NULL OR char_length(bairro) <= 120),
   oficina_id UUID REFERENCES oficinas(id) ON DELETE SET NULL,
   status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo')),
   documentos_pendentes BOOLEAN NOT NULL DEFAULT FALSE,
+  documentos_links TEXT[] NOT NULL DEFAULT '{}',
+  condicao_saude TEXT CHECK (condicao_saude IS NULL OR char_length(condicao_saude) <= 500),
+  ficha_alerta TEXT CHECK (ficha_alerta IS NULL OR char_length(ficha_alerta) <= 500),
+  import_source TEXT CHECK (import_source IS NULL OR char_length(import_source) <= 80),
+  import_row_number INTEGER,
+  import_row_hash TEXT CHECK (import_row_hash IS NULL OR char_length(import_row_hash) <= 80),
   advertencias TEXT CHECK (advertencias IS NULL OR char_length(advertencias) <= 1000),
   historico_oficinas TEXT CHECK (historico_oficinas IS NULL OR char_length(historico_oficinas) <= 1000),
   observacoes TEXT CHECK (observacoes IS NULL OR char_length(observacoes) <= 500),
@@ -93,6 +102,13 @@ BEGIN
   END IF;
 END $$;
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS cpf TEXT;
+ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS data_nascimento DATE;
+ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS bairro TEXT;
+ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS contato_responsavel TEXT;
+ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS possui_doenca BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS condicao_saude TEXT;
+ALTER TABLE inscricoes DROP CONSTRAINT IF EXISTS inscricoes_idade_check;
+ALTER TABLE inscricoes ADD CONSTRAINT inscricoes_idade_check CHECK (idade BETWEEN 0 AND 120);
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficinas TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficina_detalhes JSONB NOT NULL DEFAULT '[]'::jsonb;
 UPDATE inscricoes SET oficinas = ARRAY[oficina] WHERE oficinas = '{}' AND oficina IS NOT NULL;
@@ -120,10 +136,21 @@ ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS mime_type TEXT;
 ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS size_bytes INTEGER;
 ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS file_content BYTEA;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS cpf TEXT;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS data_nascimento DATE;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS bairro TEXT;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS contato_responsavel TEXT;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS oficina_id UUID REFERENCES oficinas(id) ON DELETE SET NULL;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS documentos_pendentes BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS documentos_links TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS condicao_saude TEXT;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS ficha_alerta TEXT;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS import_source TEXT;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS import_row_number INTEGER;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS import_row_hash TEXT;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS advertencias TEXT;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS historico_oficinas TEXT;
+ALTER TABLE alunos DROP CONSTRAINT IF EXISTS alunos_idade_check;
+ALTER TABLE alunos ADD CONSTRAINT alunos_idade_check CHECK (idade IS NULL OR idade BETWEEN 0 AND 120);
 ALTER TABLE inscricao_documentos ADD COLUMN IF NOT EXISTS file_content BYTEA;
 
 CREATE TABLE IF NOT EXISTS aluno_oficinas (
@@ -202,8 +229,9 @@ CREATE TABLE IF NOT EXISTS admins (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL CHECK (char_length(name) BETWEEN 2 AND 120),
   username TEXT UNIQUE CHECK (username IS NULL OR username ~ '^[a-zA-Z0-9._-]{3,40}$'),
-  email TEXT NOT NULL UNIQUE,
+  email TEXT UNIQUE,
   password_hash TEXT NOT NULL,
+  registration_code_hash TEXT,
   role TEXT NOT NULL DEFAULT 'admin',
   active BOOLEAN NOT NULL DEFAULT TRUE,
   last_login_at TIMESTAMPTZ,
@@ -227,6 +255,8 @@ CREATE TABLE IF NOT EXISTS depoimentos (
 ALTER TABLE depoimentos ADD COLUMN IF NOT EXISTS seed_key TEXT;
 
 ALTER TABLE admins ADD COLUMN IF NOT EXISTS username TEXT;
+ALTER TABLE admins ADD COLUMN IF NOT EXISTS registration_code_hash TEXT;
+ALTER TABLE admins ALTER COLUMN email DROP NOT NULL;
 ALTER TABLE admins ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE admins ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
 ALTER TABLE admins DROP CONSTRAINT IF EXISTS admins_role_check;
@@ -270,6 +300,10 @@ CREATE INDEX IF NOT EXISTS idx_inscricao_documentos_inscricao ON inscricao_docum
 CREATE INDEX IF NOT EXISTS idx_inscricoes_cpf ON inscricoes (cpf);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_alunos_cpf_unique ON alunos (cpf) WHERE cpf IS NOT NULL AND cpf <> '';
 CREATE INDEX IF NOT EXISTS idx_alunos_oficina ON alunos (oficina_id);
+CREATE INDEX IF NOT EXISTS idx_alunos_nome_lower ON alunos (LOWER(nome));
+CREATE INDEX IF NOT EXISTS idx_alunos_bairro_lower ON alunos (LOWER(COALESCE(bairro, '')));
+CREATE INDEX IF NOT EXISTS idx_alunos_import_source_row ON alunos (import_source, import_row_number);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_alunos_import_row_hash_unique ON alunos (import_row_hash) WHERE import_row_hash IS NOT NULL AND import_row_hash <> '';
 CREATE INDEX IF NOT EXISTS idx_aluno_oficinas_oficina ON aluno_oficinas (oficina_id);
 CREATE INDEX IF NOT EXISTS idx_chamadas_oficina_data ON chamadas (oficina_id, data_chamada DESC);
 CREATE INDEX IF NOT EXISTS idx_presencas_chamada ON presencas (chamada_id);
