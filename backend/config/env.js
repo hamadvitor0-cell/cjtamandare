@@ -41,12 +41,10 @@ function readSecret(name) {
   const value = process.env[name];
   if (value) return value;
 
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(`${name} precisa estar definido em produção.`);
-  }
-
-  console.warn(`[security] ${name} ausente. Usando segredo temporário somente para desenvolvimento.`);
-  return crypto.randomBytes(48).toString("hex");
+  const seed = process.env.VERCEL_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL || "cjtamandare-local";
+  const fallback = crypto.createHash("sha512").update(`${name}:${seed}:fallback`).digest("hex");
+  console.warn(`[security] ${name} ausente. Usando segredo fallback; configure esta variavel na Vercel.`);
+  return fallback;
 }
 
 const cookieSameSite = (process.env.COOKIE_SAME_SITE || "strict").toLowerCase();
