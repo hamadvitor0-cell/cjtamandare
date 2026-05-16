@@ -51,6 +51,18 @@
   gap: 14px;
 }
 
+.security-hp {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
 .back-link {
   display: inline-block;
   margin-top: 16px;
@@ -193,6 +205,11 @@
   padding: 18px;
 }
 
+.manager-panel {
+  display: grid;
+  gap: 18px;
+}
+
 .panel-title {
   display: flex;
   align-items: flex-start;
@@ -204,6 +221,43 @@
 .panel-title h2 {
   margin: 0;
   font-size: 1.2rem;
+}
+
+.panel-title p {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+}
+
+.panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.import-panel,
+.manager-form,
+.admin-filters {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 16px;
+}
+
+.import-panel {
+  display: grid;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.08), rgba(var(--color-secondary-rgb), 0.06)), #fff;
+}
+
+.import-panel strong {
+  color: var(--color-ink);
+  font-size: 1rem;
+}
+
+.import-panel p {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  line-height: 1.45;
 }
 
 .bar-chart {
@@ -566,6 +620,44 @@ select[multiple] {
   display: grid;
   gap: 10px;
   margin-top: 16px;
+}
+
+.student-item {
+  align-items: center;
+}
+
+.item-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  width: fit-content;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: var(--color-muted);
+  background: var(--color-soft);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.chip-success {
+  border-color: rgba(4, 120, 87, 0.25);
+  background: rgba(4, 120, 87, 0.08);
+  color: #047857;
+}
+
+.chip-warning {
+  border-color: rgba(217, 119, 6, 0.32);
+  background: rgba(217, 119, 6, 0.1);
+  color: #9a3412;
+}
+
+.chip-muted {
+  color: var(--color-muted);
 }
 
 .bolsista-summary {

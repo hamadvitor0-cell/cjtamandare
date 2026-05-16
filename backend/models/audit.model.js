@@ -8,6 +8,8 @@ function cleanMetadata(value = {}) {
   const clone = { ...value };
   delete clone.password;
   delete clone.passwordHash;
+  delete clone.registrationCode;
+  delete clone.registration_code_hash;
   delete clone.file;
   delete clone.imagemArquivo;
   delete clone.documentos;

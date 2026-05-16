@@ -16,6 +16,14 @@ const allowedImageTypes = new Map([
   ["image/webp", [".webp"]]
 ]);
 
+const allowedSpreadsheetTypes = new Map([
+  ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", [".xlsx"]],
+  ["text/csv", [".csv"]],
+  ["application/csv", [".csv"]],
+  ["application/vnd.ms-excel", [".csv"]],
+  ["application/octet-stream", [".xlsx", ".csv"]]
+]);
+
 function uploadError(message, statusCode = 400) {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -78,8 +86,12 @@ function hasValidSignature(file) {
 }
 
 function validateUploadedFiles(req, res, next) {
+  const fieldFiles = req.files && !Array.isArray(req.files)
+    ? Object.values(req.files).flat()
+    : [];
   const files = [
     ...(Array.isArray(req.files) ? req.files : []),
+    ...fieldFiles,
     ...(req.file ? [req.file] : [])
   ];
   const invalid = files.find((file) => !hasValidSignature(file));
@@ -98,6 +110,15 @@ const upload = multer({
   fileFilter: fileFilterFor(allowedTypes, "Envie documentos em PDF, JPG, PNG ou WEBP.")
 });
 
+const inscriptionUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * MB,
+    files: 9
+  },
+  fileFilter: fileFilterFor(allowedTypes, "Envie documentos em PDF, JPG, PNG ou WEBP.")
+});
+
 const imageUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -107,7 +128,18 @@ const imageUpload = multer({
   fileFilter: fileFilterFor(allowedImageTypes, "Envie imagem em JPG, PNG ou WEBP.")
 });
 
+const spreadsheetUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 8 * MB,
+    files: 1
+  },
+  fileFilter: fileFilterFor(allowedSpreadsheetTypes, "Envie planilha em XLSX ou CSV.")
+});
+
 module.exports = upload;
+module.exports.inscriptionUpload = inscriptionUpload;
 module.exports.imageUpload = imageUpload;
+module.exports.spreadsheetUpload = spreadsheetUpload;
 module.exports.rejectLargeMultipart = rejectLargeMultipart;
 module.exports.validateUploadedFiles = validateUploadedFiles;

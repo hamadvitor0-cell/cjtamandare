@@ -2,9 +2,12 @@ const AuthService = require("../services/auth.service");
 const { cookieOptions } = require("../config/security");
 
 async function login(req, res) {
+  res.set("Cache-Control", "no-store");
+  res.set("Referrer-Policy", "no-referrer");
+
   const result = await AuthService.login({
-    email: req.validated.body.email,
-    password: req.validated.body.password,
+    username: req.validated.body.username,
+    registrationCode: req.validated.body.registrationCode,
     ip: req.ip
   });
 

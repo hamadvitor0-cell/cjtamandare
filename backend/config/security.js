@@ -4,15 +4,16 @@ const allowedConnect = ["'self'"];
 if (config.corsOrigin) {
   allowedConnect.push(...config.corsOrigin.split(",").map((origin) => origin.trim()).filter(Boolean));
 }
+allowedConnect.push("https://vlibras.gov.br", "https://cdn.jsdelivr.net");
 
 const directives = {
   defaultSrc: ["'self'"],
-  scriptSrc: ["'self'"],
+  scriptSrc: ["'self'", "https://vlibras.gov.br", "https://cdn.jsdelivr.net"],
   styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
   fontSrc: ["'self'", "https://fonts.gstatic.com"],
   imgSrc: ["'self'", "data:", "https:"],
   connectSrc: allowedConnect,
-  frameSrc: ["'self'", "https://www.google.com", "https://maps.google.com"],
+  frameSrc: ["'self'", "https://www.google.com", "https://maps.google.com", "https://vlibras.gov.br"],
   objectSrc: ["'none'"],
   baseUri: ["'self'"],
   formAction: ["'self'"],

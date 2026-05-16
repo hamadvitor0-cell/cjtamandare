@@ -93,16 +93,22 @@ async function seedColaboradores() {
 }
 
 async function seedAdmin() {
-  if (!config.adminEmail || !config.adminPassword) return;
-  if (config.adminPassword.length < 12) {
-    throw new Error("ADMIN_PASSWORD deve ter pelo menos 12 caracteres.");
+  const code = String(config.adminRegistrationCode || "").replace(/\D/g, "");
+  if (!code) return;
+  if (!/^\d{6}$/.test(code)) {
+    throw new Error("ADMIN_REGISTRATION_CODE deve ter exatamente 6 digitos.");
   }
 
-  const passwordHash = await bcrypt.hash(config.adminPassword, 12);
+  const registrationCodeHash = await bcrypt.hash(code, 12);
+  if (config.adminResetAdmins) {
+    await db.query("DELETE FROM admins");
+  }
   await Admin.createAdmin({
     name: config.adminName,
+    username: config.adminUsername,
     email: config.adminEmail,
-    passwordHash,
+    passwordHash: registrationCodeHash,
+    registrationCodeHash,
     role: "master"
   });
 }

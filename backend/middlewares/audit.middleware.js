@@ -13,6 +13,7 @@ function defaultLabel(req, body) {
     || body?.evento?.titulo
     || req.body?.nome
     || req.body?.titulo
+    || req.body?.username
     || req.body?.email
     || req.params?.id
     || "";

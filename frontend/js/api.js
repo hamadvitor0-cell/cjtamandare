@@ -59,11 +59,29 @@ export async function getCsrfToken(force = false) {
 }
 
 export async function secureRequest(path, options = {}) {
-  const token = await getCsrfToken();
+  const token = await getCsrfToken(options.forceCsrf === true);
   const headers = new Headers(options.headers || {});
   headers.set("X-CSRF-Token", token);
-  return apiRequest(path, {
+  const requestOptions = {
     ...options,
     headers
-  });
+  };
+  delete requestOptions.forceCsrf;
+
+  try {
+    return await apiRequest(path, requestOptions);
+  } catch (error) {
+    const isSecurityValidation = error.status === 403 && /seguran/i.test(error.message);
+    if (!isSecurityValidation || options.forceCsrf) throw error;
+
+    const refreshedToken = await getCsrfToken(true);
+    const retryHeaders = new Headers(options.headers || {});
+    retryHeaders.set("X-CSRF-Token", refreshedToken);
+    const retryOptions = {
+      ...options,
+      headers: retryHeaders
+    };
+    delete retryOptions.forceCsrf;
+    return apiRequest(path, retryOptions);
+  }
 }

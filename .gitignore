@@ -23,3 +23,5 @@ Thumbs.db
 .DS_Store
 
 .vercel
+
+.env*.local

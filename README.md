@@ -103,8 +103,8 @@ Obrigatórias em produção:
 Administrador inicial:
 
 - `ADMIN_NAME`
-- `ADMIN_EMAIL`
-- `ADMIN_PASSWORD`
+- `ADMIN_REGISTRATION_CODE`: codigo de cadastro do master com exatamente 6 digitos.
+- `ADMIN_EMAIL`: opcional, apenas para atualizar um master antigo que ainda esteja ligado a um e-mail.
 
 O formulário público usa um puzzle CAPTCHA próprio, assinado no backend, sem dependência de chaves externas.
 
@@ -167,7 +167,7 @@ As rotas administrativas exigem cookie JWT válido. `PUT`, `DELETE` e logout exi
 - Brute force: rate limit específico em login.
 - Spam: rate limit em inscrição, honeypot `website` e puzzle CAPTCHA validado no servidor.
 - Verificação humana: o frontend carrega um desafio visual de encaixe, envia a posição resolvida e o backend valida assinatura, expiração, fingerprint do navegador, tempo mínimo e margem de erro antes de gravar a inscrição.
-- Senhas: bcrypt com custo 12.
+- Codigos administrativos: bcrypt com custo 12.
 - Sessão ADM: JWT assinado, com expiração, em cookie `httpOnly`, `SameSite=Strict` e `Secure` em produção.
 - Headers: Helmet com CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` e HSTS em produção.
 - Erros: resposta genérica em produção, sem stack trace para o cliente.

@@ -12,8 +12,9 @@ function toAdmin(row) {
     id: row.id,
     name: row.name,
     username: row.username || "",
-    email: row.email,
+    email: row.email || "",
     password_hash: row.password_hash,
+    registration_code_hash: row.registration_code_hash || "",
     role: row.role,
     active: row.active,
     last_login_at: row.last_login_at,
@@ -24,24 +25,48 @@ function toAdmin(row) {
 
 function publicAdmin(admin) {
   if (!admin) return null;
-  const { password_hash: _passwordHash, ...safe } = admin;
+  const { password_hash: _passwordHash, registration_code_hash: _registrationCodeHash, ...safe } = admin;
   return safe;
 }
 
 function duplicateAdminError() {
-  const error = new Error("Ja existe ADM com este usuario ou e-mail.");
+  const error = new Error("Ja existe ADM com este usuario.");
   error.statusCode = 409;
   return error;
 }
 
+function normalizeRegistrationCode(value) {
+  return String(value || "").replace(/\D/g, "").slice(0, 6);
+}
+
+async function hashRegistrationCode(value) {
+  const code = normalizeRegistrationCode(value);
+  if (!/^\d{6}$/.test(code)) {
+    const error = new Error("O codigo de cadastro deve ter 6 digitos.");
+    error.statusCode = 400;
+    throw error;
+  }
+  return bcrypt.hash(code, 12);
+}
+
+function masterSeedCode() {
+  const code = normalizeRegistrationCode(config.adminRegistrationCode);
+  if (/^\d{6}$/.test(code)) return code;
+  const legacyPasswordCode = normalizeRegistrationCode(config.adminPassword);
+  return /^\d{6}$/.test(legacyPasswordCode) ? legacyPasswordCode : "";
+}
+
 function seedMemoryAdmin() {
-  if (memoryAdmins.length || !config.adminEmail || !config.adminPassword) return;
+  const code = masterSeedCode();
+  if (memoryAdmins.length || !code) return;
+  const codeHash = bcrypt.hashSync(code, 12);
   memoryAdmins.push(toAdmin({
     id: "memory-admin",
     name: config.adminName,
     username: "master",
-    email: config.adminEmail.toLowerCase(),
-    password_hash: bcrypt.hashSync(config.adminPassword, 12),
+    email: "",
+    password_hash: codeHash,
+    registration_code_hash: codeHash,
     role: "master",
     active: true,
     created_at: new Date().toISOString(),
@@ -57,8 +82,9 @@ async function ensureAdminTable() {
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       name TEXT NOT NULL CHECK (char_length(name) BETWEEN 2 AND 120),
       username TEXT UNIQUE CHECK (username IS NULL OR username ~ '^[a-zA-Z0-9._-]{3,40}$'),
-      email TEXT NOT NULL UNIQUE,
+      email TEXT UNIQUE,
       password_hash TEXT NOT NULL,
+      registration_code_hash TEXT,
       role TEXT NOT NULL DEFAULT 'admin',
       active BOOLEAN NOT NULL DEFAULT TRUE,
       last_login_at TIMESTAMPTZ,
@@ -66,6 +92,8 @@ async function ensureAdminTable() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     ALTER TABLE admins ADD COLUMN IF NOT EXISTS username TEXT;
+    ALTER TABLE admins ADD COLUMN IF NOT EXISTS registration_code_hash TEXT;
+    ALTER TABLE admins ALTER COLUMN email DROP NOT NULL;
     ALTER TABLE admins ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
     ALTER TABLE admins ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
     ALTER TABLE admins DROP CONSTRAINT IF EXISTS admins_role_check;
@@ -73,15 +101,19 @@ async function ensureAdminTable() {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_username ON admins (username) WHERE username IS NOT NULL AND username <> '';
     CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);
   `);
-  if (config.adminEmail) {
+  if (config.adminEmail || config.adminRegistrationCode) {
+    const registrationCodeHash = masterSeedCode()
+      ? await hashRegistrationCode(masterSeedCode())
+      : null;
     await db.query(
       `UPDATE admins
        SET role = 'master',
            username = COALESCE(NULLIF(username, ''), 'master'),
+           registration_code_hash = COALESCE($2, registration_code_hash),
            active = true,
            updated_at = NOW()
-       WHERE LOWER(email) = LOWER($1)`,
-      [config.adminEmail]
+       WHERE LOWER(email) = LOWER($1) OR LOWER(COALESCE(username, '')) = 'master'`,
+      [config.adminEmail || "", registrationCodeHash]
     );
   }
 }
@@ -91,12 +123,12 @@ async function findByLogin(identifier) {
 
   if (!db.hasDatabase) {
     seedMemoryAdmin();
-    return memoryAdmins.find((admin) => admin.email === normalized || admin.username === normalized) || null;
+    return memoryAdmins.find((admin) => admin.username === normalized || admin.email === normalized) || null;
   }
 
   await ensureAdminTable();
   const result = await db.query(
-    `SELECT id, name, username, email, password_hash, role, active, last_login_at, created_at, updated_at
+    `SELECT id, name, username, email, password_hash, registration_code_hash, role, active, last_login_at, created_at, updated_at
      FROM admins
      WHERE LOWER(email) = $1 OR LOWER(COALESCE(username, '')) = $1
      LIMIT 1`,
@@ -117,7 +149,7 @@ async function findById(id) {
   }
   await ensureAdminTable();
   const result = await db.query(
-    `SELECT id, name, username, email, password_hash, role, active, last_login_at, created_at, updated_at
+    `SELECT id, name, username, email, password_hash, registration_code_hash, role, active, last_login_at, created_at, updated_at
      FROM admins
      WHERE id = $1`,
     [id]
@@ -139,14 +171,14 @@ async function list() {
   return result.rows.map(toAdmin).map(publicAdmin);
 }
 
-async function create({ name, username, email, password, role = "admin", active = true }) {
-  const passwordHash = await bcrypt.hash(String(password), 12);
+async function create({ name, username, registrationCode, password, role = "admin", active = true }) {
+  const code = registrationCode || password;
+  const registrationCodeHash = await hashRegistrationCode(code);
   const normalizedUsername = String(username || "").trim().toLowerCase();
-  const normalizedEmail = String(email || "").trim().toLowerCase();
 
   if (!db.hasDatabase) {
     seedMemoryAdmin();
-    const existing = memoryAdmins.find((admin) => admin.email === normalizedEmail || admin.username === normalizedUsername);
+    const existing = memoryAdmins.find((admin) => admin.username === normalizedUsername);
     if (existing) {
       throw duplicateAdminError();
     }
@@ -154,8 +186,9 @@ async function create({ name, username, email, password, role = "admin", active 
       id: crypto.randomUUID(),
       name,
       username: normalizedUsername,
-      email: normalizedEmail,
-      password_hash: passwordHash,
+      email: "",
+      password_hash: registrationCodeHash,
+      registration_code_hash: registrationCodeHash,
       role,
       active,
       created_at: new Date().toISOString(),
@@ -169,10 +202,10 @@ async function create({ name, username, email, password, role = "admin", active 
   let result;
   try {
     result = await db.query(
-      `INSERT INTO admins (name, username, email, password_hash, role, active)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO admins (name, username, email, password_hash, registration_code_hash, role, active)
+       VALUES ($1, $2, NULL, $3, $3, $4, $5)
        RETURNING id, name, username, email, role, active, last_login_at, created_at, updated_at`,
-      [name, normalizedUsername, normalizedEmail, passwordHash, role, active]
+      [name, normalizedUsername, registrationCodeHash, role, active]
     );
   } catch (error) {
     if (error.code === "23505") throw duplicateAdminError();
@@ -182,25 +215,54 @@ async function create({ name, username, email, password, role = "admin", active 
   return publicAdmin(toAdmin(result.rows[0]));
 }
 
-async function createAdmin({ name, email, passwordHash, role = "master" }) {
+async function createAdmin({ name, username = "master", email, passwordHash, registrationCodeHash, role = "master" }) {
   if (!db.hasDatabase) {
     throw new Error("Seed de administrador exige DATABASE_URL.");
   }
   await ensureAdminTable();
-  const result = await db.query(
-    `INSERT INTO admins (name, username, email, password_hash, role)
-     VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT (email)
-     DO UPDATE SET
-       name = EXCLUDED.name,
-       password_hash = EXCLUDED.password_hash,
-       role = EXCLUDED.role,
-       username = COALESCE(admins.username, EXCLUDED.username),
-       active = true,
-       updated_at = NOW()
-     RETURNING id, name, username, email, role, active, created_at, updated_at`,
-    [name, "master", email.toLowerCase(), passwordHash, role]
-  );
+  const loginEmail = email ? email.toLowerCase() : null;
+  const normalizedUsername = String(username || "master").trim().toLowerCase();
+  const codeHash = registrationCodeHash || passwordHash;
+  if (loginEmail) {
+    const existing = await db.query(
+      `UPDATE admins
+       SET name = $1,
+           username = $2,
+           password_hash = $3,
+           registration_code_hash = $3,
+           role = $4,
+           active = true,
+           updated_at = NOW()
+       WHERE LOWER(email) = LOWER($5)
+       RETURNING id, name, username, email, role, active, created_at, updated_at`,
+      [name, normalizedUsername, codeHash, role, loginEmail]
+    );
+    if (existing.rows[0]) return publicAdmin(toAdmin(existing.rows[0]));
+  }
+  let result;
+  try {
+    result = await db.query(
+      `INSERT INTO admins (name, username, email, password_hash, registration_code_hash, role)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, name, username, email, role, active, created_at, updated_at`,
+      [name, normalizedUsername, loginEmail, codeHash, codeHash, role]
+    );
+  } catch (error) {
+    if (error.code !== "23505") throw error;
+    result = await db.query(
+      `UPDATE admins
+       SET name = $1,
+           email = COALESCE($2, email),
+           password_hash = $3,
+           registration_code_hash = $3,
+           role = $4,
+           active = true,
+           updated_at = NOW()
+       WHERE LOWER(COALESCE(username, '')) = LOWER($5)
+       RETURNING id, name, username, email, role, active, created_at, updated_at`,
+      [name, loginEmail, codeHash, role, normalizedUsername]
+    );
+  }
 
   return publicAdmin(toAdmin(result.rows[0]));
 }
@@ -211,41 +273,42 @@ async function update(id, payload) {
     const index = memoryAdmins.findIndex((admin) => admin.id === id);
     if (index === -1) return null;
     const current = memoryAdmins[index];
+    const registrationCodeHash = payload.registrationCode ? await hashRegistrationCode(payload.registrationCode) : null;
     memoryAdmins[index] = {
       ...current,
       name: payload.name,
       username: String(payload.username || "").trim().toLowerCase(),
-      email: String(payload.email || "").trim().toLowerCase(),
+      email: current.email || "",
       role: payload.role || "admin",
       active: payload.active !== false,
-      password_hash: payload.password ? await bcrypt.hash(String(payload.password), 12) : current.password_hash,
+      password_hash: registrationCodeHash || current.password_hash,
+      registration_code_hash: registrationCodeHash || current.registration_code_hash,
       updated_at: new Date().toISOString()
     };
     return publicAdmin(memoryAdmins[index]);
   }
 
   await ensureAdminTable();
-  const passwordHash = payload.password ? await bcrypt.hash(String(payload.password), 12) : null;
+  const registrationCodeHash = payload.registrationCode ? await hashRegistrationCode(payload.registrationCode) : null;
   let result;
   try {
     result = await db.query(
       `UPDATE admins
        SET name = $1,
            username = $2,
-           email = $3,
-           role = $4,
-           active = $5,
-           password_hash = COALESCE($6, password_hash),
+           role = $3,
+           active = $4,
+           password_hash = COALESCE($5, password_hash),
+           registration_code_hash = COALESCE($5, registration_code_hash),
            updated_at = NOW()
-       WHERE id = $7
+       WHERE id = $6
        RETURNING id, name, username, email, role, active, last_login_at, created_at, updated_at`,
       [
         payload.name,
         String(payload.username || "").trim().toLowerCase(),
-        String(payload.email || "").trim().toLowerCase(),
         payload.role || "admin",
         payload.active !== false,
-        passwordHash,
+        registrationCodeHash,
         id
       ]
     );

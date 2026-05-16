@@ -1,5 +1,6 @@
 const logger = require("../utils/logger");
 const config = require("../config/env");
+const { redactUrl } = require("../utils/redact");
 
 function notFound(req, res, next) {
   const error = new Error("Rota não encontrada.");
@@ -20,7 +21,7 @@ function errorHandler(error, req, res, next) {
 
   const logMeta = {
     status,
-    path: req.originalUrl,
+    path: redactUrl(req.originalUrl),
     method: req.method,
     errorMessage: error.message,
     errorCode: error.code,

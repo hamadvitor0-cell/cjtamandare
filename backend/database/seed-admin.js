@@ -4,23 +4,26 @@ const Admin = require("../models/admin.model");
 const { pool } = require("./pool");
 
 async function run() {
-  if (!config.adminEmail || !config.adminPassword) {
-    throw new Error("Defina ADMIN_EMAIL e ADMIN_PASSWORD no .env antes de criar o administrador.");
+  const code = String(config.adminRegistrationCode || "").replace(/\D/g, "");
+  if (!code) {
+    throw new Error("Defina ADMIN_REGISTRATION_CODE com 6 digitos no .env antes de criar o administrador.");
   }
 
-  if (config.adminPassword.length < 12) {
-    throw new Error("ADMIN_PASSWORD deve ter pelo menos 12 caracteres.");
+  if (!/^\d{6}$/.test(code)) {
+    throw new Error("ADMIN_REGISTRATION_CODE deve ter exatamente 6 digitos.");
   }
 
-  const passwordHash = await bcrypt.hash(config.adminPassword, 12);
+  const registrationCodeHash = await bcrypt.hash(code, 12);
   const admin = await Admin.createAdmin({
     name: config.adminName,
+    username: config.adminUsername,
     email: config.adminEmail,
-    passwordHash,
+    passwordHash: registrationCodeHash,
+    registrationCodeHash,
     role: "master"
   });
 
-  console.log(`Administrador pronto: ${admin.email}`);
+  console.log(`Administrador pronto: ${admin.username || "master"}`);
 }
 
 run()
