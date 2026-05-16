@@ -83,7 +83,7 @@ config.isProduction = config.nodeEnv === "production";
 config.hasDatabase = Boolean(config.databaseUrl) && !config.useMemoryStore;
 
 if (config.isProduction && !config.hasDatabase) {
-  throw new Error("DATABASE_URL é obrigatório em produção.");
+  console.warn("[database] DATABASE_URL ausente em produção. Usando armazenamento em memória temporário.");
 }
 
 module.exports = config;
