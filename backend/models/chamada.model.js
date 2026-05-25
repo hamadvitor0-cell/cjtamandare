@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const db = require("../database/pool");
+const ensureAttendanceColumns = require("../database/ensure-attendance-columns");
 const Aluno = require("./aluno.model");
 
 const memoryChamadas = [];
@@ -33,6 +34,7 @@ async function getByOficinaAndDate(oficinaId, data) {
     };
   }
 
+  await ensureAttendanceColumns();
   await Aluno.syncFromInscricoes({ oficinaId });
 
   const chamadaResult = await db.query(
@@ -106,6 +108,7 @@ async function save(payload) {
     return getByOficinaAndDate(payload.oficinaId, payload.data);
   }
 
+  await ensureAttendanceColumns();
   const client = await db.pool.connect();
   try {
     await client.query("BEGIN");
@@ -154,6 +157,7 @@ async function history(filters = {}) {
       }));
   }
 
+  await ensureAttendanceColumns();
   const params = [];
   const where = [];
   if (filters.oficinaId) {

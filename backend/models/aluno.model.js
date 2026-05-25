@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const db = require("../database/pool");
+const ensureAttendanceColumns = require("../database/ensure-attendance-columns");
 const { normalizeCpf } = require("../utils/cpf");
 
 const memory = [];
@@ -92,6 +93,8 @@ async function findAll(filters = {}) {
       .sort((a, b) => a.nome.localeCompare(b.nome))
       .map(toPublic);
   }
+
+  await ensureAttendanceColumns();
 
   const where = [];
   const params = [];
