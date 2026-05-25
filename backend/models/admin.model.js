@@ -80,6 +80,7 @@ function seedMemoryAdmin() {
 async function ensureAdminTable() {
   if (ensured || !db.hasDatabase) return;
   if (!ensurePromise) {
+    // Constraint and index maintenance belongs to migrations, not first-request startup.
     ensurePromise = db.query(`
       SELECT pg_advisory_xact_lock(${setupLockId});
       CREATE TABLE IF NOT EXISTS admins (
@@ -100,10 +101,6 @@ async function ensureAdminTable() {
       ALTER TABLE admins ALTER COLUMN email DROP NOT NULL;
       ALTER TABLE admins ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
       ALTER TABLE admins ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
-      ALTER TABLE admins DROP CONSTRAINT IF EXISTS admins_role_check;
-      ALTER TABLE admins ADD CONSTRAINT admins_role_check CHECK (role IN ('master', 'admin'));
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_username ON admins (username) WHERE username IS NOT NULL AND username <> '';
-      CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);
     `)
       .then(() => {
         ensured = true;
