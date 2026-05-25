@@ -79,7 +79,7 @@ export const galleryItems = [
     caption: "Oficinas disponíveis"
   },
   {
-    src: "/img/logo.jpg",
+    src: "/img/LOGO_CJ.png",
     alt: "Logo oficial do Centro da Juventude Almirante Tamandaré",
     caption: "Identidade oficial"
   }

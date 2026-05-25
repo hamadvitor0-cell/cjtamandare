@@ -48,7 +48,7 @@ function applyColorVars(primary, secondary, accent) {
   });
 }
 
-export function applyLogoPalette(src = "/img/logo.jpg") {
+export function applyLogoPalette(src = "/img/LOGO_CJ.png") {
   const image = new Image();
   image.src = src;
 
