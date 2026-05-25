@@ -5,6 +5,9 @@ const config = require("../config/env");
 
 const memoryAdmins = [];
 let ensured = false;
+let ensurePromise = null;
+// Shared with database bootstrapping so request-time schema checks cannot race migrations.
+const setupLockId = 20260509;
 
 function toAdmin(row) {
   if (!row) return null;
@@ -76,31 +79,40 @@ function seedMemoryAdmin() {
 
 async function ensureAdminTable() {
   if (ensured || !db.hasDatabase) return;
-  ensured = true;
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS admins (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      name TEXT NOT NULL CHECK (char_length(name) BETWEEN 2 AND 120),
-      username TEXT UNIQUE CHECK (username IS NULL OR username ~ '^[a-zA-Z0-9._-]{3,40}$'),
-      email TEXT UNIQUE,
-      password_hash TEXT NOT NULL,
-      registration_code_hash TEXT,
-      role TEXT NOT NULL DEFAULT 'admin',
-      active BOOLEAN NOT NULL DEFAULT TRUE,
-      last_login_at TIMESTAMPTZ,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-    ALTER TABLE admins ADD COLUMN IF NOT EXISTS username TEXT;
-    ALTER TABLE admins ADD COLUMN IF NOT EXISTS registration_code_hash TEXT;
-    ALTER TABLE admins ALTER COLUMN email DROP NOT NULL;
-    ALTER TABLE admins ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
-    ALTER TABLE admins ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
-    ALTER TABLE admins DROP CONSTRAINT IF EXISTS admins_role_check;
-    ALTER TABLE admins ADD CONSTRAINT admins_role_check CHECK (role IN ('master', 'admin'));
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_username ON admins (username) WHERE username IS NOT NULL AND username <> '';
-    CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);
-  `);
+  if (!ensurePromise) {
+    ensurePromise = db.query(`
+      SELECT pg_advisory_xact_lock(${setupLockId});
+      CREATE TABLE IF NOT EXISTS admins (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL CHECK (char_length(name) BETWEEN 2 AND 120),
+        username TEXT UNIQUE CHECK (username IS NULL OR username ~ '^[a-zA-Z0-9._-]{3,40}$'),
+        email TEXT UNIQUE,
+        password_hash TEXT NOT NULL,
+        registration_code_hash TEXT,
+        role TEXT NOT NULL DEFAULT 'admin',
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        last_login_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      ALTER TABLE admins ADD COLUMN IF NOT EXISTS username TEXT;
+      ALTER TABLE admins ADD COLUMN IF NOT EXISTS registration_code_hash TEXT;
+      ALTER TABLE admins ALTER COLUMN email DROP NOT NULL;
+      ALTER TABLE admins ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
+      ALTER TABLE admins ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+      ALTER TABLE admins DROP CONSTRAINT IF EXISTS admins_role_check;
+      ALTER TABLE admins ADD CONSTRAINT admins_role_check CHECK (role IN ('master', 'admin'));
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_username ON admins (username) WHERE username IS NOT NULL AND username <> '';
+      CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);
+    `)
+      .then(() => {
+        ensured = true;
+      })
+      .finally(() => {
+        ensurePromise = null;
+      });
+  }
+  await ensurePromise;
   if (config.adminEmail || config.adminRegistrationCode) {
     const registrationCodeHash = masterSeedCode()
       ? await hashRegistrationCode(masterSeedCode())
