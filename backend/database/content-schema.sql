@@ -181,6 +181,9 @@ CREATE TABLE IF NOT EXISTS presencas (
   UNIQUE (chamada_id, aluno_id)
 );
 
+ALTER TABLE chamadas ADD COLUMN IF NOT EXISTS observacoes TEXT;
+ALTER TABLE presencas ADD COLUMN IF NOT EXISTS observacao TEXT;
+
 CREATE TABLE IF NOT EXISTS bolsistas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome TEXT NOT NULL CHECK (char_length(nome) BETWEEN 3 AND 120),

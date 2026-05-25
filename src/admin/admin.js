@@ -74,7 +74,7 @@ async function secureRequest(path, options = {}) {
   const result = await secureApiRequest(path, options);
   const method = String(options.method || "GET").toUpperCase();
   if (method !== "GET" && path !== "/auth/logout") {
-    showToast(result?.message || "AlteraÃ§Ã£o salva com sucesso.", "success");
+    showToast(result?.message || "Alteração salva com sucesso.", "success");
   }
   return result;
 }
@@ -83,11 +83,11 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 
 const dayLabels = {
   segunda: "Segunda",
-  terca: "TerÃ§a",
+  terca: "Terça",
   quarta: "Quarta",
   quinta: "Quinta",
   sexta: "Sexta",
-  sabado: "SÃ¡bado",
+  sabado: "Sábado",
   domingo: "Domingo"
 };
 
@@ -101,7 +101,7 @@ function formatPeriod(period = "a definir") {
     vespertino: "Vespertino",
     noturno: "Noturno",
     integral: "Integral",
-    "a definir": "PerÃ­odo a definir"
+    "a definir": "Período a definir"
   };
   return labels[period] || period;
 }
@@ -170,8 +170,8 @@ const pageTitle = document.querySelector("[data-page-title]");
 const pageTitles = {
   dashboard: "Dashboard",
   "ia-adm": "IA ADM",
-  automacao: "AutomaÃ§Ã£o",
-  relatorios: "RelatÃ³rios",
+  automacao: "Automação",
+  relatorios: "Relatórios",
   inscritos: "Inscritos",
   oficinas: "Oficinas",
   galeria: "Galeria",
@@ -179,7 +179,7 @@ const pageTitles = {
   depoimentos: "Depoimentos",
   alunos: "Alunos",
   bolsistas: "Bolsistas",
-  calendario: "CalendÃ¡rio",
+  calendario: "Calendário",
   chamada: "Chamada",
   "usuarios-adm": "ADMs",
   logs: "Logs"
@@ -281,7 +281,7 @@ function setupTheme() {
     button?.setAttribute("aria-label", theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro");
     button?.setAttribute("aria-pressed", String(theme === "dark"));
     const icon = button?.querySelector("[aria-hidden='true']");
-    if (icon) icon.textContent = theme === "dark" ? "â˜€" : "â—";
+    if (icon) icon.textContent = theme === "dark" ? "\u2600" : "\u25d0";
   }
 
   apply(initial);
@@ -500,7 +500,7 @@ function renderDashboard(dashboard) {
   const max = Math.max(...porOficina.map((item) => item.total), 1);
 
   if (!porOficina.length) {
-    chart.append(createElement("p", { className: "form-feedback", text: "Ainda nÃ£o hÃ¡ inscriÃ§Ãµes registradas." }));
+    chart.append(createElement("p", { className: "form-feedback", text: "Ainda não há inscrições registradas." }));
   } else {
     porOficina.forEach((item) => {
       const row = createElement("div", { className: "bar-row" });
@@ -519,13 +519,13 @@ function renderDashboard(dashboard) {
   recent.replaceChildren();
   const recentes = dashboard.recentes || [];
   if (!recentes.length) {
-    recent.append(createElement("p", { className: "form-feedback", text: "Sem inscriÃ§Ãµes recentes." }));
+    recent.append(createElement("p", { className: "form-feedback", text: "Sem inscrições recentes." }));
   } else {
     recentes.forEach((item) => {
       const node = createElement("article", { className: "recent-item" });
       node.append(
         createElement("strong", { text: item.nome }),
-        createElement("span", { text: `${item.oficina} Â· ${formatDate(item.created_at)}` })
+        createElement("span", { text: `${item.oficina} · ${formatDate(item.created_at)}` })
       );
       recent.append(node);
     });
@@ -556,10 +556,10 @@ function automationMessages(person) {
   const faltas = Number(person.faltasUltimos30Dias || 0);
 
   return {
-    documentos: `OlÃ¡, ${name}! Para concluir sua matrÃ­cula no Centro da Juventude, precisamos regularizar documentos pendentes do cadastro. Em caso de dÃºvida, responda esta mensagem.`,
-    faltas: `OlÃ¡, ${name}! Identificamos ${faltas} falta(s) recente(s) em ${oficinas}. Procure a equipe para justificar ou regularizar a frequÃªncia.`,
-    listaEspera: `OlÃ¡, ${name}! VocÃª esta em lista de espera para ${lista || oficinas}. A equipe avisarÃ¡ quando houver vaga disponÃ­vel.`,
-    contato: `OlÃ¡, ${name}! Estamos entrando em contato pelo Centro da Juventude sobre seu cadastro em ${oficinas}.`
+    documentos: `Olá, ${name}! Para concluir sua matrícula no Centro da Juventude, precisamos regularizar documentos pendentes do cadastro. Em caso de dúvida, responda esta mensagem.`,
+    faltas: `Olá, ${name}! Identificamos ${faltas} falta(s) recente(s) em ${oficinas}. Procure a equipe para justificar ou regularizar a frequência.`,
+    listaEspera: `Olá, ${name}! Você esta em lista de espera para ${lista || oficinas}. A equipe avisará quando houver vaga disponível.`,
+    contato: `Olá, ${name}! Estamos entrando em contato pelo Centro da Juventude sobre seu cadastro em ${oficinas}.`
   };
 }
 
@@ -573,28 +573,28 @@ function automationQueues() {
     {
       key: "documentos",
       title: "Documentos pendentes",
-      description: "Cadastros sem documentos anexados ou com pendÃªncia marcada.",
+      description: "Cadastros sem documentos anexados ou com pendência marcada.",
       people: people.filter((person) => Boolean(person.documentosPendentes || Number(person.documentosCount || 0) === 0)),
       message: (person) => automationMessages(person).documentos
     },
     {
       key: "faltas",
       title: "Alerta de faltas",
-      description: "Alunos com mais de duas faltas nos Ãºltimos 30 dias.",
+      description: "Alunos com mais de duas faltas nos últimos 30 dias.",
       people: people.filter((person) => Number(person.faltasUltimos30Dias || 0) > 2),
       message: (person) => automationMessages(person).faltas
     },
     {
       key: "listaEspera",
       title: "Lista de espera",
-      description: "InscriÃ§Ãµes aguardando vaga em uma ou mais oficinas.",
+      description: "Inscrições aguardando vaga em uma ou mais oficinas.",
       people: people.filter((person) => waitlistOficinas(person).length > 0),
       message: (person) => automationMessages(person).listaEspera
     },
     {
       key: "semTelefone",
-      title: "Sem telefone vÃ¡lido",
-      description: "Cadastros que precisam de revisÃ£o antes do contato por WhatsApp.",
+      title: "Sem telefone válido",
+      description: "Cadastros que precisam de revisão antes do contato por WhatsApp.",
       people: people.filter((person) => !hasPhone(person)),
       message: (person) => automationMessages(person).contato
     }
@@ -602,9 +602,9 @@ function automationQueues() {
 }
 
 function automationDetail(person, queueKey) {
-  if (queueKey === "faltas") return `${person.faltasUltimos30Dias || 0} faltas nos Ãºltimos 30 dias`;
+  if (queueKey === "faltas") return `${person.faltasUltimos30Dias || 0} faltas nos últimos 30 dias`;
   if (queueKey === "listaEspera") return `Lista: ${waitlistOficinas(person).join(", ")}`;
-  if (queueKey === "documentos") return Number(person.documentosCount || 0) ? "PendÃªncia marcada na ficha" : "Sem documento anexado";
+  if (queueKey === "documentos") return Number(person.documentosCount || 0) ? "Pendência marcada na ficha" : "Sem documento anexado";
   return "Revisar telefone antes do contato";
 }
 
@@ -763,7 +763,7 @@ function renderReports() {
   const metrics = [
     ["Cadastros filtrados", people.length],
     ["Com documentos", withDocs.length],
-    ["PendÃªncia de docs", docsMissing.length],
+    ["Pendência de docs", docsMissing.length],
     ["Alertas de falta", absences.length],
     ["Lista de espera", waitlist.length],
     ["Bolsistas ativos", activeBolsistas.length]
@@ -796,9 +796,9 @@ function renderReports() {
 
   grid.replaceChildren(
     peopleCard("Documentos pendentes", "Prioridade para conferir ou cobrar por WhatsApp manual.", docsMissing),
-    peopleCard("Faltas acima do limite", "Alunos com mais de 2 faltas nos Ãºltimos 30 dias.", absences),
+    peopleCard("Faltas acima do limite", "Alunos com mais de 2 faltas nos últimos 30 dias.", absences),
     peopleCard("Lista de espera", "Cadastros que precisam de retorno quando houver vaga.", waitlist),
-    peopleCard("Com documentos anexados", "Cadastros disponÃ­veis para baixar em ZIP.", withDocs, "Ver documentos"),
+    peopleCard("Com documentos anexados", "Cadastros disponíveis para baixar em ZIP.", withDocs, "Ver documentos"),
     eventCard
   );
 }
@@ -840,7 +840,7 @@ function renderTable() {
       createElement("td", { text: item.idade === "" || item.idade === undefined ? "-" : String(item.idade) }),
       createElement("td", { text: item.telefone || "-" }),
       createElement("td", { text: item.oficina || "-" }),
-      createElement("td", { text: item.sourceSummary || (item.source === "aluno" ? "Aluno ADM" : "InscriÃ§Ã£o online") })
+      createElement("td", { text: item.sourceSummary || (item.source === "aluno" ? "Aluno ADM" : "Inscrição online") })
     );
 
     const docsCell = createElement("td");
@@ -939,7 +939,7 @@ function renderAdminUserList() {
     main.append(
       createElement("strong", { text: admin.name }),
       createElement("span", { text: `Usuario: ${admin.username || "-"}` }),
-      createElement("span", { text: `${roleLabels[admin.role] || admin.role} - ${admin.active ? "ativo" : "inativo"}${admin.last_login_at ? ` - Ãºltimo login ${formatDate(admin.last_login_at)}` : ""}` })
+      createElement("span", { text: `${roleLabels[admin.role] || admin.role} - ${admin.active ? "ativo" : "inativo"}${admin.last_login_at ? ` - último login ${formatDate(admin.last_login_at)}` : ""}` })
     );
     const actions = createElement("div", { className: "table-actions" });
     const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
@@ -1050,7 +1050,7 @@ function primaryStudentSource(person) {
 }
 
 function sourceName(source) {
-  return source === "aluno" ? "Aluno ADM" : "InscriÃ§Ã£o online";
+  return source === "aluno" ? "Aluno ADM" : "Inscrição online";
 }
 
 function oficinaStatusLabel(status) {
@@ -1092,7 +1092,7 @@ function openStudentProfile(person) {
   const sources = person.sources?.length ? person.sources : [person];
   const online = primaryOnlineSource(person);
   const student = primaryStudentSource(person);
-  const cpf = maskCpfValue(person.cpf || "") || "CPF nÃ£o informado";
+  const cpf = maskCpfValue(person.cpf || "") || "CPF não informado";
   profileDialog.classList.toggle("is-attention", Number(person.faltasUltimos30Dias || 0) > 2);
   if (profileSubtitle) {
     profileSubtitle.textContent = `${cpf} - ${person.sourceSummary || sourceName(person.primarySource || person.source)}`;
@@ -1106,19 +1106,19 @@ function openStudentProfile(person) {
   addProfileField(grid, "Data de nascimento", person.dataNascimento ? String(person.dataNascimento).slice(0, 10) : "");
   addProfileField(grid, "Bairro", person.bairro);
   addProfileField(grid, "Telefone", person.telefone);
-  addProfileField(grid, "ResponsÃ¡vel", person.responsavel);
+  addProfileField(grid, "Responsável", person.responsavel);
   addProfileField(grid, "Contato do responsavel", person.contatoResponsavel);
   addProfileField(grid, "E-mail", person.email);
   addProfileField(grid, "Status", person.status || "inscrito");
-  addProfileField(grid, "Faltas nos Ãºltimos 30 dias", String(person.faltasUltimos30Dias || 0));
-  addProfileField(grid, "Documentos", person.documentosPendentes ? "Faltando" : "Sem pendÃªncias marcadas");
+  addProfileField(grid, "Faltas nos últimos 30 dias", String(person.faltasUltimos30Dias || 0));
+  addProfileField(grid, "Documentos", person.documentosPendentes ? "Faltando" : "Sem pendências marcadas");
   addProfileField(grid, "Primeiro cadastro", formatDate(person.created_at));
   summary.append(grid);
   if (person.fichaAlerta) {
     summary.append(createElement("p", { className: "form-feedback is-error", text: person.fichaAlerta }));
   }
 
-  const officesSection = makeProfileSection("Oficinas e matrÃ­culas");
+  const officesSection = makeProfileSection("Oficinas e matrículas");
   const timeline = createElement("div", { className: "profile-timeline" });
   const detalhes = person.oficinaDetalhes?.length
     ? person.oficinaDetalhes
@@ -1190,7 +1190,7 @@ function openStudentProfile(person) {
       createElement("strong", { text: source.sourceLabel || sourceName(source.source) }),
       createElement("span", { text: source.oficina || "Sem oficina" }),
       createElement("span", { text: `Criado em ${formatDate(source.created_at)}` }),
-      createElement("span", { text: `Telefone: ${source.telefone || "nÃ£o informado"}` })
+      createElement("span", { text: `Telefone: ${source.telefone || "não informado"}` })
     );
     if (source.documentosCount) {
       item.append(createElement("span", { text: `Documentos: ${source.documentosCount}` }));
@@ -1223,7 +1223,7 @@ function openStudentProfile(person) {
   if (online) {
     const editOnlineButton = createElement("button", {
       className: "button button-secondary",
-      text: "Editar inscriÃ§Ã£o online",
+      text: "Editar inscrição online",
       attrs: { type: "button" }
     });
     editOnlineButton.addEventListener("click", () => {
@@ -1285,7 +1285,7 @@ function whatsappUrl(phone, message) {
 
 function messageTitle(key) {
   const titles = {
-    confirmacao: "ConfirmaÃ§Ã£o",
+    confirmacao: "Confirmação",
     documentos: "Documentos",
     faltas: "Faltas",
     listaEspera: "Lista de espera"
@@ -1306,18 +1306,18 @@ function renderAiAssistInto(target, result, person) {
     className: `form-feedback${result.fallback ? "" : " is-success"}`,
     text: result.aiEnabled
       ? "Resumo gerado com IA configurada."
-      : "Assistente automÃ¡tico ativo. Resumo gerado pelas regras do sistema."
+      : "Assistente automático ativo. Resumo gerado pelas regras do sistema."
   });
   const summary = createElement("section", { className: "ai-assist-section" });
   summary.append(
     createElement("h3", { text: "Resumo" }),
-    createElement("p", { text: result.summary || "NÃ£o foi possÃ­vel gerar resumo." })
+    createElement("p", { text: result.summary || "Não foi possível gerar resumo." })
   );
 
   const alerts = createElement("section", { className: "ai-assist-section" });
   alerts.append(createElement("h3", { text: "Alertas" }));
   const alertList = createElement("ul", { className: "ai-alert-list" });
-  const alertItems = result.alerts?.length ? result.alerts : ["Sem alertas automÃ¡ticos."];
+  const alertItems = result.alerts?.length ? result.alerts : ["Sem alertas automáticos."];
   alertItems.forEach((alert) => alertList.append(createElement("li", { text: alert })));
   alerts.append(alertList);
 
@@ -1436,7 +1436,7 @@ async function getStudentForPerson(person) {
 
   const oficinaIds = officeIdsForPerson(person);
   if (!oficinaIds.length) {
-    throw new Error("NÃ£o foi possÃ­vel vincular uma oficina cadastrada para criar a ficha ADM.");
+    throw new Error("Não foi possível vincular uma oficina cadastrada para criar a ficha ADM.");
   }
 
   const response = await secureRequest("/alunos", {
@@ -1477,7 +1477,7 @@ async function addWarningToStudent(person) {
     await refreshAll();
     window.alert("Advertencia registrada na ficha do aluno.");
   } catch (error) {
-    window.alert(error.message || "NÃ£o foi possÃ­vel registrar a advertÃªncia.");
+    window.alert(error.message || "Não foi possível registrar a advertência.");
   }
 }
 
@@ -1496,8 +1496,8 @@ function renderOfficeList() {
     const main = createElement("div", { className: "content-item-main" });
     main.append(
       createElement("strong", { text: oficina.nome }),
-      createElement("span", { text: `${oficina.categoria} Â· ${oficina.faixaEtaria} Â· ${formatDays(oficina.diasSemana)} Â· ${formatPeriod(oficina.periodo)}` }),
-      createElement("span", { text: `HorÃ¡rio: ${oficina.horario}` }),
+      createElement("span", { text: `${oficina.categoria} · ${oficina.faixaEtaria} · ${formatDays(oficina.diasSemana)} · ${formatPeriod(oficina.periodo)}` }),
+      createElement("span", { text: `Horário: ${oficina.horario}` }),
       createElement("span", { text: `Capacidade: ${oficina.capacidade || 30} vagas` }),
       createElement("span", { text: oficina.ativo ? "Ativa no site" : "Inativa" })
     );
@@ -1544,7 +1544,7 @@ function editOffice(oficina) {
 }
 
 async function deleteOffice(oficina) {
-  if (!window.confirm(`Excluir a oficina ${oficina.nome}? Alunos vinculados ficarÃ£o sem oficina.`)) return;
+  if (!window.confirm(`Excluir a oficina ${oficina.nome}? Alunos vinculados ficarão sem oficina.`)) return;
   await secureRequest(`/admin/oficinas/${oficina.id}`, { method: "DELETE" });
   await loadManagedContent();
   await refreshAll();
@@ -1627,7 +1627,7 @@ function renderGalleryList() {
       createElement("strong", { text: image.titulo }),
       createElement("span", { text: image.descricao || image.imagemUrl }),
       createElement("span", { text: image.hasUploadedFile ? `Arquivo: ${image.originalName || "imagem enviada"}` : "Origem: URL" }),
-      createElement("span", { text: image.ativo ? `Ativa Â· ordem ${image.ordem}` : `Inativa Â· ordem ${image.ordem}` })
+      createElement("span", { text: image.ativo ? `Ativa · ordem ${image.ordem}` : `Inativa · ordem ${image.ordem}` })
     );
     const actions = createElement("div", { className: "content-actions" });
     const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
@@ -1775,7 +1775,7 @@ function renderTestimonialList() {
     main.append(
       createElement("strong", { text: itemData.nome }),
       createElement("span", { text: itemData.texto || "Sem depoimento." }),
-      createElement("span", { text: [itemData.vinculo, itemData.oficina].filter(Boolean).join(" Â· ") || "Sem vÃ­nculo informado" }),
+      createElement("span", { text: [itemData.vinculo, itemData.oficina].filter(Boolean).join(" · ") || "Sem vínculo informado" }),
       createElement("span", { text: itemData.ativo ? `Ativo - ordem ${itemData.ordem}` : `Inativo - ordem ${itemData.ordem}` })
     );
     const actions = createElement("div", { className: "content-actions" });
@@ -2156,12 +2156,12 @@ function renderAttendanceRows(payload) {
     const header = createElement("header");
     header.append(
       createElement("strong", { text: aluno.nome }),
-      createElement("span", { text: aluno.responsavel ? `ResponsÃ¡vel: ${aluno.responsavel}` : aluno.telefone || "Sem telefone" })
+      createElement("span", { text: aluno.responsavel ? `Responsável: ${aluno.responsavel}` : aluno.telefone || "Sem telefone" })
     );
 
     const controls = createElement("div", { className: "attendance-status" });
     const statusLabel = createElement("label");
-    statusLabel.append(createElement("span", { text: "PresenÃ§a" }));
+    statusLabel.append(createElement("span", { text: "Presença" }));
     const status = createElement("select", { attrs: { "data-presence-status": aluno.id } });
     ["presente", "ausente", "justificado"].forEach((option) => {
       status.append(createElement("option", {
@@ -2173,7 +2173,7 @@ function renderAttendanceRows(payload) {
     statusLabel.append(status);
 
     const obsLabel = createElement("label");
-    obsLabel.append(createElement("span", { text: "ObservaÃ§Ã£o" }));
+    obsLabel.append(createElement("span", { text: "Observação" }));
     obsLabel.append(createElement("input", {
       attrs: {
         type: "text",
@@ -2203,8 +2203,8 @@ function renderAttendanceHistory(chamadas) {
     const item = createElement("article", { className: "content-item" });
     const main = createElement("div", { className: "content-item-main" });
     main.append(
-      createElement("strong", { text: `${chamada.oficina || "Oficina"} Â· ${chamada.data}` }),
-      createElement("span", { text: `Presentes: ${chamada.presentes} Â· Ausentes: ${chamada.ausentes} Â· Justificados: ${chamada.justificados}` }),
+      createElement("strong", { text: `${chamada.oficina || "Oficina"} · ${chamada.data}` }),
+      createElement("span", { text: `Presentes: ${chamada.presentes} · Ausentes: ${chamada.ausentes} · Justificados: ${chamada.justificados}` }),
       createElement("span", { text: chamada.observacoes || "" })
     );
     item.append(main);
@@ -2242,17 +2242,17 @@ function openEdit(item) {
 
 function validateInscricao(data) {
   if (!data.nome || data.nome.trim().length < 3) return "Informe o nome completo.";
-  if (data.cpf && !isValidCpf(data.cpf)) return "Informe um CPF vÃ¡lido.";
+  if (data.cpf && !isValidCpf(data.cpf)) return "Informe um CPF válido.";
   const idade = Number(data.idade);
-  if (!Number.isInteger(idade) || idade < 0 || idade > 120) return "Informe uma idade vÃ¡lida.";
-  if (!/^[0-9()+\-\s]{10,20}$/.test(data.telefone || "")) return "Informe um telefone vÃ¡lido.";
+  if (!Number.isInteger(idade) || idade < 0 || idade > 120) return "Informe uma idade válida.";
+  if (!/^[0-9()+\-\s]{10,20}$/.test(data.telefone || "")) return "Informe um telefone válido.";
   if (!data.oficinas?.length) return "Selecione pelo menos uma oficina.";
-  if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return "Informe um e-mail vÃ¡lido.";
+  if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return "Informe um e-mail válido.";
   return "";
 }
 
 async function removeInscricao(item) {
-  const confirmed = window.confirm(`Excluir a inscriÃ§Ã£o de ${item.nome}?`);
+  const confirmed = window.confirm(`Excluir a inscrição de ${item.nome}?`);
   if (!confirmed) return;
   await secureRequest(`/inscricoes/${item.id}`, { method: "DELETE" });
   await refreshAll();
@@ -2274,13 +2274,13 @@ async function openDocuments(item) {
       const data = await apiRequest(`/inscricoes/${source.sourceId}/documentos`);
       documentos.push(...(data.documentos || []).map((documento) => ({
         ...documento,
-        sourceLabel: source.sourceLabel || "InscriÃ§Ã£o online"
+        sourceLabel: source.sourceLabel || "Inscrição online"
       })));
     }
     documentsList.replaceChildren();
 
     if (!documentos.length) {
-      documentsList.append(createElement("p", { className: "form-feedback", text: "Nenhum documento anexado nesta inscriÃ§Ã£o." }));
+      documentsList.append(createElement("p", { className: "form-feedback", text: "Nenhum documento anexado nesta inscrição." }));
       return;
     }
 
@@ -2347,11 +2347,11 @@ function setupEvents() {
         await loadAdminData();
       } catch (error) {
         if (error.status !== 401 && error.status !== 403) {
-          setFeedback(loginFeedback, `Login realizado, mas alguns dados do painel nÃ£o carregaram: ${error.message}`, "error");
+          setFeedback(loginFeedback, `Login realizado, mas alguns dados do painel não carregaram: ${error.message}`, "error");
           return;
         }
         showLogin();
-        setFeedback(loginFeedback, "Login aceito, mas a sessÃ£o nÃ£o foi mantida. Acesse pelo mesmo domÃ­nio da API e tente novamente.", "error");
+        setFeedback(loginFeedback, "Login aceito, mas a sessão não foi mantida. Acesse pelo mesmo domínio da API e tente novamente.", "error");
       }
     } catch (error) {
       setFeedback(loginFeedback, error.message, "error");
@@ -2733,7 +2733,7 @@ function setupEvents() {
     data.documentosPendentes = Boolean(form.elements.documentosPendentes?.checked);
     data.documentosLinks = textareaToLinks(data.documentosLinks);
     if (data.cpf && !isValidCpf(data.cpf)) {
-      setFeedback(feedback, "Informe um CPF vÃ¡lido.", "error");
+      setFeedback(feedback, "Informe um CPF válido.", "error");
       return;
     }
     const id = data.id;
@@ -2761,7 +2761,7 @@ function setupEvents() {
     data.diasSemana = checkedValues(form, "diasSemana");
     data.idade = Number(data.idade || 0);
     if (data.cpf && !isValidCpf(data.cpf)) {
-      setFeedback(feedback, "Informe um CPF vÃ¡lido.", "error");
+      setFeedback(feedback, "Informe um CPF válido.", "error");
       return;
     }
     if (!Number.isInteger(data.idade) || data.idade < 14 || data.idade > 24) {
@@ -2769,7 +2769,7 @@ function setupEvents() {
       return;
     }
     if (data.diasSemana.length > 2) {
-      setFeedback(feedback, "Selecione no mÃ¡ximo 2 dias de trabalho para o bolsista.", "error");
+      setFeedback(feedback, "Selecione no máximo 2 dias de trabalho para o bolsista.", "error");
       return;
     }
     const id = data.id;
