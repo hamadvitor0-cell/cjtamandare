@@ -15,6 +15,8 @@ function csrfCookieOptions() {
 function issueCsrfToken(req, res) {
   const token = crypto.randomBytes(32).toString("hex");
   res.cookie("csrf_token", token, csrfCookieOptions());
+  res.set("Cache-Control", "private, no-store");
+  res.set("Pragma", "no-cache");
   res.json({ csrfToken: token });
 }
 
@@ -22,7 +24,13 @@ function requireCsrf(req, res, next) {
   const cookieToken = req.signedCookies.csrf_token;
   const headerToken = req.get("X-CSRF-Token");
 
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+  const cookieBuffer = Buffer.from(String(cookieToken || ""), "utf8");
+  const headerBuffer = Buffer.from(String(headerToken || ""), "utf8");
+  const valid = Boolean(cookieToken && headerToken)
+    && cookieBuffer.length === headerBuffer.length
+    && crypto.timingSafeEqual(cookieBuffer, headerBuffer);
+
+  if (!valid) {
     return res.status(403).json({ message: "Requisição recusada por validação de segurança." });
   }
 

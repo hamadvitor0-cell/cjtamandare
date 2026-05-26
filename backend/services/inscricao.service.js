@@ -2,7 +2,7 @@ const Inscricao = require("../models/inscricao.model");
 const Aluno = require("../models/aluno.model");
 const Oficina = require("../models/oficina.model");
 const db = require("../database/pool");
-const { maskCpf, normalizeCpf } = require("../utils/cpf");
+const { normalizeCpf } = require("../utils/cpf");
 
 function asTimestamp(value) {
   return value ? new Date(value).getTime() : 0;
@@ -17,13 +17,11 @@ function alunoToInscricaoRows(aluno) {
     sourceId: aluno.id,
     nome: aluno.nome,
     cpf: aluno.cpf || "",
+    dataNascimento: aluno.dataNascimento || aluno.data_nascimento || "",
     idade: aluno.idade === "" ? "" : Number(aluno.idade),
-    dataNascimento: aluno.dataNascimento || "",
     telefone: aluno.telefone || "",
     responsavel: aluno.responsavel || "",
-    contatoResponsavel: aluno.contatoResponsavel || "",
     email: aluno.email || "",
-    bairro: aluno.bairro || "",
     oficina: oficinas.join(", "),
     oficinas,
     oficinaDetalhes: aluno.oficinaDetalhes || oficinas.map((oficina) => ({
@@ -34,9 +32,6 @@ function alunoToInscricaoRows(aluno) {
     advertencias: aluno.advertencias || "",
     historicoOficinas: aluno.historicoOficinas || "",
     documentosPendentes: aluno.documentosPendentes || false,
-    documentosLinks: aluno.documentosLinks || [],
-    condicaoSaude: aluno.condicaoSaude || "",
-    fichaAlerta: aluno.fichaAlerta || "",
     faltasUltimos30Dias: Number(aluno.faltasUltimos30Dias || 0),
     ultimasChamadas: aluno.ultimasChamadas || [],
     observacoes: aluno.observacoes || "",
@@ -64,13 +59,11 @@ function sourceRecord(row) {
     id: row.id,
     nome: row.nome,
     cpf: row.cpf || "",
+    dataNascimento: row.dataNascimento || row.data_nascimento || "",
     idade: row.idade,
     telefone: row.telefone || "",
     responsavel: row.responsavel || "",
-    contatoResponsavel: row.contatoResponsavel || "",
     email: row.email || "",
-    dataNascimento: row.dataNascimento || "",
-    bairro: row.bairro || "",
     oficinas,
     oficina: oficinas.join(", "),
     oficinaDetalhes: row.oficinaDetalhes || oficinas.map((oficina) => ({
@@ -85,9 +78,6 @@ function sourceRecord(row) {
     advertencias: row.advertencias || "",
     historicoOficinas: row.historicoOficinas || "",
     documentosPendentes: row.documentosPendentes || false,
-    documentosLinks: row.documentosLinks || [],
-    condicaoSaude: row.condicaoSaude || "",
-    fichaAlerta: row.fichaAlerta || "",
     faltasUltimos30Dias: Number(row.faltasUltimos30Dias || 0),
     ultimasChamadas: row.ultimasChamadas || [],
     listaEspera: row.listaEspera || [],
@@ -136,13 +126,11 @@ function personRows(rows) {
       alunoId: aluno?.sourceId || "",
       nome: primary.nome,
       cpf: primary.cpf,
+      dataNascimento: primary.dataNascimento || "",
       idade: primary.idade,
-      dataNascimento: primary.dataNascimento,
       telefone: uniqueValues(sources.map((item) => item.telefone)).join(" / "),
       responsavel: uniqueValues(sources.map((item) => item.responsavel)).join(" / "),
-      contatoResponsavel: uniqueValues(sources.map((item) => item.contatoResponsavel)).join(" / "),
       email: uniqueValues(sources.map((item) => item.email)).join(" / "),
-      bairro: uniqueValues(sources.map((item) => item.bairro)).join(" / "),
       oficina: oficinas.join(", "),
       oficinas,
       oficinaDetalhes,
@@ -155,9 +143,6 @@ function personRows(rows) {
       advertencias: aluno?.advertencias || "",
       historicoOficinas: aluno?.historicoOficinas || "",
       documentosPendentes: aluno?.documentosPendentes || false,
-      documentosLinks: uniqueValues(sources.flatMap((item) => item.documentosLinks || [])),
-      condicaoSaude: uniqueValues(sources.map((item) => item.condicaoSaude)).join("\n\n"),
-      fichaAlerta: uniqueValues(sources.map((item) => item.fichaAlerta)).join("\n\n"),
       faltasUltimos30Dias: Number(aluno?.faltasUltimos30Dias || 0),
       fichaAlerta: Number(aluno?.faltasUltimos30Dias || 0) > 2,
       ultimasChamadas: aluno?.ultimasChamadas || [],
@@ -218,83 +203,6 @@ function uniquePersonRows(rows) {
   });
 }
 
-function publicName(value) {
-  const parts = String(value || "").trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return "";
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[parts.length - 1].slice(0, 1).toUpperCase()}.`;
-}
-
-function publicStatusLabel(status) {
-  return status === "lista_espera" ? "Lista de espera" : "Confirmada";
-}
-
-function uniquePublicDetails(person) {
-  const detalhes = person.oficinaDetalhes?.length
-    ? person.oficinaDetalhes
-    : (person.oficinas || [person.oficina].filter(Boolean)).map((oficina) => ({
-      oficina,
-      status: person.status === "lista_espera" ? "lista_espera" : "confirmada",
-      createdAt: person.created_at
-    }));
-
-  const byOffice = new Map();
-  detalhes.forEach((detail) => {
-    if (!detail.oficina) return;
-    const current = byOffice.get(detail.oficina);
-    if (!current || asTimestamp(detail.updatedAt || detail.createdAt) >= asTimestamp(current.updatedAt || current.createdAt)) {
-      byOffice.set(detail.oficina, detail);
-    }
-  });
-
-  return Array.from(byOffice.values());
-}
-
-function publicStatusFromPerson(person) {
-  const detalhes = uniquePublicDetails(person);
-  const documentosPendentes = Boolean(person.documentosPendentes || Number(person.documentosCount || 0) === 0);
-  const hasWaitlist = detalhes.some((detail) => detail.status === "lista_espera");
-  const ultimasChamadas = (person.ultimasChamadas || [])
-    .slice(0, 8)
-    .map((call) => ({
-      oficina: call.oficina || "Oficina",
-      data: call.data || call.data_chamada || "",
-      status: call.status || "",
-      observacao: call.observacao || ""
-    }));
-  const aulasUltimos30Dias = ultimasChamadas.filter((call) => {
-    const date = new Date(`${String(call.data).slice(0, 10)}T12:00:00Z`);
-    if (Number.isNaN(date.getTime())) return false;
-    const limit = new Date();
-    limit.setDate(limit.getDate() - 30);
-    return date >= limit;
-  });
-  const oficinas = detalhes.map((detail) => ({
-    oficina: detail.oficina,
-    situacao: publicStatusLabel(detail.status),
-    dataInscricao: detail.createdAt || detail.created_at || person.created_at
-  }));
-
-  return {
-    encontrado: true,
-    nomeParcial: publicName(person.nome),
-    cpf: maskCpf(person.cpf),
-    situacao: hasWaitlist ? "Lista de espera" : documentosPendentes ? "Documentos pendentes" : "Confirmada",
-    oficinas,
-    documentosPendentes,
-    documentos: documentosPendentes
-      ? "Documentos pendentes ou ainda não conferidos pela equipe."
-      : "Sem pendencias marcadas no cadastro.",
-    frequencia: {
-      faltasUltimos30Dias: Number(person.faltasUltimos30Dias || 0),
-      aulasUltimos30Dias,
-      ultimasChamadas
-    },
-    dataInscricao: person.created_at,
-    ultimaAtualizacao: person.updated_at
-  };
-}
-
 async function syncCreatedInscricaoToAluno(inscricao) {
   if (!inscricao?.cpf) return;
 
@@ -318,12 +226,15 @@ async function syncCreatedInscricaoToAluno(inscricao) {
   await Aluno.create({
     nome: inscricao.nome,
     cpf: inscricao.cpf,
+    dataNascimento: inscricao.dataNascimento || "",
     idade: inscricao.idade || "",
     telefone: inscricao.telefone || "",
     responsavel: inscricao.responsavel || "",
     email: inscricao.email || "",
     oficinaIds,
     oficinaId: oficinaIds[0],
+    turmaId: inscricao.turmaId || "",
+    turmas: inscricao.turma ? [inscricao.turma] : [],
     status: "ativo",
     documentosPendentes: Number(inscricao.documentosCount || 0) === 0,
     observacoes: inscricao.observacoes || ""
@@ -338,21 +249,6 @@ async function create(data, documentos = []) {
 
 async function list(filters) {
   return filterRows(personRows(await combinedRows(filters)), filters);
-}
-
-async function publicStatusByCpf(cpfInput) {
-  const cpf = normalizeCpf(cpfInput);
-  const rows = await combinedRows({ search: cpf });
-  const person = personRows(rows).find((item) => item.cpf === cpf);
-
-  if (!person) {
-    return {
-      encontrado: false,
-      message: "Nenhuma inscricao encontrada para este CPF."
-    };
-  }
-
-  return publicStatusFromPerson(person);
 }
 
 async function update(id, data) {
@@ -403,7 +299,6 @@ module.exports = {
   update,
   remove,
   dashboard,
-  publicStatusByCpf,
   listDocuments,
   getDocument,
   documentsArchive

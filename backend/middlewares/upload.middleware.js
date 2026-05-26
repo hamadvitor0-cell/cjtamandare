@@ -101,6 +101,26 @@ function validateUploadedFiles(req, res, next) {
   return next();
 }
 
+function validateUploadedSpreadsheet(req, res, next) {
+  const file = req.file;
+  const extension = path.extname(file?.originalname || "").toLowerCase();
+  const buffer = file?.buffer;
+  let valid = Buffer.isBuffer(buffer) && buffer.length > 0;
+
+  if (valid && extension === ".xlsx") {
+    valid = buffer.length >= 4 && buffer.subarray(0, 4).toString("binary") === "PK\u0003\u0004";
+  } else if (valid && extension === ".csv") {
+    valid = !buffer.includes(0x00);
+  } else {
+    valid = false;
+  }
+
+  if (!valid) {
+    return next(uploadError("O conteúdo da planilha não corresponde ao formato informado.", 415));
+  }
+  return next();
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -143,3 +163,4 @@ module.exports.imageUpload = imageUpload;
 module.exports.spreadsheetUpload = spreadsheetUpload;
 module.exports.rejectLargeMultipart = rejectLargeMultipart;
 module.exports.validateUploadedFiles = validateUploadedFiles;
+module.exports.validateUploadedSpreadsheet = validateUploadedSpreadsheet;

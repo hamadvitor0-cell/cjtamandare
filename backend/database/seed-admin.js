@@ -20,7 +20,8 @@ async function run() {
     email: config.adminEmail,
     passwordHash: registrationCodeHash,
     registrationCodeHash,
-    role: "master"
+    role: "master",
+    overwriteExisting: true
   });
 
   console.log(`Administrador pronto: ${admin.username || "master"}`);

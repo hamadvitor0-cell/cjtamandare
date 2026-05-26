@@ -6,12 +6,12 @@
     <title>ADM | Centro da Juventude Almirante Tamandaré</title>
     <meta name="robots" content="noindex,nofollow">
     <meta name="theme-color" content="#0b4f91">
-    <link rel="icon" href="/img/LOGO_CJ.png">
+    <link rel="icon" href="/img/logo.jpg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css?v=20260511-5">
-    <link rel="stylesheet" href="/css/admin.css?v=20260511-5">
+    <link rel="stylesheet" href="/css/styles.css?v=20260525-perf1">
+    <link rel="stylesheet" href="/css/admin.css?v=20260525-perf1">
   </head>
   <body class="admin-body">
     <a class="skip-link" href="#admin-conteudo">Ir para o painel</a>
@@ -19,16 +19,16 @@
     <main id="admin-conteudo">
       <section class="admin-login" data-login-view>
         <div class="login-panel">
-          <img src="/img/LOGO_CJ.png" alt="Logo oficial do Centro da Juventude Almirante Tamandaré" width="86" height="86" data-logo>
+          <img src="/img/logo.jpg" alt="Logo oficial do Centro da Juventude Almirante Tamandaré" width="86" height="86" data-logo>
           <h1>Painel administrativo</h1>
           <p>Acesso restrito para gestão de inscrições e métricas.</p>
           <form data-login-form novalidate>
             <label>
-              <span>Usuario</span>
+              <span>Usuário</span>
               <input name="username" type="text" autocomplete="off" spellcheck="false" required>
             </label>
             <label>
-              <span>Codigo de cadastro</span>
+              <span>Código de cadastro</span>
               <input name="registrationCode" type="password" inputmode="numeric" pattern="[0-9]{6}" autocomplete="one-time-code" minlength="6" maxlength="6" required>
             </label>
             <label class="security-hp" aria-hidden="true">
@@ -45,31 +45,59 @@
       <section class="admin-shell" hidden data-admin-view>
         <aside class="admin-sidebar" aria-label="Navegação administrativa">
           <a class="brand" href="/">
-            <img src="/img/LOGO_CJ.png" alt="Logo oficial do Centro da Juventude" width="50" height="50">
+            <img src="/img/logo.jpg" alt="Logo oficial do Centro da Juventude" width="50" height="50">
             <span>
               <strong>Centro da Juventude</strong>
               <small>ADM</small>
             </span>
           </a>
           <nav data-admin-nav>
-            <a href="#dashboard" data-admin-page-link="dashboard" aria-current="page">Dashboard</a>
-            <a href="#ia-adm" data-admin-page-link="ia-adm">IA ADM</a>
-            <a href="#automacao" data-admin-page-link="automacao">Automação</a>
-            <a href="#relatorios" data-admin-page-link="relatorios">Relatórios</a>
-            <a href="#inscritos" data-admin-page-link="inscritos">Inscritos</a>
-            <a href="#oficinas" data-admin-page-link="oficinas">Oficinas</a>
-            <a href="#galeria" data-admin-page-link="galeria">Galeria</a>
-            <a href="#colaboradores" data-admin-page-link="colaboradores">Colaboradores</a>
-            <a href="#depoimentos" data-admin-page-link="depoimentos">Depoimentos</a>
-            <a href="#alunos" data-admin-page-link="alunos">Alunos</a>
-            <a href="#bolsistas" data-admin-page-link="bolsistas">Bolsistas</a>
-            <a href="#calendario" data-admin-page-link="calendario">Calendário</a>
-            <a href="#chamada" data-admin-page-link="chamada">Chamada</a>
-            <a href="#usuarios-adm" data-admin-page-link="usuarios-adm" data-master-only>ADMs</a>
-            <a href="#logs" data-admin-page-link="logs">Logs</a>
-            <a href="/admin-manual.html">Manual ADM</a>
-            <a href="/">Site público</a>
+            <div class="nav-section">
+              <span class="nav-section-title">Visão geral</span>
+              <a href="#dashboard" data-admin-page-link="dashboard" aria-current="page">Dashboard</a>
+              <a href="#graficos" data-admin-page-link="graficos">Gráficos</a>
+            </div>
+            <div class="nav-section">
+              <span class="nav-section-title">Operação</span>
+              <a href="#inscritos" data-admin-page-link="inscritos">Inscritos</a>
+              <a href="#alunos" data-admin-page-link="alunos">Alunos</a>
+              <a href="#turmas" data-admin-page-link="turmas">Turmas</a>
+              <a href="#oficinas" data-admin-page-link="oficinas">Oficinas</a>
+              <a href="#chamada" data-admin-page-link="chamada">Chamada</a>
+              <a href="#calendario" data-admin-page-link="calendario">Calendário</a>
+            </div>
+            <div class="nav-section">
+              <span class="nav-section-title">Comunicação</span>
+              <a href="#suporte" data-admin-page-link="suporte">Suporte</a>
+              <a href="#primeiro-acesso" data-admin-page-link="primeiro-acesso">Primeiro Acesso</a>
+              <a href="#mural" data-admin-page-link="mural">Mural</a>
+              <a href="#feedbacks" data-admin-page-link="feedbacks">Feedbacks</a>
+              <a href="#faq" data-admin-page-link="faq">FAQ</a>
+              <a href="#ia-adm" data-admin-page-link="ia-adm">IA ADM</a>
+            </div>
+            <div class="nav-section">
+              <span class="nav-section-title">Gestão</span>
+              <a href="#relatorios" data-admin-page-link="relatorios">Relatórios</a>
+              <a href="#bolsistas" data-admin-page-link="bolsistas">Bolsistas</a>
+            </div>
+            <div class="nav-section">
+              <span class="nav-section-title">Conteúdo</span>
+              <a href="#galeria" data-admin-page-link="galeria">Galeria</a>
+              <a href="#colaboradores" data-admin-page-link="colaboradores">Colaboradores</a>
+              <a href="#depoimentos" data-admin-page-link="depoimentos">Depoimentos</a>
+            </div>
+            <div class="nav-section">
+              <span class="nav-section-title">Sistema</span>
+              <a href="#usuarios-adm" data-admin-page-link="usuarios-adm" data-master-only>ADMs</a>
+              <a href="#logs" data-admin-page-link="logs" data-master-only>Logs</a>
+              <a href="/">Site público</a>
+            </div>
+            <div class="nav-section">
+              <span class="nav-section-title">Ajuda</span>
+              <a href="#manual" data-admin-page-link="manual">Manual ADM</a>
+            </div>
           </nav>
+          <developer-credit variant="compact"></developer-credit>
           <button class="button button-secondary sidebar-logout" type="button" data-logout>Sair</button>
         </aside>
 
@@ -80,6 +108,11 @@
               <p data-admin-name>Gestão de inscrições</p>
             </div>
             <div class="topbar-actions">
+              <div class="global-search" role="search">
+                <label class="sr-only" for="admin-global-search">Busca global no ADM</label>
+                <input id="admin-global-search" type="search" placeholder="Buscar aluno, CPF, matrícula, turma, ticket..." autocomplete="off" data-global-search>
+                <div class="global-search-results" data-global-search-results hidden></div>
+              </div>
               <button class="theme-toggle" type="button" aria-label="Alternar modo escuro" data-theme-toggle>
                 <span aria-hidden="true">◐</span>
               </button>
@@ -117,6 +150,70 @@
             </article>
           </section>
 
+          <section class="admin-panel charts-panel" id="graficos" data-admin-page="graficos" hidden>
+            <div class="panel-title table-title">
+              <div>
+                <h2>Gráficos de presença e inscrições</h2>
+                <p>Resumo por oficina com inscritos, presenças, faltas e faltas justificadas salvas nas chamadas.</p>
+              </div>
+              <button class="button button-secondary" type="button" data-refresh-charts>Atualizar gráficos</button>
+            </div>
+            <div class="charts-summary" data-charts-summary></div>
+            <div class="charts-grid" data-charts-grid></div>
+            <div class="charts-filtered-section">
+              <div class="panel-title">
+                <div>
+                  <h3>Resumo filtrado</h3>
+                  <p>Use os filtros abaixo para comparar oficinas por período e ordenar os resultados.</p>
+                </div>
+              </div>
+              <div class="filter-row charts-filter-row">
+              <label>
+                <span>Período</span>
+                <select data-chart-period-filter>
+                  <option value="geral">Geral</option>
+                  <option value="mes">Por mês</option>
+                  <option value="semana">Por semana</option>
+                </select>
+              </label>
+              <label data-chart-month-field hidden>
+                <span>Mês</span>
+                <select data-chart-month-filter>
+                  <option value="">Selecione o mês</option>
+                </select>
+              </label>
+              <label data-chart-week-field hidden>
+                <span>Semana</span>
+                <select data-chart-week-filter>
+                  <option value="">Selecione a semana</option>
+                </select>
+              </label>
+              <label>
+                <span>Ordenar por</span>
+                <select data-chart-sort-filter>
+                  <option value="inscritos_desc">Inscritos - maior para menor</option>
+                  <option value="inscritos_asc">Inscritos - menor para maior</option>
+                  <option value="frequencia_desc">Maior frequência</option>
+                  <option value="frequencia_asc">Menor frequência</option>
+                  <option value="presencas_desc">Mais presenças</option>
+                  <option value="presencas_asc">Menos presenças</option>
+                  <option value="faltas_desc">Mais faltas</option>
+                  <option value="faltas_asc">Menos faltas</option>
+                  <option value="justificadas_desc">Mais faltas justificadas</option>
+                  <option value="justificadas_asc">Menos faltas justificadas</option>
+                  <option value="chamadas_desc">Mais chamadas</option>
+                  <option value="chamadas_asc">Menos chamadas</option>
+                </select>
+              </label>
+              </div>
+              <div class="charts-grid charts-filtered-grid" data-charts-filtered-grid></div>
+            </div>
+            <div class="charts-table-wrap">
+              <h3>Resumo filtrado por oficina</h3>
+              <div class="charts-table" data-charts-table></div>
+            </div>
+          </section>
+
           <section class="admin-panel admin-ai-panel" id="ia-adm" data-admin-page="ia-adm" hidden>
             <div class="panel-title table-title">
               <div>
@@ -138,6 +235,210 @@
             </div>
           </section>
 
+          <section class="admin-panel support-admin-panel" id="suporte" data-admin-page="suporte" hidden>
+            <div class="panel-title table-title">
+              <div>
+                <h2>Suporte</h2>
+                <p>Visualize tickets abertos pelo Portal do Aluno, acompanhe categorias e responda aos chamados.</p>
+              </div>
+              <button class="button button-secondary" type="button" data-refresh-support>Atualizar suporte</button>
+            </div>
+            <div class="support-ticket-admin-list" data-support-ticket-list></div>
+          </section>
+
+          <section class="admin-panel first-access-panel" id="primeiro-acesso" data-admin-page="primeiro-acesso" hidden>
+            <div class="panel-title table-title">
+              <div>
+                <h2>Primeiro Acesso</h2>
+                <p>Oriente alunos a acessarem o Portal com CPF e matrícula. O contato é sempre manual e individual.</p>
+              </div>
+              <button class="button button-secondary" type="button" data-refresh-first-access>Atualizar lista</button>
+            </div>
+            <p class="first-access-security-note">
+              Use estas informações apenas para orientar o aluno no primeiro acesso. Não compartilhe listas de matrículas em grupos públicos ou com pessoas não autorizadas.
+            </p>
+            <form class="first-access-filters" data-first-access-filters>
+              <label>
+                <span>Oficina</span>
+                <select name="oficinaId" data-first-access-office-filter>
+                  <option value="">Todas as oficinas</option>
+                </select>
+              </label>
+              <label>
+                <span>Turma</span>
+                <input name="turma" type="text" maxlength="180" placeholder="Ex.: Turma A">
+              </label>
+              <label>
+                <span>Primeiro acesso</span>
+                <select name="statusPrimeiroAcesso">
+                  <option value="sem_primeiro_acesso">Sem acesso registrado</option>
+                  <option value="com_primeiro_acesso">Com acesso registrado</option>
+                  <option value="todos">Todos</option>
+                </select>
+              </label>
+              <label>
+                <span>Orientação</span>
+                <select name="statusOrientacao">
+                  <option value="todos">Todas</option>
+                  <option value="pendente">Pendente</option>
+                  <option value="enviada">Enviada</option>
+                </select>
+              </label>
+              <label class="first-access-search">
+                <span>Buscar</span>
+                <input name="search" type="search" maxlength="100" placeholder="Nome ou matrícula">
+              </label>
+              <label>
+                <span>Por página</span>
+                <select name="limit">
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </label>
+              <div class="first-access-filter-actions">
+                <button class="button button-primary" type="submit">Aplicar filtros</button>
+                <button class="button button-secondary" type="button" data-first-access-pdf>Gerar PDF filtrado</button>
+              </div>
+            </form>
+            <p class="form-feedback" role="status" aria-live="polite" data-first-access-feedback></p>
+            <div class="first-access-list" data-first-access-list></div>
+            <div class="first-access-pagination" data-first-access-pagination></div>
+          </section>
+
+          <section class="admin-panel support-admin-panel" id="mural" data-admin-page="mural" hidden>
+            <div class="panel-title table-title">
+              <div>
+                <h2>Mural e notificações</h2>
+                <p>Publique, edite e remova avisos do mural geral, murais de turma e notificações para alunos.</p>
+              </div>
+              <button class="button button-secondary" type="button" data-refresh-support>Atualizar mural</button>
+            </div>
+            <div class="support-admin-grid">
+              <form class="support-post-form" data-support-post-form>
+                <input type="hidden" name="id">
+                <h3 data-support-post-form-title>Publicar mural ou notificação</h3>
+                <div class="form-grid">
+                  <label>
+                    <span>Destino</span>
+                    <select name="targetType" data-support-target-type>
+                      <option value="geral">Mural geral</option>
+                      <option value="oficina">Mural de turma</option>
+                      <option value="aluno">Notificação para aluno</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Tipo</span>
+                    <select name="tipo">
+                      <option value="aviso">Aviso</option>
+                      <option value="cancelamento">Cancelamento de aula</option>
+                      <option value="horario">Alteração de horário</option>
+                      <option value="professor">Mudança de professor</option>
+                      <option value="evento">Evento</option>
+                      <option value="institucional">Institucional</option>
+                      <option value="notificacao">Notificação</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Prioridade</span>
+                    <select name="prioridade">
+                      <option value="normal">Normal</option>
+                      <option value="importante">Importante</option>
+                      <option value="urgente">Urgente</option>
+                    </select>
+                  </label>
+                  <label data-support-office-field hidden>
+                    <span>Turma/oficina</span>
+                    <select name="oficinaId" data-support-office-select></select>
+                  </label>
+                  <label data-support-student-field hidden>
+                    <span>Aluno</span>
+                    <select name="alunoId" data-support-student-select></select>
+                  </label>
+                  <label>
+                    <span>Título</span>
+                    <input name="titulo" type="text" maxlength="140" required>
+                  </label>
+                  <label class="full-field">
+                    <span>Mensagem</span>
+                    <textarea name="mensagem" rows="5" maxlength="1200" required></textarea>
+                  </label>
+                </div>
+                <div class="form-actions">
+                  <button class="button button-primary" type="submit" data-support-post-submit>Publicar mensagem</button>
+                </div>
+                <p class="form-feedback" data-support-post-feedback role="status" aria-live="polite"></p>
+              </form>
+
+              <form class="support-ai-form" data-support-ai-form>
+                <h3>IA de mensagens prontas</h3>
+                <div class="form-grid">
+                  <label>
+                    <span>Modelo</span>
+                    <select name="tipo">
+                      <option value="cancelamento">Cancelamento de aula</option>
+                      <option value="inicio_turma">Início de turma</option>
+                      <option value="encerramento_turma">Encerramento de turma</option>
+                      <option value="alteracao_horario">Alteração de horário</option>
+                      <option value="comunicado_geral">Comunicado geral</option>
+                      <option value="evento">Aviso de evento</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Turma/oficina</span>
+                    <input name="oficina" type="text" maxlength="120" placeholder="Ex.: Violão">
+                  </label>
+                  <label>
+                    <span>Data</span>
+                    <input name="data" type="text" maxlength="40" placeholder="Ex.: 24/05">
+                  </label>
+                  <label>
+                    <span>Horário</span>
+                    <input name="horario" type="text" maxlength="80" placeholder="Ex.: 14h às 16h">
+                  </label>
+                  <label class="full-field">
+                    <span>Observações</span>
+                    <textarea name="observacoes" rows="3" maxlength="500"></textarea>
+                  </label>
+                </div>
+                <button class="button button-secondary" type="submit">Gerar texto</button>
+                <div class="support-ai-output" data-support-ai-output></div>
+              </form>
+            </div>
+            <div class="support-post-admin-list" data-support-post-list></div>
+          </section>
+
+          <section class="admin-panel feedback-admin-panel" id="feedbacks" data-admin-page="feedbacks" hidden>
+            <div class="panel-title table-title">
+              <div>
+                <h2>Feedbacks de oficinas</h2>
+                <p>Leia as avaliações enviadas pelos alunos para entender pontos fortes e pontos que precisam de atenção.</p>
+              </div>
+              <button class="button button-secondary" type="button" data-refresh-feedbacks>Atualizar feedbacks</button>
+            </div>
+            <div class="filter-row">
+              <label>
+                <span>Oficina</span>
+                <select data-feedback-office-filter>
+                  <option value="">Todas as oficinas</option>
+                </select>
+              </label>
+              <label>
+                <span>Nota</span>
+                <select data-feedback-rating-filter>
+                  <option value="">Todas as notas</option>
+                  <option value="5">5 estrelas</option>
+                  <option value="4">4 estrelas</option>
+                  <option value="3">3 estrelas</option>
+                  <option value="2">2 estrelas</option>
+                  <option value="1">1 estrela</option>
+                </select>
+              </label>
+            </div>
+            <div class="feedback-summary" data-feedback-summary></div>
+            <div class="feedback-admin-list" data-feedback-list></div>
+          </section>
+
           <section class="admin-panel automation-panel" id="automacao" data-admin-page="automacao" hidden>
             <div class="panel-title table-title">
               <div>
@@ -154,14 +455,27 @@
             <div class="panel-title table-title">
               <div>
                 <h2>Relatórios</h2>
-                <p>Visao rapida para impressao, conferencia de documentos, faltas, lista de espera e acao manual.</p>
+                <p>Prioridades operacionais para conferir documentos, acompanhar faltas, lista de espera e exportar arquivos.</p>
               </div>
               <div class="button-row">
                 <button class="button button-secondary" type="button" data-print-report>Imprimir</button>
                 <button class="button button-primary" type="button" data-download-documents-zip>Baixar docs ZIP</button>
               </div>
             </div>
+            <div class="reports-command-bar">
+              <article>
+                <span>Como usar</span>
+                <strong>Confira os alertas em ordem de prioridade</strong>
+                <p>Clique em qualquer aluno para abrir a ficha completa. Use a aba Inscritos para pesquisar, corrigir dados ou baixar documentos filtrados.</p>
+              </article>
+              <article>
+                <span>Exportação</span>
+                <strong>Documentos e impressão</strong>
+                <p>O botão ZIP respeita os filtros atuais de inscritos. A impressão usa esta visão resumida para conferência interna.</p>
+              </article>
+            </div>
             <div class="reports-summary" data-reports-summary></div>
+            <div class="reports-priority" data-reports-priority></div>
             <div class="reports-grid" data-reports-grid></div>
           </section>
 
@@ -264,6 +578,11 @@
                   <span>Descrição</span>
                   <textarea name="descricao" rows="3" required maxlength="500"></textarea>
                 </label>
+                <label class="full-field">
+                  <span>Turmas da oficina</span>
+                  <textarea name="turmas" rows="3" maxlength="4000" placeholder="Uma turma por linha. Ex.: Ritmos A - 12 anos ou +"></textarea>
+                  <small>As turmas ficam no painel ADM e chamadas; no site público aparece apenas o nome da oficina.</small>
+                </label>
                 <fieldset class="day-picker full-field">
                   <legend>Dias da semana</legend>
                   <label><input type="checkbox" name="diasSemana" value="segunda"> Segunda</label>
@@ -286,6 +605,128 @@
             </form>
 
             <div class="content-list" data-office-list></div>
+          </section>
+
+          <section class="admin-panel manager-panel" id="turmas" data-admin-page="turmas" hidden>
+            <div class="panel-title table-title">
+              <div>
+                <h2>Turmas</h2>
+                <p>Gerencie as turmas de cada oficina, horários, faixas etárias, vagas e responsáveis.</p>
+              </div>
+              <button class="button button-primary" type="button" data-reset-turma-form>Adicionar turma</button>
+            </div>
+
+            <form class="manager-form" data-turma-form novalidate>
+              <input type="hidden" name="id">
+              <div class="form-grid">
+                <label>
+                  <span>Oficina</span>
+                  <select name="oficinaId" required data-turma-office-select>
+                    <option value="">Selecione uma oficina</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Nome da turma</span>
+                  <input name="nome" type="text" required maxlength="160" placeholder="Futsal Manhã - 6 a 11 anos">
+                </label>
+                <label>
+                  <span>Período</span>
+                  <select name="periodo" required>
+                    <option value="manha">Manhã</option>
+                    <option value="tarde">Tarde</option>
+                    <option value="noite">Noite</option>
+                    <option value="integral">Integral</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Início</span>
+                  <input name="horarioInicio" type="time" required>
+                </label>
+                <label>
+                  <span>Término</span>
+                  <input name="horarioFim" type="time" required>
+                </label>
+                <label>
+                  <span>Idade mínima</span>
+                  <input name="idadeMinima" type="number" min="0" max="99" required>
+                </label>
+                <label>
+                  <span>Idade máxima</span>
+                  <input name="idadeMaxima" type="number" min="0" max="99" required>
+                </label>
+                <label>
+                  <span>Vagas totais</span>
+                  <input name="vagasTotal" type="number" min="1" max="10000" required>
+                </label>
+                <label>
+                  <span>Bolsista responsável</span>
+                  <select name="bolsistaId" data-turma-bolsista-select>
+                    <option value="">Nenhum bolsista</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Local</span>
+                  <input name="local" type="text" maxlength="120" placeholder="Quadra, Sala 2...">
+                </label>
+                <div class="full-field">
+                  <span class="field-label">Dias da semana</span>
+                  <div class="office-picker week-picker" data-turma-days-picker role="group" aria-label="Dias da turma"></div>
+                </div>
+                <label class="full-field">
+                  <span>Observações internas</span>
+                  <textarea name="observacoes" rows="3" maxlength="1000"></textarea>
+                </label>
+                <label class="check-row full-field">
+                  <input name="ativa" type="checkbox" checked>
+                  <span>Turma ativa e disponível para novas inscrições</span>
+                </label>
+              </div>
+              <div class="form-actions">
+                <button class="button button-primary" type="submit">Salvar turma</button>
+                <button class="button button-secondary" type="button" data-cancel-turma-form>Cancelar</button>
+                <p class="form-feedback" role="status" aria-live="polite" data-turma-feedback></p>
+              </div>
+            </form>
+
+            <div class="admin-filters compact-filters">
+              <label>
+                <span>Buscar turma</span>
+                <input type="search" placeholder="Turma ou oficina" data-class-search>
+              </label>
+              <label>
+                <span>Oficina</span>
+                <select data-class-office-filter>
+                  <option value="">Todas</option>
+                </select>
+              </label>
+              <label>
+                <span>Período</span>
+                <select data-class-period-filter>
+                  <option value="">Todos</option>
+                  <option value="manha">Manhã</option>
+                  <option value="tarde">Tarde</option>
+                  <option value="noite">Noite</option>
+                  <option value="integral">Integral</option>
+                </select>
+              </label>
+              <label>
+                <span>Status</span>
+                <select data-class-status-filter>
+                  <option value="">Todas</option>
+                  <option value="ativa">Ativas</option>
+                  <option value="inativa">Inativas</option>
+                </select>
+              </label>
+              <label>
+                <span>Bolsista</span>
+                <select data-class-bolsista-filter>
+                  <option value="">Todos</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="turma-summary" data-class-summary></div>
+            <div class="content-list" data-class-list></div>
           </section>
 
           <section class="admin-panel manager-panel" id="galeria" data-admin-page="galeria" hidden>
@@ -344,7 +785,7 @@
             <div class="panel-title table-title">
               <div>
                 <h2>Gerenciar colaboradores</h2>
-                <p>Adicione parceiros do site publico, edite texto, imagem, link e ordem de exibicao.</p>
+                <p>Adicione parceiros do site público, edite texto, imagem, link e ordem de exibição.</p>
               </div>
               <button class="button button-secondary" type="button" data-reset-collaborator-form>Novo colaborador</button>
             </div>
@@ -368,7 +809,7 @@
                 <label>
                   <span>Arquivo da imagem</span>
                   <input name="imagemArquivo" type="file" accept=".jpg,.jpeg,.png,.webp">
-                  <small>JPG, PNG ou WEBP ate 5 MB. Se enviado, substitui a URL.</small>
+                  <small>JPG, PNG ou WEBP até 5 MB. Se enviado, substitui a URL.</small>
                 </label>
                 <label>
                   <span>Ordem</span>
@@ -379,7 +820,7 @@
                   <input name="alt" type="text" maxlength="180">
                 </label>
                 <label class="full-field">
-                  <span>Descricao</span>
+                  <span>Descrição</span>
                   <textarea name="descricao" rows="4" maxlength="700"></textarea>
                 </label>
                 <label class="check-row full-field">
@@ -400,7 +841,7 @@
             <div class="panel-title table-title">
               <div>
                 <h2>Gerenciar depoimentos</h2>
-                <p>Adicione relatos de alunos que participam ou ja participaram do Centro da Juventude.</p>
+                <p>Adicione relatos de alunos que participam ou já participaram do Centro da Juventude.</p>
               </div>
               <button class="button button-secondary" type="button" data-reset-testimonial-form>Novo depoimento</button>
             </div>
@@ -413,12 +854,12 @@
                   <input name="nome" type="text" required maxlength="120">
                 </label>
                 <label>
-                  <span>Vinculo</span>
-                  <input name="vinculo" type="text" maxlength="120" placeholder="Aluno, ex-aluno, familia...">
+                  <span>Vínculo</span>
+                  <input name="vinculo" type="text" maxlength="120" placeholder="Aluno, ex-aluno, família...">
                 </label>
                 <label>
                   <span>Oficina ou atividade</span>
-                  <input name="oficina" type="text" maxlength="120" placeholder="Ballet, informatica, esporte...">
+                  <input name="oficina" type="text" maxlength="120" placeholder="Ballet, informática, esporte...">
                 </label>
                 <label>
                   <span>Ordem</span>
@@ -442,119 +883,262 @@
             <div class="content-list testimonial-manager-list" data-testimonial-list></div>
           </section>
 
-          <section class="admin-panel manager-panel" id="alunos" data-admin-page="alunos" hidden>
+          <section class="admin-panel manager-panel" id="faq" data-admin-page="faq" hidden>
             <div class="panel-title table-title">
               <div>
-                <h2>Alunos</h2>
-                <p>Cadastre, importe e organize alunos por oficina para chamada e acompanhamento.</p>
+                <h2>Gerenciar FAQ</h2>
+                <p>Adicione, altere ou remova perguntas exibidas no site e no Portal do Aluno antes da abertura de tickets.</p>
               </div>
-              <div class="panel-actions">
-                <button class="button button-secondary" type="button" data-reset-student-form>Novo aluno</button>
-              </div>
+              <button class="button button-secondary" type="button" data-reset-faq-form>Nova pergunta</button>
             </div>
 
-            <form class="import-panel" data-student-import-form enctype="multipart/form-data">
-              <div>
-                <strong>Importar planilha Excel</strong>
-                <p>Use colunas como Nome, CPF, Idade, Telefone, Responsavel, Email, Oficina, Status, Documentos Pendentes e Observacoes. Para mais de uma oficina, separe por ponto e virgula.</p>
-              </div>
-              <label>
-                <span>Arquivo XLSX ou CSV</span>
-                <input name="planilha" type="file" accept=".xlsx,.csv" required>
-              </label>
-              <button class="button button-primary" type="submit">Importar alunos</button>
-              <p class="form-feedback" role="status" aria-live="polite" data-student-import-feedback></p>
-            </form>
-
-            <form class="manager-form" data-student-form novalidate>
+            <form class="manager-form" data-faq-form novalidate>
               <input type="hidden" name="id">
               <div class="form-grid">
-                <label>
-                  <span>Nome completo</span>
-                  <input name="nome" type="text" required maxlength="120">
+                <label class="full-field">
+                  <span>Pergunta</span>
+                  <input name="pergunta" type="text" required maxlength="180">
                 </label>
                 <label>
-                  <span>CPF</span>
-                  <input name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" data-cpf-mask>
+                  <span>Ordem</span>
+                  <input name="ordem" type="number" min="0" max="9999" value="0">
                 </label>
-                <label>
-                  <span>Idade</span>
-                  <input name="idade" type="number" min="0" max="120">
-                </label>
-                <label>
-                  <span>Data de nascimento</span>
-                  <input name="dataNascimento" type="date">
-                </label>
-                <label>
-                  <span>Telefone</span>
-                  <input name="telefone" type="tel" data-phone-mask>
-                </label>
-                <label>
-                  <span>Responsável</span>
-                  <input name="responsavel" type="text" maxlength="120">
-                </label>
-                <label>
-                  <span>Contato do responsável</span>
-                  <input name="contatoResponsavel" type="tel" data-phone-mask>
-                </label>
-                <label>
-                  <span>E-mail</span>
-                  <input name="email" type="email" maxlength="160">
-                </label>
-                <label>
-                  <span>Bairro</span>
-                  <input name="bairro" type="text" maxlength="120">
-                </label>
-                <label>
-                  <span>Oficinas</span>
-                  <select name="oficinaIds" required multiple size="6" data-student-office-select></select>
-                </label>
-                <label>
-                  <span>Status</span>
-                  <select name="status" required>
-                    <option value="ativo">Ativo</option>
-                    <option value="inativo">Inativo</option>
-                  </select>
-                </label>
-                <label class="check-row full-field">
-                  <input name="documentosPendentes" type="checkbox">
-                  <span>Documentos faltando</span>
+                <label class="check-row">
+                  <input name="ativo" type="checkbox" checked>
+                  <span>Mostrar pergunta no site</span>
                 </label>
                 <label class="full-field">
-                  <span>Links dos documentos</span>
-                  <textarea name="documentosLinks" rows="3" maxlength="2000" placeholder="Um link por linha"></textarea>
-                </label>
-                <label class="full-field">
-                  <span>Doença, deficiência ou problema físico/psicológico</span>
-                  <textarea name="condicaoSaude" rows="3" maxlength="500"></textarea>
-                </label>
-                <label class="full-field">
-                  <span>Alerta destacado na ficha</span>
-                  <textarea name="fichaAlerta" rows="3" maxlength="500"></textarea>
-                </label>
-                <label class="full-field">
-                  <span>Advertências</span>
-                  <textarea name="advertencias" rows="3" maxlength="1000" placeholder="Registre advertências, datas e encaminhamentos quando houver."></textarea>
-                </label>
-                <label class="full-field">
-                  <span>Histórico de oficinas anteriores</span>
-                  <textarea name="historicoOficinas" rows="3" maxlength="1000" placeholder="Liste oficinas anteriores, períodos concluídos ou desligamentos."></textarea>
-                </label>
-                <label class="full-field">
-                  <span>Observações</span>
-                  <textarea name="observacoes" rows="3" maxlength="500"></textarea>
+                  <span>Resposta</span>
+                  <textarea name="resposta" rows="5" required maxlength="1600"></textarea>
                 </label>
               </div>
               <div class="form-actions">
+                <button class="button button-primary" type="submit">Salvar FAQ</button>
+                <p class="form-feedback" role="status" aria-live="polite" data-faq-feedback></p>
+              </div>
+            </form>
+
+            <div class="content-list faq-manager-list" data-faq-list></div>
+          </section>
+
+          <section class="admin-panel manager-panel student-page" id="alunos" data-admin-page="alunos" hidden>
+            <div class="panel-title table-title admin-page-header">
+              <div>
+                <h2>Alunos</h2>
+                <p>Cadastre, importe e acompanhe alunos por oficina com uma ficha organizada por etapas.</p>
+              </div>
+              <div class="panel-actions">
+                <button class="button button-primary" type="button" data-reset-student-form>Novo aluno</button>
+                <button class="button button-secondary" type="button" data-toggle-student-imports aria-expanded="false">Mostrar importações</button>
+                <button class="button button-secondary" type="button" data-refresh-students>Atualizar lista</button>
+              </div>
+            </div>
+
+            <div class="student-overview" data-student-overview></div>
+
+            <div class="import-area student-import-drawer" data-student-import-area hidden>
+              <form class="import-panel" data-student-import-form enctype="multipart/form-data">
+                <div>
+                  <strong>Importar planilha Excel</strong>
+                  <p>Use colunas como nome, CPF, telefone, responsável, oficina, status e observações. Para mais de uma oficina, separe por ponto e vírgula.</p>
+                </div>
+                <label>
+                  <span>Arquivo XLSX ou CSV</span>
+                  <input name="planilha" type="file" accept=".xlsx,.csv" required>
+                </label>
+                <button class="button button-primary" type="submit">Importar alunos</button>
+                <p class="form-feedback" role="status" aria-live="polite" data-student-import-feedback></p>
+              </form>
+
+              <form class="import-panel" data-student-legacy-import-form enctype="multipart/form-data">
+                <div>
+                  <strong>Importar inscritos CJ 2026</strong>
+                  <p>O sistema separa oficinas de turmas, cria oficinas faltantes, grava links de documentos e atualiza fichas existentes por nome + nascimento.</p>
+                </div>
+                <label>
+                  <span>Arquivo CSV ou XLSX</span>
+                  <input name="planilha" type="file" accept=".xlsx,.csv" required>
+                </label>
+                <div class="form-actions">
+                  <button class="button button-secondary" type="button" data-student-legacy-preview>Pré-visualizar</button>
+                  <button class="button button-primary" type="submit">Importar inscritos</button>
+                </div>
+                <p class="form-feedback" role="status" aria-live="polite" data-student-legacy-import-feedback></p>
+                <div class="import-summary" data-student-legacy-import-summary></div>
+              </form>
+            </div>
+
+            <form class="manager-form student-form" data-student-form novalidate>
+              <input type="hidden" name="id">
+              <div class="student-form-intro">
+                <div>
+                  <strong>Ficha do aluno</strong>
+                  <p>Preencha primeiro os dados essenciais. As seções avançadas ficam recolhíveis para reduzir ruído visual.</p>
+                </div>
+                <span class="status-badge">Cadastro interno</span>
+              </div>
+
+              <div class="student-form-sections">
+                <details class="form-section-card" open>
+                  <summary>
+                    <span>Dados pessoais</span>
+                    <small>Identificação, nascimento, bairro e situação</small>
+                  </summary>
+                  <div class="form-grid">
+                    <label>
+                      <span>Nome completo</span>
+                      <input name="nome" type="text" required maxlength="120">
+                    </label>
+                    <label>
+                      <span>CPF</span>
+                      <input name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" data-cpf-mask>
+                    </label>
+                    <label>
+                      <span>Matrícula</span>
+                      <input type="text" disabled data-student-matricula placeholder="Gerada automaticamente">
+                      <small>Use o botão da lista ou dos detalhes para enviar pelo WhatsApp.</small>
+                    </label>
+                    <label>
+                      <span>Data de nascimento</span>
+                      <input name="dataNascimento" type="date">
+                    </label>
+                    <label>
+                      <span>Idade</span>
+                      <input name="idade" type="number" min="0" max="99">
+                    </label>
+                    <label>
+                      <span>Bairro</span>
+                      <input name="bairro" type="text" maxlength="120">
+                    </label>
+                    <label>
+                      <span>Status</span>
+                      <select name="status" required>
+                        <option value="ativo">Ativo</option>
+                        <option value="inativo">Inativo</option>
+                      </select>
+                    </label>
+                  </div>
+                </details>
+
+                <details class="form-section-card" open>
+                  <summary>
+                    <span>Contato e responsável</span>
+                    <small>Telefone, e-mail e responsável quando necessário</small>
+                  </summary>
+                  <div class="form-grid">
+                    <label>
+                      <span>Telefone</span>
+                      <input name="telefone" type="tel" data-phone-mask>
+                    </label>
+                    <label>
+                      <span>E-mail</span>
+                      <input name="email" type="email" maxlength="160">
+                    </label>
+                    <label>
+                      <span>Responsável</span>
+                      <input name="responsavel" type="text" maxlength="120">
+                      <small>Use para menores de idade ou quando houver responsável de contato.</small>
+                    </label>
+                  </div>
+                </details>
+
+                <details class="form-section-card" open>
+                  <summary>
+                    <span>Oficinas e turmas</span>
+                    <small>Matrículas, turmas específicas e vínculos do aluno</small>
+                  </summary>
+                  <div class="form-grid">
+                    <label class="full-field">
+                      <span>Oficinas</span>
+                      <select class="sr-only" name="oficinaIds" required multiple tabindex="-1" aria-hidden="true" data-student-office-select></select>
+                      <div class="office-picker" data-student-office-picker role="group" aria-label="Oficinas do aluno"></div>
+                      <small>Toque ou clique nas oficinas para selecionar uma ou mais. Não precisa usar Ctrl.</small>
+                    </label>
+                    <div class="student-selected-chips full-field" data-student-office-chips></div>
+                    <div class="full-field field-large">
+                      <span class="field-label">Turmas vinculadas</span>
+                      <div class="student-turma-picker" data-student-turma-picker role="group" aria-label="Turmas do aluno"></div>
+                      <small data-student-turma-help>Selecione uma turma por oficina. A lista respeita a idade informada no cadastro.</small>
+                    </div>
+                  </div>
+                </details>
+
+                <details class="form-section-card">
+                  <summary>
+                    <span>Saúde e acessibilidade</span>
+                    <small>Deficiência, adaptação ou necessidade de atenção</small>
+                  </summary>
+                  <div class="form-grid">
+                    <label>
+                      <span>Possui deficiência?</span>
+                      <select name="possuiDeficiencia">
+                        <option value="false">Não</option>
+                        <option value="true">Sim</option>
+                      </select>
+                    </label>
+                    <label class="full-field">
+                      <span>Qual deficiência ou observação?</span>
+                      <input name="deficienciaDescricao" type="text" maxlength="500" placeholder="Descreva somente quando houver informação relevante.">
+                    </label>
+                  </div>
+                </details>
+
+                <details class="form-section-card">
+                  <summary>
+                    <span>Documentos</span>
+                    <small>Pendências e links importados</small>
+                  </summary>
+                  <div class="form-grid">
+                    <label class="check-row full-field">
+                      <input name="documentosPendentes" type="checkbox">
+                      <span>Documentos faltando</span>
+                    </label>
+                    <label class="full-field field-large">
+                      <span>Links de documentos importados</span>
+                      <textarea name="documentosLinks" rows="4" maxlength="4000" placeholder="Um link por linha."></textarea>
+                      <small>Mantenha links importados como evidência documental quando o arquivo não estiver no upload local.</small>
+                    </label>
+                  </div>
+                </details>
+
+                <details class="form-section-card">
+                  <summary>
+                    <span>Status e acompanhamento</span>
+                    <small>Advertências, histórico e observações internas</small>
+                  </summary>
+                  <div class="form-grid">
+                    <label class="full-field field-large">
+                      <span>Advertências</span>
+                      <textarea name="advertencias" rows="3" maxlength="1000" placeholder="Registre advertências, datas e encaminhamentos quando houver."></textarea>
+                    </label>
+                    <label class="full-field field-large">
+                      <span>Histórico de oficinas anteriores</span>
+                      <textarea name="historicoOficinas" rows="3" maxlength="1000" placeholder="Liste oficinas anteriores, períodos concluídos ou desligamentos."></textarea>
+                    </label>
+                    <label class="full-field field-large">
+                      <span>Observações</span>
+                      <textarea name="observacoes" rows="3" maxlength="500" placeholder="Informações internas de acompanhamento."></textarea>
+                    </label>
+                  </div>
+                </details>
+              </div>
+
+              <div class="form-actions student-form-actions">
                 <button class="button button-primary" type="submit">Salvar aluno</button>
                 <p class="form-feedback" role="status" aria-live="polite" data-student-feedback></p>
               </div>
             </form>
 
-            <div class="admin-filters compact-filters">
+            <div class="student-list-header">
+              <div>
+                <h3>Alunos cadastrados</h3>
+                <p>Use os filtros para localizar fichas e editar rapidamente vínculos, contato e acompanhamento.</p>
+              </div>
+            </div>
+            <div class="admin-filters compact-filters student-filters">
               <label>
                 <span>Buscar aluno</span>
-                <input type="search" placeholder="Nome, CPF, e-mail ou telefone" data-student-search>
+                <input type="search" placeholder="Nome, CPF, bairro, responsável ou telefone" data-student-search>
               </label>
               <label>
                 <span>Filtrar oficina</span>
@@ -562,15 +1146,39 @@
                   <option value="">Todas</option>
                 </select>
               </label>
+              <label>
+                <span>Status</span>
+                <select data-student-status-filter>
+                  <option value="">Todos</option>
+                  <option value="ativo">Ativo</option>
+                  <option value="inativo">Inativo</option>
+                </select>
+              </label>
+              <label>
+                <span>Ordenar</span>
+                <select data-student-sort>
+                  <option value="nome">Nome</option>
+                  <option value="recentes">Mais recentes</option>
+                </select>
+              </label>
+              <label>
+                <span>Por página</span>
+                <select data-student-limit>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </label>
             </div>
-            <div class="content-list" data-student-list></div>
+            <div class="content-list student-list" data-student-list></div>
+            <div class="student-pagination" data-student-pagination></div>
           </section>
 
           <section class="admin-panel manager-panel" id="bolsistas" data-admin-page="bolsistas" hidden>
             <div class="panel-title table-title">
               <div>
                 <h2>Bolsistas</h2>
-                <p>Registre os Agentes da Cidadania e as oficinas em que dao aula ou ajudam.</p>
+                <p>Registre os Agentes da Cidadania e as oficinas em que dão aula ou ajudam.</p>
               </div>
               <button class="button button-secondary" type="button" data-reset-bolsista-form>Novo bolsista</button>
             </div>
@@ -601,7 +1209,7 @@
                   <input name="email" type="email" maxlength="160">
                 </label>
                 <label>
-                  <span>Funcao no programa</span>
+                  <span>Função no programa</span>
                   <select name="funcao" required>
                     <option value="adm">ADM</option>
                     <option value="social_media">Social media</option>
@@ -610,22 +1218,22 @@
                   </select>
                 </label>
                 <label>
-                  <span>Atuacao nas oficinas</span>
+                  <span>Atuação nas oficinas</span>
                   <select name="tipoAtuacao" required>
-                    <option value="aula">Da aula</option>
+                    <option value="aula">Dá aula</option>
                     <option value="ajuda">Ajuda professor</option>
                     <option value="apoio">Apoio</option>
-                    <option value="sem_vinculo">Sem vinculo direto</option>
+                    <option value="sem_vinculo">Sem vínculo direto</option>
                   </select>
                 </label>
                 <fieldset class="day-picker full-field">
                   <legend>Dias de trabalho do bolsista</legend>
                   <label><input type="checkbox" name="diasSemana" value="segunda"> Segunda</label>
-                  <label><input type="checkbox" name="diasSemana" value="terca"> Terca</label>
+                  <label><input type="checkbox" name="diasSemana" value="terca"> Terça</label>
                   <label><input type="checkbox" name="diasSemana" value="quarta"> Quarta</label>
                   <label><input type="checkbox" name="diasSemana" value="quinta"> Quinta</label>
                   <label><input type="checkbox" name="diasSemana" value="sexta"> Sexta</label>
-                  <label><input type="checkbox" name="diasSemana" value="sabado"> Sabado</label>
+                  <label><input type="checkbox" name="diasSemana" value="sabado"> Sábado</label>
                   <label><input type="checkbox" name="diasSemana" value="domingo"> Domingo</label>
                   <small>Selecione no máximo 2 dias por semana.</small>
                 </fieldset>
@@ -638,12 +1246,13 @@
                 </label>
                 <label class="full-field">
                   <span>Oficinas vinculadas</span>
-                  <select name="oficinaIds" multiple size="7" data-bolsista-office-select></select>
-                  <small>Use para professores e ajudantes. ADM e social media podem ficar sem oficina vinculada.</small>
+                  <select class="sr-only" name="oficinaIds" multiple tabindex="-1" aria-hidden="true" data-bolsista-office-select></select>
+                  <div class="office-picker" data-bolsista-office-picker role="group" aria-label="Oficinas vinculadas ao bolsista"></div>
+                  <small>Toque ou clique para selecionar uma ou mais oficinas. ADM e social media podem ficar sem oficina vinculada.</small>
                 </label>
                 <label class="full-field">
-                  <span>Observacoes</span>
-                  <textarea name="observacoes" rows="3" maxlength="1000" placeholder="Atividades, escala, encaminhamentos ou observacoes internas."></textarea>
+                  <span>Observações</span>
+                  <textarea name="observacoes" rows="3" maxlength="1000" placeholder="Atividades, escala, encaminhamentos ou observações internas."></textarea>
                 </label>
               </div>
               <div class="form-actions">
@@ -655,7 +1264,7 @@
             <div class="admin-filters compact-filters">
               <label>
                 <span>Buscar bolsista</span>
-                <input type="search" placeholder="Nome, CPF, e-mail, telefone ou funcao" data-bolsista-search>
+                <input type="search" placeholder="Nome, CPF, e-mail, telefone ou função" data-bolsista-search>
               </label>
               <label>
                 <span>Filtrar oficina</span>
@@ -671,35 +1280,43 @@
             <div class="panel-title table-title">
               <div>
                 <h2>Calendário</h2>
-                <p>Veja as aulas previstas, a escala dos bolsistas e eventos como reunioes e passeios.</p>
+                <p>Organize aulas previstas, escala dos bolsistas e eventos como reuniões, passeios e formações.</p>
               </div>
               <button class="button button-secondary" type="button" data-reset-calendar-event-form>Novo evento</button>
             </div>
 
+            <div class="calendar-summary" data-calendar-summary></div>
+
             <div class="calendar-toolbar">
-              <button class="icon-action" type="button" data-calendar-prev aria-label="Mes anterior">&lt;</button>
+              <button class="icon-action" type="button" data-calendar-prev aria-label="Mês anterior">&lt;</button>
               <label>
-                <span>Mes</span>
+                <span>Mês de referência</span>
                 <input type="month" data-calendar-month>
               </label>
-              <button class="icon-action" type="button" data-calendar-next aria-label="Proximo mes">&gt;</button>
+              <button class="icon-action" type="button" data-calendar-next aria-label="Próximo mês">&gt;</button>
               <button class="button button-secondary" type="button" data-calendar-today>Hoje</button>
             </div>
 
+            <div class="calendar-workspace">
+            <details class="calendar-composer">
+              <summary>Cadastrar ou editar evento</summary>
             <form class="manager-form" data-calendar-event-form novalidate>
               <input type="hidden" name="id">
               <div class="form-grid">
                 <label>
-                  <span>Titulo</span>
-                  <input name="titulo" type="text" required maxlength="120" placeholder="Reuniao de equipe">
+                  <span>Título</span>
+                  <input name="titulo" type="text" required maxlength="120" placeholder="Reunião de equipe">
                 </label>
                 <label>
                   <span>Tipo</span>
                   <select name="tipo" required>
-                    <option value="reuniao">Reuniao</option>
-                    <option value="passeio">Passeio</option>
+                    <option value="aula">Aula</option>
                     <option value="evento">Evento</option>
-                    <option value="formacao">Formacao</option>
+                    <option value="reuniao">Reunião</option>
+                    <option value="passeio">Passeio</option>
+                    <option value="cancelamento">Cancelamento</option>
+                    <option value="comunicado">Comunicado</option>
+                    <option value="formacao">Formação</option>
                     <option value="outro">Outro</option>
                   </select>
                 </label>
@@ -708,7 +1325,7 @@
                   <input name="data" type="date" required>
                 </label>
                 <label>
-                  <span>Inicio</span>
+                <span>Início</span>
                   <input name="horarioInicio" type="time">
                 </label>
                 <label>
@@ -730,8 +1347,8 @@
                   <select name="bolsistaIds" multiple size="6" data-calendar-event-bolsistas></select>
                 </label>
                 <label class="full-field">
-                  <span>Descricao</span>
-                  <textarea name="descricao" rows="3" maxlength="500" placeholder="Detalhes internos, ponto de encontro ou orientacoes."></textarea>
+                  <span>Descrição</span>
+                  <textarea name="descricao" rows="3" maxlength="500" placeholder="Detalhes internos, ponto de encontro ou orientações."></textarea>
                 </label>
               </div>
               <div class="form-actions">
@@ -739,13 +1356,16 @@
                 <p class="form-feedback" role="status" aria-live="polite" data-calendar-feedback></p>
               </div>
             </form>
+            </details>
 
             <div class="calendar-layout">
               <div class="calendar-grid" data-calendar-grid></div>
               <aside class="calendar-event-list">
-                <h3>Eventos do mes</h3>
+                <h3>Agenda do mês</h3>
+                <p>Aulas e eventos aparecem em ordem de data para acompanhamento rápido.</p>
                 <div class="content-list" data-calendar-event-list></div>
               </aside>
+            </div>
             </div>
           </section>
 
@@ -753,36 +1373,87 @@
             <div class="panel-title">
               <div>
                 <h2>Chamada</h2>
-                <p>Selecione a oficina e a data, marque as presenças e salve o registro.</p>
+                <p>Carregue a turma, marque presenças, ausências e justificativas, depois salve o registro do dia.</p>
               </div>
             </div>
 
-            <div class="admin-filters compact-filters">
-              <label>
-                <span>Oficina</span>
-                <select data-attendance-office></select>
-              </label>
-              <label>
-                <span>Data</span>
-                <input type="date" data-attendance-date>
-              </label>
-              <button class="button button-secondary" type="button" data-load-attendance>Carregar chamada</button>
-            </div>
+            <div class="attendance-flow">
+              <section class="attendance-step">
+                <span class="step-badge">1</span>
+                <div>
+                  <h3>Selecionar turma e data</h3>
+                  <p>Escolha a turma antes de carregar a lista de alunos.</p>
+                </div>
+                <div class="admin-filters compact-filters">
+                  <label>
+                    <span>Turma</span>
+                    <select data-attendance-office></select>
+                  </label>
+                  <label>
+                    <span>Data</span>
+                    <input type="date" data-attendance-date>
+                  </label>
+                  <button class="button button-secondary" type="button" data-load-attendance>Carregar chamada</button>
+                </div>
+              </section>
 
-            <label class="attendance-notes">
-              <span>Observações da chamada</span>
-              <textarea rows="2" maxlength="500" data-attendance-notes></textarea>
+              <section class="attendance-step">
+                <span class="step-badge">2</span>
+                <div>
+                  <h3>Marcar presença</h3>
+                  <p>Use os seletores para presença, falta ou justificativa. O resumo atualiza automaticamente.</p>
+                </div>
+                <div class="attendance-summary" data-attendance-summary>
+                  <p class="form-feedback">Carregue uma turma e data para iniciar a chamada.</p>
+                </div>
+                <label class="attendance-notes">
+                  <span>Observações da chamada</span>
+                  <textarea rows="2" maxlength="500" data-attendance-notes placeholder="Ex.: aula cancelada parcialmente, alteração de horário ou observação da turma."></textarea>
+                </label>
+                <div class="attendance-list" data-attendance-list></div>
+              </section>
+
+              <section class="attendance-step">
+                <span class="step-badge">3</span>
+                <div>
+                  <h3>Salvar e acompanhar</h3>
+                  <p>Depois de salvar, o histórico recente da turma é atualizado.</p>
+                </div>
+                <div class="form-actions">
+                  <button class="button button-primary" type="button" data-save-attendance>Salvar chamada</button>
+                  <p class="form-feedback" role="status" aria-live="polite" data-attendance-feedback></p>
+                </div>
+                <div class="attendance-history">
+                  <h3>Histórico recente</h3>
+                  <div class="content-list" data-attendance-history></div>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="admin-panel manual-admin-panel" id="manual" data-admin-page="manual" hidden>
+            <div class="panel-title table-title">
+              <div>
+                <h2>Manual do Administrador</h2>
+                <p>Guia prático para operar o sistema do Centro da Juventude.</p>
+              </div>
+              <div class="manual-profile-badges" aria-label="Perfis atendidos pelo manual">
+                <span class="manual-badge">ADM</span>
+                <span class="manual-badge">Master</span>
+              </div>
+            </div>
+            <div class="manual-operational-note">
+              <strong>Uso interno</strong>
+              <span>Consulte este guia no painel autenticado. As orientações preservam o atendimento responsável e a proteção dos dados dos alunos.</span>
+            </div>
+            <label class="manual-search">
+              <span>Buscar no manual</span>
+              <input type="search" maxlength="120" placeholder="Ex.: matrícula, chamada, relatórios ou segurança" autocomplete="off" data-manual-search>
             </label>
-
-            <div class="attendance-list" data-attendance-list></div>
-            <div class="form-actions">
-              <button class="button button-primary" type="button" data-save-attendance>Salvar chamada</button>
-              <p class="form-feedback" role="status" aria-live="polite" data-attendance-feedback></p>
-            </div>
-
-            <div class="attendance-history">
-              <h3>Histórico recente</h3>
-              <div class="content-list" data-attendance-history></div>
+            <p class="form-feedback" role="status" aria-live="polite" data-manual-feedback></p>
+            <div class="manual-content-layout">
+              <nav class="manual-summary" aria-label="Sumário do manual" data-manual-summary></nav>
+              <div class="manual-sections" data-manual-sections></div>
             </div>
           </section>
 
@@ -807,14 +1478,15 @@
                   <input name="username" type="text" required maxlength="40" placeholder="ex: secretaria1">
                 </label>
                 <label>
-                  <span>Codigo de cadastro</span>
+                  <span>Código de cadastro</span>
                   <input name="registrationCode" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password">
-                  <small>Use exatamente 6 digitos. Em edicao, deixe em branco para manter.</small>
+                  <small>Use exatamente 6 dígitos. Em edição, deixe em branco para manter.</small>
                 </label>
                 <label>
                   <span>Nível</span>
                   <select name="role" required>
                     <option value="admin">ADM</option>
+                    <option value="chamadas">Chamadas</option>
                     <option value="master">Master</option>
                   </select>
                 </label>
@@ -843,7 +1515,7 @@
             <div class="admin-filters compact-filters">
               <label>
                 <span>Buscar</span>
-                <input type="search" placeholder="ADM, usuario ou item alterado" data-log-search>
+                <input type="search" placeholder="ADM, usuário ou item alterado" data-log-search>
               </label>
               <label>
                 <span>Ação</span>
@@ -853,7 +1525,22 @@
                   <option value="create">Criação</option>
                   <option value="update">Edição</option>
                   <option value="delete">Exclusão</option>
+                  <option value="send">Envio</option>
+                  <option value="export">Exportação</option>
+                  <option value="denied">Acesso negado</option>
                 </select>
+              </label>
+              <label>
+                <span>Módulo</span>
+                <input type="search" placeholder="aluno, aviso, chamada..." data-log-entity>
+              </label>
+              <label>
+                <span>Início</span>
+                <input type="date" data-log-start>
+              </label>
+              <label>
+                <span>Fim</span>
+                <input type="date" data-log-end>
               </label>
             </div>
             <div class="content-list audit-log-list" data-audit-log-list></div>
@@ -957,6 +1644,7 @@
     </datalist>
 
     <script src="/js/runtime-config.js?v=20260509-1" defer></script>
-    <script src="/js/admin.secure.js?v=20260511-5" defer></script>
+    <script src="/js/footer-credit.js?v=20260524-2" defer></script>
+    <script src="/js/admin.secure.js?v=20260525-perf1" defer></script>
   </body>
 </html>

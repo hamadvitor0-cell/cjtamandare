@@ -15,18 +15,35 @@
       "src": "/(.*)",
       "headers": {
         "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
         "Referrer-Policy": "strict-origin-when-cross-origin",
-        "Permissions-Policy": "camera=(), microphone=(), geolocation=(self)",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=()",
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Resource-Policy": "same-origin",
         "Content-Security-Policy": "default-src 'self'; script-src 'self' https://vlibras.gov.br https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://vlibras.gov.br https://cdn.jsdelivr.net; frame-src 'self' https://www.google.com https://maps.google.com https://vlibras.gov.br; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
       },
       "continue": true
     },
     {
-      "src": "/admin/(oficinas|galeria|colaboradores|depoimentos|bolsistas|calendario|usuarios|logs)(.*)",
+      "src": "/(?:admin(?:\\.html)?|admin-manual(?:\\.html)?|portal)(?:$|/.*)",
+      "headers": {
+        "Cache-Control": "private, no-store, max-age=0",
+        "Pragma": "no-cache",
+        "X-Robots-Tag": "noindex, nofollow, noarchive"
+      },
+      "continue": true
+    },
+    {
+      "src": "/admin-manual(?:\\.html)?$",
       "dest": "/api/index.js"
     },
     {
-      "src": "/(ai|inscricao|inscricoes|auth|csrf-token|captcha|dashboard|oficinas|galeria|colaboradores|depoimentos|alunos|chamadas|health)(.*)",
+      "src": "/admin/(oficinas|turmas|galeria|colaboradores|depoimentos|faq|bolsistas|calendario|usuarios|logs|suporte|graficos|feedbacks|primeiro-acesso|manual)(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/(ai|inscricao|inscricoes|auth|csrf-token|captcha|dashboard|oficinas|galeria|colaboradores|depoimentos|faq|alunos|chamadas|suporte|health)(.*)",
       "dest": "/api/index.js"
     },
     {
@@ -52,6 +69,10 @@
     {
       "src": "/admin",
       "dest": "/frontend/admin.html"
+    },
+    {
+      "src": "/portal",
+      "dest": "/frontend/portal.html"
     },
     {
       "src": "/(.*)",

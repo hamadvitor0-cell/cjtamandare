@@ -58,11 +58,6 @@ async function run() {
   }
 
   await db.query(
-    "UPDATE galeria SET imagem_url = $1 WHERE imagem_url = $2",
-    ["/img/LOGO_CJ.png", "/img/logo.jpg"]
-  );
-
-  await db.query(
     `INSERT INTO galeria (titulo, descricao, imagem_url, alt, ordem, ativo)
      SELECT $1, $2, $3, $4, 1, true
      WHERE NOT EXISTS (SELECT 1 FROM galeria WHERE imagem_url = $3)
@@ -76,7 +71,7 @@ async function run() {
       "Quadro oficial com lista de oficinas do Centro da Juventude",
       "Identidade oficial",
       "Logo oficial do Centro da Juventude Almirante Tamandaré",
-      "/img/LOGO_CJ.png",
+      "/img/logo.jpg",
       "Logo oficial do Centro da Juventude Almirante Tamandaré"
     ]
   );

@@ -41,7 +41,9 @@ function applySecurity(app) {
     origin(origin, callback) {
       const allowed = parseOrigins();
       if (!origin || (!config.isProduction && origin === "null") || allowed.includes(origin)) return callback(null, true);
-      return callback(new Error("Origem não autorizada por CORS."));
+      const error = new Error("Origem não autorizada por CORS.");
+      error.statusCode = 403;
+      return callback(error);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

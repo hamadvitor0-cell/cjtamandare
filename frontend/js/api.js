@@ -11,11 +11,13 @@ export async function apiRequest(path, options = {}) {
   const timeout = window.setTimeout(() => controller.abort(), options.timeout || 20000);
   const requestOptions = {
     credentials: "include",
+    cache: options.cache || "no-store",
     ...options,
     headers,
     signal: controller.signal
   };
   delete requestOptions.timeout;
+  if (!headers.has("Cache-Control")) headers.set("Cache-Control", "no-cache");
 
   if (requestOptions.body && !(requestOptions.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
@@ -27,7 +29,7 @@ export async function apiRequest(path, options = {}) {
     response = await fetch(apiUrl(path), requestOptions);
   } catch (error) {
     if (error.name === "AbortError") {
-      throw new Error("A API demorou demais para responder. Atualize a pagina e tente novamente em alguns segundos.");
+      throw new Error("A API demorou demais para responder. Atualize a página e tente novamente em alguns segundos.");
     }
     throw new Error("Não foi possível conectar à API. Acesse pelo servidor Express, por exemplo http://localhost:3000/admin.html, e confirme se npm run dev está rodando.");
   } finally {

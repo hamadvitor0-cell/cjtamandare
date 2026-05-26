@@ -8,17 +8,16 @@ async function create(req, res) {
   const fieldFiles = req.files && !Array.isArray(req.files) ? req.files : {};
   const documentos = Array.isArray(req.files) ? req.files : (fieldFiles.documentos || []);
   const termoAssinado = (fieldFiles.termoAssinado || [])[0] || null;
-  const laudoSaude = (fieldFiles.laudoSaude || [])[0] || null;
-  const files = [documentos, termoAssinado ? [termoAssinado] : [], laudoSaude ? [laudoSaude] : []].flat();
+  const files = termoAssinado ? [...documentos, termoAssinado] : documentos;
 
   if (payload.website) {
     return res.status(200).json({
-      message: "Inscricao recebida com sucesso."
+      message: "Inscrição recebida com sucesso."
     });
   }
 
   if (!documentos.length) {
-    return res.status(400).json({ message: "Adicione os documentos obrigatorios para finalizar a inscricao." });
+    return res.status(400).json({ message: "Adicione os documentos obrigatórios para finalizar a inscrição." });
   }
 
   if (!termoAssinado) {
@@ -31,19 +30,10 @@ async function create(req, res) {
 
   if (Number(payload.idade) < 18) {
     if (!String(payload.responsavel || "").trim()) {
-      return res.status(400).json({ message: "Informe o responsavel legal para menor de idade." });
+      return res.status(400).json({ message: "Informe o responsável legal para menor de idade." });
     }
     if (documentos.length < 2) {
-      return res.status(400).json({ message: "Para menor de idade, envie documentos do aluno e do responsavel." });
-    }
-  }
-
-  if (payload.possuiDoenca === true) {
-    if (!String(payload.condicaoSaude || "").trim()) {
-      return res.status(400).json({ message: "Descreva a doenca ou problema fisico informado." });
-    }
-    if (!laudoSaude) {
-      return res.status(400).json({ message: "Envie um laudo ou comprovante da doenca/problema fisico informado." });
+      return res.status(400).json({ message: "Para menor de idade, envie documentos do aluno e do responsável." });
     }
   }
 
@@ -60,7 +50,7 @@ async function create(req, res) {
   const inscricao = await InscricaoService.create(payload, files);
 
   return res.status(201).json({
-    message: "Inscricao realizada com sucesso.",
+    message: "Inscrição realizada com sucesso.",
     inscricao
   });
 }
@@ -70,20 +60,22 @@ async function list(req, res) {
   return res.json({ inscricoes });
 }
 
-async function status(req, res) {
-  const statusInfo = await InscricaoService.publicStatusByCpf(req.validated.body.cpf);
-  return res.json({ status: statusInfo });
+async function legacyStatusRetired(req, res) {
+  res.set("Cache-Control", "private, no-store");
+  return res.status(410).json({
+    message: "Consulta indisponível. Acesse o Portal do Aluno com CPF e matrícula."
+  });
 }
 
 async function update(req, res) {
   const updated = await InscricaoService.update(req.validated.params.id, req.validated.body);
 
   if (!updated) {
-    return res.status(404).json({ message: "Inscricao nao encontrada." });
+    return res.status(404).json({ message: "Inscrição não encontrada." });
   }
 
   return res.json({
-    message: "Inscricao atualizada com sucesso.",
+    message: "Inscrição atualizada com sucesso.",
     inscricao: updated
   });
 }
@@ -92,7 +84,7 @@ async function remove(req, res) {
   const removed = await InscricaoService.remove(req.validated.params.id);
 
   if (!removed) {
-    return res.status(404).json({ message: "Inscricao nao encontrada." });
+    return res.status(404).json({ message: "Inscrição não encontrada." });
   }
 
   return res.status(204).send();
@@ -117,11 +109,11 @@ async function downloadDocument(req, res) {
   const documento = await InscricaoService.getDocument(req.validated.params.id);
 
   if (!documento) {
-    return res.status(404).json({ message: "Documento nao encontrado." });
+    return res.status(404).json({ message: "Documento não encontrado." });
   }
 
   if (!documento.fileContent) {
-    return res.status(404).json({ message: "Arquivo do documento nao encontrado." });
+    return res.status(404).json({ message: "Arquivo do documento não encontrado." });
   }
 
   res.setHeader("Content-Type", documento.mimeType);
@@ -153,7 +145,7 @@ async function downloadInscricaoDocumentsZip(req, res) {
   const documentos = await InscricaoService.documentsArchive({ inscricaoId: req.validated.params.id });
 
   if (!documentos.length) {
-    return res.status(404).json({ message: "Nenhum documento encontrado para esta inscricao." });
+    return res.status(404).json({ message: "Nenhum documento encontrado para esta inscrição." });
   }
 
   const zip = ZipService.createZip(documentos);
@@ -167,7 +159,7 @@ async function downloadInscricaoDocumentsZip(req, res) {
 module.exports = {
   create,
   list,
-  status,
+  legacyStatusRetired,
   update,
   remove,
   exportCsv,

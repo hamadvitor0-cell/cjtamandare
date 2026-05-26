@@ -13,20 +13,20 @@ async function create(req, res) {
 
 async function update(req, res) {
   const item = await Colaborador.update(req.validated.params.id, req.validated.body, req.file);
-  if (!item) return res.status(404).json({ message: "Colaborador nao encontrado." });
+  if (!item) return res.status(404).json({ message: "Colaborador não encontrado." });
   return res.json({ message: "Colaborador atualizado com sucesso.", item });
 }
 
 async function remove(req, res) {
   const removed = await Colaborador.remove(req.validated.params.id);
-  if (!removed) return res.status(404).json({ message: "Colaborador nao encontrado." });
+  if (!removed) return res.status(404).json({ message: "Colaborador não encontrado." });
   return res.status(204).send();
 }
 
 async function image(req, res) {
   const file = await Colaborador.findImage(req.validated.params.id);
   if (!file?.fileContent) {
-    return res.status(404).json({ message: "Imagem nao encontrada." });
+    return res.status(404).json({ message: "Imagem não encontrada." });
   }
 
   res.setHeader("Content-Type", file.mimeType);

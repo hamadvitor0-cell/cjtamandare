@@ -7,10 +7,11 @@
     "start": "node backend/server.js",
     "dev": "node backend/server.js",
     "build": "node scripts/generate-termo-pdf.js && node scripts/build-admin-assets.js",
-    "check": "node --check backend/server.js && node --check backend/app.js && node --check backend/config/env.js && node --check backend/config/security.js && node --check backend/routes/index.js && node --check backend/controllers/ai.controller.js && node --check backend/controllers/inscricao.controller.js && node --check backend/controllers/auth.controller.js && node --check backend/controllers/admin-user.controller.js && node --check backend/controllers/audit.controller.js && node --check backend/controllers/dashboard.controller.js && node --check backend/controllers/oficina.controller.js && node --check backend/controllers/galeria.controller.js && node --check backend/controllers/colaborador.controller.js && node --check backend/controllers/depoimento.controller.js && node --check backend/controllers/aluno.controller.js && node --check backend/controllers/bolsista.controller.js && node --check backend/controllers/calendario.controller.js && node --check backend/controllers/chamada.controller.js && node --check backend/controllers/captcha.controller.js && node --check backend/middlewares/auth.middleware.js && node --check backend/middlewares/error.middleware.js && node --check backend/middlewares/security.middleware.js && node --check backend/middlewares/admin-security.middleware.js && node --check backend/middlewares/validate.middleware.js && node --check backend/middlewares/csrf.middleware.js && node --check backend/middlewares/rateLimit.middleware.js && node --check backend/middlewares/upload.middleware.js && node --check backend/middlewares/audit.middleware.js && node --check backend/models/inscricao.model.js && node --check backend/models/admin.model.js && node --check backend/models/audit.model.js && node --check backend/models/oficina.model.js && node --check backend/models/galeria.model.js && node --check backend/models/colaborador.model.js && node --check backend/models/depoimento.model.js && node --check backend/models/aluno.model.js && node --check backend/models/bolsista.model.js && node --check backend/models/calendario.model.js && node --check backend/models/chamada.model.js && node --check backend/services/ai.service.js && node --check backend/services/inscricao.service.js && node --check backend/services/auth.service.js && node --check backend/services/captcha.service.js && node --check backend/services/csv.service.js && node --check backend/services/oficina.service.js && node --check backend/services/zip.service.js && node --check backend/database/pool.js && node --check backend/database/ensure-database.js && node --check backend/database/seed-admin.js && node --check backend/database/migrate-content.js && node --check backend/utils/logger.js && node --check backend/utils/redact.js && node --check backend/utils/sanitize.js && node --check backend/utils/asyncHandler.js && node --check backend/utils/cpf.js && node --check backend/utils/validators.js && node --check src/admin/admin.js && node --check frontend/js/admin.js && node --check scripts/build-admin-assets.js && node --check scripts/generate-termo-pdf.js && node --check api/index.js",
+    "check": "node --check backend/server.js && node --check backend/app.js && node --check backend/config/env.js && node --check backend/config/security.js && node --check backend/routes/index.js && node --check backend/content/admin-manual.content.js && node --check backend/controllers/ai.controller.js && node --check backend/controllers/inscricao.controller.js && node --check backend/controllers/auth.controller.js && node --check backend/controllers/admin-user.controller.js && node --check backend/controllers/audit.controller.js && node --check backend/controllers/dashboard.controller.js && node --check backend/controllers/oficina.controller.js && node --check backend/controllers/turma.controller.js && node --check backend/controllers/galeria.controller.js && node --check backend/controllers/colaborador.controller.js && node --check backend/controllers/depoimento.controller.js && node --check backend/controllers/aluno.controller.js && node --check backend/controllers/bolsista.controller.js && node --check backend/controllers/calendario.controller.js && node --check backend/controllers/chamada.controller.js && node --check backend/controllers/captcha.controller.js && node --check backend/controllers/support.controller.js && node --check backend/controllers/first-access.controller.js && node --check backend/controllers/admin-manual.controller.js && node --check backend/middlewares/auth.middleware.js && node --check backend/middlewares/error.middleware.js && node --check backend/middlewares/security.middleware.js && node --check backend/middlewares/admin-security.middleware.js && node --check backend/middlewares/validate.middleware.js && node --check backend/middlewares/csrf.middleware.js && node --check backend/middlewares/rateLimit.middleware.js && node --check backend/middlewares/upload.middleware.js && node --check backend/middlewares/audit.middleware.js && node --check backend/models/inscricao.model.js && node --check backend/models/admin.model.js && node --check backend/models/audit.model.js && node --check backend/models/oficina.model.js && node --check backend/models/turma.model.js && node --check backend/models/galeria.model.js && node --check backend/models/colaborador.model.js && node --check backend/models/depoimento.model.js && node --check backend/models/aluno.model.js && node --check backend/models/first-access.model.js && node --check backend/models/bolsista.model.js && node --check backend/models/calendario.model.js && node --check backend/models/chamada.model.js && node --check backend/models/support.model.js && node --check backend/services/ai.service.js && node --check backend/services/inscricao.service.js && node --check backend/services/auth.service.js && node --check backend/services/captcha.service.js && node --check backend/services/csv.service.js && node --check backend/services/oficina.service.js && node --check backend/services/zip.service.js && node --check backend/database/pool.js && node --check backend/database/ensure-database.js && node --check backend/database/seed-admin.js && node --check backend/database/migrate-content.js && node --check backend/utils/logger.js && node --check backend/utils/redact.js && node --check backend/utils/security-key.js && node --check backend/utils/sanitize.js && node --check backend/utils/asyncHandler.js && node --check backend/utils/cpf.js && node --check backend/utils/validators.js && node --check src/admin/admin.js && node --check frontend/js/admin.js && node --check frontend/js/main.js && node --check scripts/build-admin-assets.js && node --check scripts/generate-termo-pdf.js && node --check scripts/redact-audit-logs.js && node --check scripts/security-smoke-test.js && node --check api/index.js",
+    "security:test": "node scripts/security-smoke-test.js",
     "seed:admin": "node backend/database/seed-admin.js",
     "migrate:content": "node backend/database/migrate-content.js",
-    "import:inscritos-2026": "node scripts/import-inscritos-2026.js"
+    "migrate:audit-redaction": "node scripts/redact-audit-logs.js"
   },
   "keywords": [
     "centro-da-juventude",
@@ -25,6 +26,8 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "ai": "^6.0.177",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
@@ -38,12 +41,15 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
+    "pdfkit": "^0.18.0",
     "pg": "^8.13.1",
     "xss": "^1.0.15",
     "zod": "^4.4.3"
   },
+  "overrides": {
+    "uuid": "11.1.1"
+  },
   "devDependencies": {
-    "esbuild": "^0.28.0",
-    "pdfkit": "^0.18.0"
+    "esbuild": "^0.28.0"
   }
 }

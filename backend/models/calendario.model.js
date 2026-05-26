@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const db = require("../database/pool");
+const config = require("../config/env");
 const Oficina = require("./oficina.model");
 const Bolsista = require("./bolsista.model");
 
@@ -44,7 +45,7 @@ function datePartsForMonth(month) {
 }
 
 async function ensureSchema() {
-  if (!db.hasDatabase) return;
+  if (!db.hasDatabase || !config.runtimeDatabaseSetup) return;
   await Bolsista.findAll({});
   if (!schemaPromise) {
     schemaPromise = db.query(`
@@ -53,7 +54,7 @@ async function ensureSchema() {
       CREATE TABLE IF NOT EXISTS calendario_eventos (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         titulo TEXT NOT NULL CHECK (char_length(titulo) BETWEEN 2 AND 120),
-        tipo TEXT NOT NULL CHECK (tipo IN ('reuniao', 'passeio', 'evento', 'formacao', 'outro')),
+        tipo TEXT NOT NULL CHECK (tipo IN ('aula', 'evento', 'reuniao', 'passeio', 'cancelamento', 'comunicado', 'formacao', 'outro')),
         data_evento DATE NOT NULL,
         horario_inicio TEXT CHECK (horario_inicio IS NULL OR horario_inicio ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
         horario_fim TEXT CHECK (horario_fim IS NULL OR horario_fim ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
@@ -74,6 +75,8 @@ async function ensureSchema() {
       CREATE INDEX IF NOT EXISTS idx_calendario_eventos_data ON calendario_eventos (data_evento);
       CREATE INDEX IF NOT EXISTS idx_calendario_eventos_oficina ON calendario_eventos (oficina_id);
       CREATE INDEX IF NOT EXISTS idx_calendario_evento_bolsistas_bolsista ON calendario_evento_bolsistas (bolsista_id);
+      ALTER TABLE calendario_eventos DROP CONSTRAINT IF EXISTS calendario_eventos_tipo_check;
+      ALTER TABLE calendario_eventos ADD CONSTRAINT calendario_eventos_tipo_check CHECK (tipo IN ('aula', 'evento', 'reuniao', 'passeio', 'cancelamento', 'comunicado', 'formacao', 'outro'));
 
       CREATE OR REPLACE FUNCTION set_updated_at()
       RETURNS TRIGGER AS $$

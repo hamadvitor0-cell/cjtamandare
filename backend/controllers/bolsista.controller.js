@@ -16,13 +16,13 @@ async function create(req, res) {
 
 async function update(req, res) {
   const bolsista = await Bolsista.update(req.validated.params.id, req.validated.body);
-  if (!bolsista) return res.status(404).json({ message: "Bolsista nao encontrado." });
+  if (!bolsista) return res.status(404).json({ message: "Bolsista não encontrado." });
   return res.json({ message: "Bolsista atualizado com sucesso.", bolsista });
 }
 
 async function remove(req, res) {
   const removed = await Bolsista.remove(req.validated.params.id);
-  if (!removed) return res.status(404).json({ message: "Bolsista nao encontrado." });
+  if (!removed) return res.status(404).json({ message: "Bolsista não encontrado." });
   return res.status(204).send();
 }
 

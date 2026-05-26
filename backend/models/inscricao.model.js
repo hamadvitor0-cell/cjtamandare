@@ -1,11 +1,27 @@
 const crypto = require("crypto");
 const path = require("path");
 const db = require("../database/pool");
+const config = require("../config/env");
 const { normalizeCpf } = require("../utils/cpf");
+const Turma = require("./turma.model");
 
 const memory = [];
 const CONFIRMED_STATUS = "confirmada";
 const WAITLIST_STATUS = "lista_espera";
+let schemaEnsured = false;
+
+async function ensureSchema() {
+  if (schemaEnsured || !db.hasDatabase || !config.runtimeDatabaseSetup) return;
+  schemaEnsured = true;
+  await Turma.summaryByOffice().catch(() => {});
+  await db.query(`
+    ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS data_nascimento DATE;
+    ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS possui_deficiencia BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS deficiencia_descricao TEXT;
+    ALTER TABLE inscricoes DROP CONSTRAINT IF EXISTS inscricoes_idade_check;
+    ALTER TABLE inscricoes ADD CONSTRAINT inscricoes_idade_check CHECK (idade BETWEEN 0 AND 99);
+  `);
+}
 
 function normalizeOficinas(payload = {}) {
   const values = Array.isArray(payload.oficinas)
@@ -18,12 +34,14 @@ function mergeOficinas(current = [], incoming = []) {
   return Array.from(new Set([...current, ...incoming].map((item) => String(item || "").trim()).filter(Boolean)));
 }
 
-function detailsForOficinas(oficinas = [], createdAt, source = "inscricao", statusByOficina = {}) {
+function detailsForOficinas(oficinas = [], createdAt, source = "inscricao", statusByOficina = {}, turmaByOficina = {}) {
   return oficinas.map((oficina) => ({
     oficina,
     createdAt,
     source,
-    status: statusByOficina[oficina] || CONFIRMED_STATUS
+    status: statusByOficina[oficina] || CONFIRMED_STATUS,
+    turmaId: turmaByOficina[oficina]?.id || turmaByOficina[oficina]?.turmaId || "",
+    turmaNome: turmaByOficina[oficina]?.nome || turmaByOficina[oficina]?.turmaNome || ""
   }));
 }
 
@@ -41,12 +59,14 @@ function normalizeOficinaDetalhes(row, oficinas) {
       createdAt: detail.createdAt || detail.created_at || row.created_at,
       updatedAt: detail.updatedAt || detail.updated_at || row.updated_at,
       source: detail.source || "inscricao",
-      status: detail.status || CONFIRMED_STATUS
+      status: detail.status || CONFIRMED_STATUS,
+      turmaId: detail.turmaId || detail.turma_id || row.turma_id || row.turmaId || "",
+      turmaNome: detail.turmaNome || detail.turma_nome || row.turma_nome || row.turmaNome || ""
     };
   });
 }
 
-function mergeOficinaDetalhes(currentDetails = [], currentOficinas = [], incomingOficinas = [], now = new Date().toISOString(), statusByOficina = {}) {
+function mergeOficinaDetalhes(currentDetails = [], currentOficinas = [], incomingOficinas = [], now = new Date().toISOString(), statusByOficina = {}, turmaByOficina = {}) {
   const current = normalizeOficinaDetalhes({
     oficina_detalhes: currentDetails,
     created_at: now,
@@ -56,12 +76,20 @@ function mergeOficinaDetalhes(currentDetails = [], currentOficinas = [], incomin
 
   return mergedOficinas.map((oficina) => (
     current.find((detail) => detail.oficina === oficina)
-    || { oficina, createdAt: now, updatedAt: now, source: "inscricao", status: statusByOficina[oficina] || CONFIRMED_STATUS }
+    || {
+      oficina,
+      createdAt: now,
+      updatedAt: now,
+      source: "inscricao",
+      status: statusByOficina[oficina] || CONFIRMED_STATUS,
+      turmaId: turmaByOficina[oficina]?.id || turmaByOficina[oficina]?.turmaId || "",
+      turmaNome: turmaByOficina[oficina]?.nome || turmaByOficina[oficina]?.turmaNome || ""
+    }
   ));
 }
 
 function duplicateCpfError() {
-  const error = new Error("Este CPF ja possui cadastro para a(s) oficina(s) selecionada(s). Para alterar dados, procure a equipe do Centro da Juventude.");
+  const error = new Error("Este CPF já possui cadastro para a(s) oficina(s) selecionada(s). Para alterar dados, procure a equipe do Centro da Juventude.");
   error.statusCode = 409;
   return error;
 }
@@ -83,21 +111,21 @@ function toPublic(row) {
     id: row.id,
     nome: row.nome,
     cpf: row.cpf || "",
+    dataNascimento: row.data_nascimento || row.dataNascimento || "",
     idade: Number(row.idade),
     telefone: row.telefone,
     responsavel: row.responsavel || "",
-    contatoResponsavel: row.contato_responsavel || row.contatoResponsavel || "",
     email: row.email || "",
-    dataNascimento: row.data_nascimento || row.dataNascimento || "",
-    bairro: row.bairro || "",
-    possuiDoenca: Boolean(row.possui_doenca ?? row.possuiDoenca),
-    condicaoSaude: row.condicao_saude || row.condicaoSaude || "",
     oficina: oficinas.join(", "),
     oficinas,
     oficinaDetalhes,
+    turmaId: row.turma_id || row.turmaId || oficinaDetalhes.find((detail) => detail.turmaId)?.turmaId || "",
+    turma: row.turma_nome || row.turmaNome || oficinaDetalhes.find((detail) => detail.turmaNome)?.turmaNome || "",
     confirmadas,
     listaEspera,
     emListaEspera: listaEspera.length > 0,
+    possuiDeficiencia: Boolean(row.possui_deficiencia ?? row.possuiDeficiencia),
+    deficienciaDescricao: row.deficiencia_descricao || row.deficienciaDescricao || "",
     observacoes: row.observacoes || "",
     documentosCount,
     created_at: row.created_at,
@@ -148,6 +176,28 @@ async function waitlistStatusForMemory(oficinas) {
   }, {});
 }
 
+async function enrollmentDecisionForMemory(oficinas, payload = {}) {
+  const turmaId = String(payload.turmaId || payload.turma_id || "").trim();
+  if (!turmaId) {
+    return { statusByOficina: await waitlistStatusForMemory(oficinas), turmaByOficina: {}, turma: null };
+  }
+  if (oficinas.length !== 1) {
+    const error = new Error("Selecione uma unica oficina ao escolher uma turma.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const decision = await Turma.validateEnrollment({
+    oficinaNome: oficinas[0],
+    turmaId,
+    idade: payload.idade
+  });
+  return {
+    statusByOficina: { [oficinas[0]]: decision.status },
+    turmaByOficina: { [oficinas[0]]: decision.turma },
+    turma: decision.turma
+  };
+}
+
 async function waitlistStatusForDatabase(client, oficinas) {
   if (!oficinas.length) return {};
 
@@ -175,6 +225,14 @@ async function waitlistStatusForDatabase(client, oficinas) {
              WHERE detalhe->>'oficina' = $1
                AND detalhe->>'status' = $2
            )
+           AND NOT EXISTS (
+             SELECT 1
+             FROM aluno_oficina_cancelamentos cancelamento
+             INNER JOIN alunos cancelado ON cancelado.id = cancelamento.aluno_id
+             INNER JOIN oficinas oficina_cancelada ON oficina_cancelada.id = cancelamento.oficina_id
+             WHERE cancelado.cpf = REGEXP_REPLACE(COALESCE(i.cpf, ''), '\\D', '', 'g')
+               AND oficina_cancelada.nome = $1
+           )
          UNION ALL
          SELECT COALESCE(NULLIF(a.cpf, ''), a.id::text) AS pessoa_key
          FROM alunos a
@@ -192,7 +250,30 @@ async function waitlistStatusForDatabase(client, oficinas) {
   return statusByOficina;
 }
 
+async function enrollmentDecisionForDatabase(client, oficinas, payload = {}) {
+  const turmaId = String(payload.turmaId || payload.turma_id || "").trim();
+  if (!turmaId) {
+    return { statusByOficina: await waitlistStatusForDatabase(client, oficinas), turmaByOficina: {}, turma: null };
+  }
+  if (oficinas.length !== 1) {
+    const error = new Error("Selecione uma unica oficina ao escolher uma turma.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const decision = await Turma.validateEnrollment({
+    oficinaNome: oficinas[0],
+    turmaId,
+    idade: payload.idade
+  }, client);
+  return {
+    statusByOficina: { [oficinas[0]]: decision.status },
+    turmaByOficina: { [oficinas[0]]: decision.turma },
+    turma: decision.turma
+  };
+}
+
 async function create(payload, files = []) {
+  await ensureSchema();
   const cpf = normalizeCpf(payload.cpf);
   const oficinas = normalizeOficinas(payload);
 
@@ -205,21 +286,28 @@ async function create(payload, files = []) {
       const newOficinas = oficinas.filter((oficina) => !currentOficinas.includes(oficina));
       if (!newOficinas.length) throw duplicateCpfError();
 
-      const statusByOficina = await waitlistStatusForMemory(newOficinas);
-      const detalhes = mergeOficinaDetalhes(existing.oficinaDetalhes, currentOficinas, oficinas, now, statusByOficina);
+      const decision = await enrollmentDecisionForMemory(newOficinas, payload);
+      const detalhes = mergeOficinaDetalhes(
+        existing.oficinaDetalhes,
+        currentOficinas,
+        oficinas,
+        now,
+        decision.statusByOficina,
+        decision.turmaByOficina
+      );
       existing.oficinas = mergeOficinas(currentOficinas, oficinas);
       existing.oficina = existing.oficinas.join(", ");
       existing.oficinaDetalhes = detalhes;
+      existing.turmaId = decision.turma?.id || existing.turmaId || "";
+      existing.turma = decision.turma?.nome || existing.turma || "";
       existing.nome = payload.nome;
+      existing.dataNascimento = payload.dataNascimento || payload.data_nascimento || existing.dataNascimento || "";
       existing.idade = payload.idade;
       existing.telefone = payload.telefone;
       existing.responsavel = payload.responsavel || "";
-      existing.contatoResponsavel = payload.contatoResponsavel || "";
       existing.email = payload.email || "";
-      existing.dataNascimento = payload.dataNascimento || "";
-      existing.bairro = payload.bairro || "";
-      existing.possuiDoenca = payload.possuiDoenca === true;
-      existing.condicaoSaude = payload.condicaoSaude || "";
+      existing.possuiDeficiencia = payload.possuiDeficiencia ?? payload.possui_deficiencia ?? existing.possuiDeficiencia ?? false;
+      existing.deficienciaDescricao = payload.deficienciaDescricao || payload.deficiencia_descricao || existing.deficienciaDescricao || "";
       existing.observacoes = payload.observacoes || existing.observacoes || "";
       existing.updated_at = now;
       const documentos = files.map((file) => documentFromFile(file, existing.id, now));
@@ -230,14 +318,16 @@ async function create(payload, files = []) {
 
     const id = crypto.randomUUID();
     const documentos = files.map((file) => documentFromFile(file, id, now));
-    const statusByOficina = await waitlistStatusForMemory(oficinas);
+    const decision = await enrollmentDecisionForMemory(oficinas, payload);
     const record = toPublic({
       id,
       ...payload,
       cpf,
       oficina: oficinas[0],
       oficinas,
-      oficinaDetalhes: detailsForOficinas(oficinas, now, "inscricao", statusByOficina),
+      turmaId: decision.turma?.id || "",
+      turma: decision.turma?.nome || "",
+      oficinaDetalhes: detailsForOficinas(oficinas, now, "inscricao", decision.statusByOficina, decision.turmaByOficina),
       documentos,
       created_at: now,
       updated_at: now
@@ -268,75 +358,73 @@ async function create(payload, files = []) {
       if (!newOficinas.length) throw duplicateCpfError();
 
       const mergedOficinas = mergeOficinas(currentOficinas, oficinas);
-      const statusByOficina = await waitlistStatusForDatabase(client, newOficinas);
+      const decision = await enrollmentDecisionForDatabase(client, newOficinas, payload);
       const detalhes = mergeOficinaDetalhes(
         existing.rows[0].oficina_detalhes,
         currentOficinas,
         oficinas,
         new Date().toISOString(),
-        statusByOficina
+        decision.statusByOficina,
+        decision.turmaByOficina
       );
       const result = await client.query(
         `UPDATE inscricoes
          SET nome = $1,
-             idade = $2,
-             data_nascimento = $3,
+             data_nascimento = $2,
+             idade = $3,
              telefone = $4,
              responsavel = $5,
-             contato_responsavel = $6,
-             email = $7,
-             bairro = $8,
-             oficina = $9,
-             oficinas = $10,
-             oficina_detalhes = $11,
-             possui_doenca = $12,
-             condicao_saude = $13,
-             observacoes = $14,
+             email = $6,
+             oficina = $7,
+             oficinas = $8,
+             oficina_detalhes = $9,
+             observacoes = $10,
+             possui_deficiencia = $11,
+             deficiencia_descricao = $12,
+             turma_id = COALESCE($13, turma_id),
              updated_at = NOW()
-         WHERE id = $15
-         RETURNING id, nome, cpf, idade, data_nascimento, telefone, responsavel, contato_responsavel, email, bairro, oficina, oficinas, oficina_detalhes, possui_doenca, condicao_saude, observacoes, created_at, updated_at`,
+         WHERE id = $14
+         RETURNING id, nome, cpf, data_nascimento, idade, telefone, responsavel, email, oficina, oficinas, oficina_detalhes, turma_id, possui_deficiencia, deficiencia_descricao, observacoes, created_at, updated_at`,
         [
           payload.nome,
+          payload.dataNascimento || payload.data_nascimento || null,
           payload.idade,
-          payload.dataNascimento || null,
           payload.telefone,
           payload.responsavel || null,
-          payload.contatoResponsavel || null,
           payload.email || null,
-          payload.bairro || null,
           mergedOficinas[0],
           mergedOficinas,
           JSON.stringify(detalhes),
-          payload.possuiDoenca === true,
-          payload.condicaoSaude || null,
           payload.observacoes || null,
+          payload.possuiDeficiencia ?? payload.possui_deficiencia ?? false,
+          payload.deficienciaDescricao || payload.deficiencia_descricao || null,
+          decision.turma?.id || null,
           existing.rows[0].id
         ]
       );
       row = result.rows[0];
     } else {
-      const statusByOficina = await waitlistStatusForDatabase(client, oficinas);
+      const decision = await enrollmentDecisionForDatabase(client, oficinas, payload);
       const result = await client.query(
         `INSERT INTO inscricoes
-          (nome, cpf, idade, data_nascimento, telefone, responsavel, contato_responsavel, email, bairro, oficina, oficinas, oficina_detalhes, possui_doenca, condicao_saude, observacoes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-         RETURNING id, nome, cpf, idade, data_nascimento, telefone, responsavel, contato_responsavel, email, bairro, oficina, oficinas, oficina_detalhes, possui_doenca, condicao_saude, observacoes, created_at, updated_at`,
+          (nome, cpf, data_nascimento, idade, telefone, responsavel, email, oficina, oficinas, oficina_detalhes, turma_id, observacoes, possui_deficiencia, deficiencia_descricao)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+         RETURNING id, nome, cpf, data_nascimento, idade, telefone, responsavel, email, oficina, oficinas, oficina_detalhes, turma_id, possui_deficiencia, deficiencia_descricao, observacoes, created_at, updated_at`,
         [
           payload.nome,
           cpf,
+          payload.dataNascimento || payload.data_nascimento || null,
           payload.idade,
-          payload.dataNascimento || null,
           payload.telefone,
           payload.responsavel || null,
-          payload.contatoResponsavel || null,
           payload.email || null,
-          payload.bairro || null,
           oficinas[0],
           oficinas,
-          JSON.stringify(detailsForOficinas(oficinas, new Date().toISOString(), "inscricao", statusByOficina)),
-          payload.possuiDoenca === true,
-          payload.condicaoSaude || null,
-          payload.observacoes || null
+          JSON.stringify(detailsForOficinas(oficinas, new Date().toISOString(), "inscricao", decision.statusByOficina, decision.turmaByOficina)),
+          decision.turma?.id || null,
+          payload.observacoes || null,
+          payload.possuiDeficiencia ?? payload.possui_deficiencia ?? false,
+          payload.deficienciaDescricao || payload.deficiencia_descricao || null
         ]
       );
       row = result.rows[0];
@@ -378,6 +466,7 @@ async function create(payload, files = []) {
 }
 
 async function findAll(filters = {}) {
+  await ensureSchema();
   const search = String(filters.search || "").toLowerCase();
   const oficina = String(filters.oficina || "");
 
@@ -403,10 +492,11 @@ async function findAll(filters = {}) {
     params.push(`%${search}%`);
     const index = params.length;
     where.push(`(
-      LOWER(nome) LIKE $${index}
-      OR cpf LIKE REGEXP_REPLACE($${index}, '\\D', '', 'g')
-      OR LOWER(COALESCE(email, '')) LIKE $${index}
-      OR REGEXP_REPLACE(telefone, '\\D', '', 'g') LIKE REGEXP_REPLACE($${index}, '\\D', '', 'g')
+      LOWER(inscricoes.nome) LIKE $${index}
+      OR inscricoes.cpf LIKE REGEXP_REPLACE($${index}, '\\D', '', 'g')
+      OR LOWER(COALESCE(inscricoes.email, '')) LIKE $${index}
+      OR LOWER(COALESCE(turma_atual.nome, '')) LIKE $${index}
+      OR REGEXP_REPLACE(inscricoes.telefone, '\\D', '', 'g') LIKE REGEXP_REPLACE($${index}, '\\D', '', 'g')
     )`);
   }
 
@@ -417,32 +507,33 @@ async function findAll(filters = {}) {
 
   const sql = `
     SELECT
-      id,
-      nome,
-      cpf,
-      idade,
-      telefone,
-      responsavel,
-      contato_responsavel,
-      email,
-      data_nascimento,
-      bairro,
-      oficina,
-      oficinas,
-      oficina_detalhes,
-      possui_doenca,
-      condicao_saude,
-      observacoes,
-      created_at,
-      updated_at,
+      inscricoes.id,
+      inscricoes.nome,
+      inscricoes.cpf,
+      inscricoes.data_nascimento,
+      inscricoes.idade,
+      inscricoes.telefone,
+      inscricoes.responsavel,
+      inscricoes.email,
+      inscricoes.oficina,
+      inscricoes.oficinas,
+      inscricoes.oficina_detalhes,
+      inscricoes.turma_id,
+      turma_atual.nome AS turma_nome,
+      inscricoes.possui_deficiencia,
+      inscricoes.deficiencia_descricao,
+      inscricoes.observacoes,
+      inscricoes.created_at,
+      inscricoes.updated_at,
       COALESCE((
         SELECT COUNT(*)::int
         FROM inscricao_documentos documentos
         WHERE documentos.inscricao_id = inscricoes.id
       ), 0) AS documentos_count
     FROM inscricoes
+    LEFT JOIN turmas turma_atual ON turma_atual.id = inscricoes.turma_id
     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-    ORDER BY created_at DESC
+    ORDER BY inscricoes.created_at DESC
     LIMIT 500
   `;
 
@@ -451,8 +542,10 @@ async function findAll(filters = {}) {
 }
 
 async function update(id, payload) {
+  await ensureSchema();
   const cpf = payload.cpf === undefined ? undefined : normalizeCpf(payload.cpf);
   const oficinas = normalizeOficinas(payload);
+  const turmaId = String(payload.turmaId || payload.turma_id || "").trim();
 
   if (!db.hasDatabase) {
     const index = memory.findIndex((item) => item.id === id);
@@ -460,6 +553,7 @@ async function update(id, payload) {
     if (cpf && memory.some((item) => item.id !== id && item.cpf === cpf)) {
       throw duplicateCpfError();
     }
+    const decision = turmaId ? await enrollmentDecisionForMemory(oficinas.length ? oficinas : memory[index].oficinas || [], payload) : { statusByOficina: {}, turmaByOficina: {}, turma: null };
     memory[index] = toPublic({
       ...memory[index],
       ...payload,
@@ -467,8 +561,10 @@ async function update(id, payload) {
       oficina: oficinas[0] || memory[index].oficina,
       oficinas: oficinas.length ? oficinas : memory[index].oficinas,
       oficinaDetalhes: oficinas.length
-        ? mergeOficinaDetalhes(memory[index].oficinaDetalhes, memory[index].oficinas, oficinas, new Date().toISOString())
+        ? mergeOficinaDetalhes(memory[index].oficinaDetalhes, memory[index].oficinas, oficinas, new Date().toISOString(), decision.statusByOficina, decision.turmaByOficina)
         : memory[index].oficinaDetalhes,
+      turmaId: decision.turma?.id || memory[index].turmaId || "",
+      turma: decision.turma?.nome || memory[index].turma || "",
       documentosCount: memory[index].documentosCount || 0,
       updated_at: new Date().toISOString()
     });
@@ -485,48 +581,49 @@ async function update(id, payload) {
       ? existing.rows[0].oficinas
       : [existing.rows[0]?.oficina].filter(Boolean);
     const nextOficinas = oficinas.length ? oficinas : [payload.oficina].filter(Boolean);
+    const decision = turmaId ? await enrollmentDecisionForDatabase(db, nextOficinas, payload) : { statusByOficina: {}, turmaByOficina: {}, turma: null };
     const detalhes = mergeOficinaDetalhes(
       existing.rows[0]?.oficina_detalhes || [],
       existingOficinas,
       nextOficinas,
-      new Date().toISOString()
+      new Date().toISOString(),
+      decision.statusByOficina,
+      decision.turmaByOficina
     );
 
     result = await db.query(
       `UPDATE inscricoes
        SET nome = $1,
            cpf = COALESCE($2, cpf),
-           idade = $3,
-           data_nascimento = $4,
+           data_nascimento = COALESCE($3, data_nascimento),
+           idade = $4,
            telefone = $5,
            responsavel = $6,
-           contato_responsavel = $7,
-           email = $8,
-           bairro = $9,
-           oficina = $10,
-           oficinas = $11,
-           oficina_detalhes = $12,
-           possui_doenca = $13,
-           condicao_saude = $14,
-           observacoes = $15,
+           email = $7,
+           oficina = $8,
+           oficinas = $9,
+           oficina_detalhes = $10,
+           observacoes = $11,
+           possui_deficiencia = $12,
+           deficiencia_descricao = $13,
+           turma_id = COALESCE($14, turma_id),
            updated_at = NOW()
-       WHERE id = $16
+       WHERE id = $15
        RETURNING
          id,
          nome,
          cpf,
+          data_nascimento,
          idade,
-         data_nascimento,
          telefone,
          responsavel,
-         contato_responsavel,
          email,
-         bairro,
          oficina,
          oficinas,
          oficina_detalhes,
-         possui_doenca,
-         condicao_saude,
+         turma_id,
+         possui_deficiencia,
+         deficiencia_descricao,
          observacoes,
          created_at,
          updated_at,
@@ -538,19 +635,18 @@ async function update(id, payload) {
       [
         payload.nome,
         cpf || null,
+        payload.dataNascimento || payload.data_nascimento || null,
         payload.idade,
-        payload.dataNascimento || null,
         payload.telefone,
         payload.responsavel || null,
-        payload.contatoResponsavel || null,
         payload.email || null,
-        payload.bairro || null,
         nextOficinas[0] || payload.oficina,
         nextOficinas,
         JSON.stringify(detalhes),
-        payload.possuiDoenca === true,
-        payload.condicaoSaude || null,
         payload.observacoes || null,
+        payload.possuiDeficiencia ?? payload.possui_deficiencia ?? false,
+        payload.deficienciaDescricao || payload.deficiencia_descricao || null,
+        decision.turma?.id || null,
         id
       ]
     );
@@ -734,18 +830,14 @@ async function stats() {
                 id,
                 nome,
                 cpf,
-                idade,
                 data_nascimento,
+                idade,
                 telefone,
                 responsavel,
-                contato_responsavel,
                 email,
-                bairro,
                 oficina,
                 oficinas,
                 oficina_detalhes,
-                possui_doenca,
-                condicao_saude,
                 observacoes,
                 created_at,
                 updated_at,

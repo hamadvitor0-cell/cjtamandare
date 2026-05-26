@@ -2,11 +2,34 @@ const express = require("express");
 const asyncHandler = require("../utils/asyncHandler");
 const validate = require("../middlewares/validate.middleware");
 const upload = require("../middlewares/upload.middleware");
-const { requireAuth, authorizeRoles } = require("../middlewares/auth.middleware");
+const { requireAuth, requireStudentAuth, authorizeRoles } = require("../middlewares/auth.middleware");
 const { requireCsrf, issueCsrfToken } = require("../middlewares/csrf.middleware");
 const { auditAction } = require("../middlewares/audit.middleware");
 const { loginHoneypot } = require("../middlewares/admin-security.middleware");
-const { aiLimiter, inscriptionLimiter, loginLimiter, statusLookupLimiter } = require("../middlewares/rateLimit.middleware");
+const {
+  aiLimiter,
+  inscriptionLimiter,
+  loginLimiter,
+  adminCredentialLimiter,
+  portalCredentialLimiter,
+  portalMatriculaLimiter,
+  legacyCredentialLimiter,
+  ticketIpLimiter,
+  ticketLimiter,
+  enrollmentCancellationLimiter,
+  attachmentLimiter,
+  sensitiveIpLimiter,
+  sensitiveActionLimiter,
+  exportIpLimiter,
+  exportLimiter,
+  matriculaSendIpLimiter,
+  matriculaSendLimiter,
+  firstAccessListLimiter,
+  firstAccessIpLimiter,
+  firstAccessActionLimiter,
+  firstAccessPdfLimiter,
+  statusLookupLimiter
+} = require("../middlewares/rateLimit.middleware");
 const InscricaoController = require("../controllers/inscricao.controller");
 const AiController = require("../controllers/ai.controller");
 const AuthController = require("../controllers/auth.controller");
@@ -14,6 +37,7 @@ const AdminUserController = require("../controllers/admin-user.controller");
 const AuditController = require("../controllers/audit.controller");
 const DashboardController = require("../controllers/dashboard.controller");
 const OficinaController = require("../controllers/oficina.controller");
+const TurmaController = require("../controllers/turma.controller");
 const GaleriaController = require("../controllers/galeria.controller");
 const ColaboradorController = require("../controllers/colaborador.controller");
 const DepoimentoController = require("../controllers/depoimento.controller");
@@ -22,6 +46,10 @@ const BolsistaController = require("../controllers/bolsista.controller");
 const CalendarioController = require("../controllers/calendario.controller");
 const ChamadaController = require("../controllers/chamada.controller");
 const CaptchaController = require("../controllers/captcha.controller");
+const SupportController = require("../controllers/support.controller");
+const FaqController = require("../controllers/faq.controller");
+const FirstAccessController = require("../controllers/first-access.controller");
+const AdminManualController = require("../controllers/admin-manual.controller");
 const {
   inscriptionSchema,
   updateInscriptionSchema,
@@ -30,6 +58,9 @@ const {
   idParamSchema,
   adminListQuerySchema,
   oficinaSchema,
+  turmaListQuerySchema,
+  turmaSchema,
+  turmaStatusSchema,
   galeriaSchema,
   colaboradorSchema,
   depoimentoSchema,
@@ -42,14 +73,35 @@ const {
   calendarEventSchema,
   chamadaQuerySchema,
   chamadaHistoryQuerySchema,
+  chartAnalyticsQuerySchema,
   chamadaSchema,
-  statusLookupSchema,
   aiChatSchema,
-  adminStudentAssistSchema
+  adminStudentAssistSchema,
+  supportPortalSchema,
+  supportTicketSchema,
+  supportTicketQuerySchema,
+  workshopFeedbackSchema,
+  enrollmentCancellationSchema,
+  firstAccessListQuerySchema,
+  firstAccessMessageSchema,
+  firstAccessGuidanceSchema,
+  firstAccessPdfSchema,
+  workshopFeedbackQuerySchema,
+  supportAttachmentParamSchema,
+  supportTicketResponseSchema,
+  supportPostSchema,
+  faqSchema,
+  adminMessageAssistSchema
 } = require("../utils/validators");
 
 const router = express.Router();
+
+function publicDataCache(req, res, next) {
+  res.set("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+  next();
+}
 const adminOnly = [requireAuth, authorizeRoles("admin", "master")];
+const attendanceOnly = [requireAuth, authorizeRoles("chamadas", "admin", "master")];
 const masterOnly = [requireAuth, authorizeRoles("master")];
 
 router.get("/health", (req, res) => {
@@ -62,10 +114,22 @@ router.get("/health", (req, res) => {
 router.get("/csrf-token", issueCsrfToken);
 router.get("/captcha/challenge", asyncHandler(CaptchaController.challenge));
 
-router.get("/oficinas", asyncHandler(OficinaController.list));
-router.get("/galeria", asyncHandler(GaleriaController.list));
-router.get("/colaboradores", asyncHandler(ColaboradorController.list));
-router.get("/depoimentos", asyncHandler(DepoimentoController.list));
+router.get(["/admin-manual", "/admin-manual.html"], ...adminOnly, (req, res) => {
+  res.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  return res.redirect(302, "/admin.html#manual");
+});
+
+router.get("/oficinas", publicDataCache, asyncHandler(OficinaController.list));
+router.get(
+  "/oficinas/:id/turmas",
+  publicDataCache,
+  validate(idParamSchema, "params"),
+  asyncHandler(TurmaController.listPublicByOficina)
+);
+router.get("/galeria", publicDataCache, asyncHandler(GaleriaController.list));
+router.get("/colaboradores", publicDataCache, asyncHandler(ColaboradorController.list));
+router.get("/depoimentos", publicDataCache, asyncHandler(DepoimentoController.list));
+router.get("/faq", publicDataCache, asyncHandler(FaqController.listPublic));
 router.get(
   "/galeria/:id/imagem",
   validate(idParamSchema, "params"),
@@ -83,8 +147,7 @@ router.post(
   upload.rejectLargeMultipart(21 * 1024 * 1024),
   upload.inscriptionUpload.fields([
     { name: "documentos", maxCount: 8 },
-    { name: "termoAssinado", maxCount: 1 },
-    { name: "laudoSaude", maxCount: 1 }
+    { name: "termoAssinado", maxCount: 1 }
   ]),
   upload.validateUploadedFiles,
   validate(inscriptionSchema),
@@ -94,8 +157,8 @@ router.post(
 router.post(
   "/inscricoes/status",
   statusLookupLimiter,
-  validate(statusLookupSchema),
-  asyncHandler(InscricaoController.status)
+  legacyCredentialLimiter,
+  asyncHandler(InscricaoController.legacyStatusRetired)
 );
 
 router.post(
@@ -106,8 +169,78 @@ router.post(
 );
 
 router.post(
+  "/suporte/login",
+  statusLookupLimiter,
+  portalCredentialLimiter,
+  portalMatriculaLimiter,
+  validate(supportPortalSchema),
+  asyncHandler(SupportController.portal)
+);
+
+router.get(
+  "/suporte/portal",
+  requireStudentAuth,
+  asyncHandler(SupportController.portalSession)
+);
+
+router.post(
+  "/suporte/logout",
+  requireStudentAuth,
+  requireCsrf,
+  asyncHandler(SupportController.logout)
+);
+
+router.get(
+  "/suporte/tickets",
+  statusLookupLimiter,
+  requireStudentAuth,
+  validate(supportTicketQuerySchema, "query"),
+  asyncHandler(SupportController.ticketHistory)
+);
+
+router.post(
+  "/suporte/tickets",
+  requireStudentAuth,
+  ticketIpLimiter,
+  ticketLimiter,
+  requireCsrf,
+  upload.rejectLargeMultipart(22 * 1024 * 1024),
+  upload.array("anexos", 4),
+  upload.validateUploadedFiles,
+  validate(supportTicketSchema),
+  asyncHandler(SupportController.createTicket)
+);
+
+router.post(
+  "/suporte/feedback",
+  statusLookupLimiter,
+  requireStudentAuth,
+  requireCsrf,
+  validate(workshopFeedbackSchema),
+  asyncHandler(SupportController.createFeedback)
+);
+
+router.post(
+  "/suporte/inscricoes/cancelar",
+  requireStudentAuth,
+  enrollmentCancellationLimiter,
+  requireCsrf,
+  validate(enrollmentCancellationSchema),
+  asyncHandler(SupportController.cancelEnrollment)
+);
+
+router.get(
+  "/suporte/tickets/:ticketId/anexos/:attachmentId",
+  requireStudentAuth,
+  attachmentLimiter,
+  validate(supportAttachmentParamSchema, "params"),
+  asyncHandler(SupportController.downloadAttachment)
+);
+
+router.post(
   "/auth/login",
   loginLimiter,
+  adminCredentialLimiter,
   loginHoneypot,
   validate(loginSchema),
   asyncHandler(AuthController.login)
@@ -149,9 +282,18 @@ router.delete(
   asyncHandler(AdminUserController.remove)
 );
 
+router.post(
+  "/admin/usuarios/:id/revogar-sessoes",
+  ...masterOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  auditAction("update", "admin_usuario_sessao"),
+  asyncHandler(AdminUserController.revokeSessions)
+);
+
 router.get(
   "/admin/logs",
-  ...adminOnly,
+  ...masterOnly,
   validate(auditLogQuerySchema, "query"),
   asyncHandler(AuditController.list)
 );
@@ -165,6 +307,173 @@ router.post(
   asyncHandler(AiController.adminStudentAssist)
 );
 
+router.post(
+  "/ai/admin/message-assist",
+  aiLimiter,
+  ...adminOnly,
+  requireCsrf,
+  validate(adminMessageAssistSchema),
+  asyncHandler(AiController.adminMessageAssist)
+);
+
+router.get(
+  "/admin/suporte",
+  ...adminOnly,
+  asyncHandler(SupportController.adminList)
+);
+
+router.get(
+  "/admin/feedbacks",
+  ...adminOnly,
+  validate(workshopFeedbackQuerySchema, "query"),
+  asyncHandler(SupportController.adminFeedbacks)
+);
+
+router.get(
+  "/admin/primeiro-acesso/alunos",
+  ...adminOnly,
+  firstAccessListLimiter,
+  validate(firstAccessListQuerySchema, "query"),
+  asyncHandler(FirstAccessController.list)
+);
+
+router.get(
+  "/admin/manual",
+  ...adminOnly,
+  asyncHandler(AdminManualController.content)
+);
+
+router.get(
+  "/admin/primeiro-acesso/alunos/:id/historico",
+  ...adminOnly,
+  firstAccessListLimiter,
+  validate(idParamSchema, "params"),
+  asyncHandler(FirstAccessController.history)
+);
+
+router.post(
+  "/admin/primeiro-acesso/alunos/:id/mensagem",
+  ...adminOnly,
+  firstAccessIpLimiter,
+  firstAccessActionLimiter,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  validate(firstAccessMessageSchema),
+  asyncHandler(FirstAccessController.message)
+);
+
+router.post(
+  "/admin/primeiro-acesso/alunos/:id/marcar-enviado",
+  ...adminOnly,
+  firstAccessIpLimiter,
+  firstAccessActionLimiter,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  validate(firstAccessGuidanceSchema),
+  asyncHandler(FirstAccessController.markSent)
+);
+
+router.post(
+  "/admin/primeiro-acesso/alunos/:id/desmarcar-enviado",
+  ...adminOnly,
+  firstAccessIpLimiter,
+  firstAccessActionLimiter,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  asyncHandler(FirstAccessController.unmarkSent)
+);
+
+router.post(
+  "/admin/primeiro-acesso/pdf",
+  ...adminOnly,
+  firstAccessIpLimiter,
+  firstAccessPdfLimiter,
+  requireCsrf,
+  validate(firstAccessPdfSchema),
+  asyncHandler(FirstAccessController.pdf)
+);
+
+router.post(
+  "/admin/suporte/tickets/:id/responder",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  validate(supportTicketResponseSchema),
+  auditAction("update", "suporte_ticket"),
+  asyncHandler(SupportController.respondTicket)
+);
+
+router.get(
+  "/admin/suporte/tickets/:ticketId/anexos/:attachmentId",
+  ...adminOnly,
+  sensitiveIpLimiter,
+  sensitiveActionLimiter,
+  validate(supportAttachmentParamSchema, "params"),
+  asyncHandler(SupportController.adminDownloadAttachment)
+);
+
+router.post(
+  "/admin/suporte/murais",
+  ...adminOnly,
+  requireCsrf,
+  validate(supportPostSchema),
+  auditAction("create", "suporte_mural"),
+  asyncHandler(SupportController.createPost)
+);
+
+router.put(
+  "/admin/suporte/murais/:id",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  validate(supportPostSchema),
+  auditAction("update", "suporte_mural"),
+  asyncHandler(SupportController.updatePost)
+);
+
+router.delete(
+  "/admin/suporte/murais/:id",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  auditAction("delete", "suporte_mural"),
+  asyncHandler(SupportController.removePost)
+);
+
+router.get(
+  "/admin/faq",
+  ...adminOnly,
+  asyncHandler(FaqController.listAdmin)
+);
+
+router.post(
+  "/admin/faq",
+  ...adminOnly,
+  requireCsrf,
+  validate(faqSchema),
+  auditAction("create", "faq"),
+  asyncHandler(FaqController.create)
+);
+
+router.put(
+  "/admin/faq/:id",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  validate(faqSchema),
+  auditAction("update", "faq"),
+  asyncHandler(FaqController.update)
+);
+
+router.delete(
+  "/admin/faq/:id",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  auditAction("delete", "faq"),
+  asyncHandler(FaqController.remove)
+);
+
 router.get(
   "/inscricoes",
   ...adminOnly,
@@ -175,6 +484,8 @@ router.get(
 router.get(
   "/inscricoes/export/csv",
   ...adminOnly,
+  exportIpLimiter,
+  exportLimiter,
   validate(listQuerySchema, "query"),
   asyncHandler(InscricaoController.exportCsv)
 );
@@ -182,6 +493,8 @@ router.get(
 router.get(
   "/inscricoes/documentos.zip",
   ...adminOnly,
+  exportIpLimiter,
+  exportLimiter,
   validate(listQuerySchema, "query"),
   asyncHandler(InscricaoController.downloadDocumentsZip)
 );
@@ -196,6 +509,8 @@ router.get(
 router.get(
   "/inscricoes/:id/documentos.zip",
   ...adminOnly,
+  exportIpLimiter,
+  exportLimiter,
   validate(idParamSchema, "params"),
   asyncHandler(InscricaoController.downloadInscricaoDocumentsZip)
 );
@@ -203,6 +518,8 @@ router.get(
 router.get(
   "/inscricoes/documentos/:id/download",
   ...adminOnly,
+  exportIpLimiter,
+  exportLimiter,
   validate(idParamSchema, "params"),
   asyncHandler(InscricaoController.downloadDocument)
 );
@@ -234,9 +551,54 @@ router.get(
 
 router.get(
   "/admin/oficinas",
-  ...adminOnly,
+  ...attendanceOnly,
   validate(adminListQuerySchema, "query"),
   asyncHandler(OficinaController.list)
+);
+
+router.get(
+  "/admin/turmas",
+  ...attendanceOnly,
+  validate(turmaListQuerySchema, "query"),
+  asyncHandler(TurmaController.list)
+);
+
+router.post(
+  "/admin/turmas",
+  ...adminOnly,
+  requireCsrf,
+  validate(turmaSchema),
+  auditAction("create", "turma"),
+  asyncHandler(TurmaController.create)
+);
+
+router.put(
+  "/admin/turmas/:id",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  validate(turmaSchema),
+  auditAction("update", "turma"),
+  asyncHandler(TurmaController.update)
+);
+
+router.patch(
+  "/admin/turmas/:id/status",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  validate(turmaStatusSchema),
+  auditAction("update", "turma"),
+  asyncHandler(TurmaController.setStatus)
+);
+
+router.delete(
+  "/admin/turmas/:id",
+  ...adminOnly,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  auditAction("delete", "turma"),
+  asyncHandler(TurmaController.remove)
 );
 
 router.post(
@@ -406,8 +768,27 @@ router.post(
   requireCsrf,
   upload.rejectLargeMultipart(8 * 1024 * 1024),
   upload.spreadsheetUpload.single("planilha"),
+  upload.validateUploadedSpreadsheet,
   auditAction("create", "aluno_importacao"),
   asyncHandler(AlunoController.importFromSpreadsheet)
+);
+
+router.post(
+  "/alunos/importar-legado",
+  ...adminOnly,
+  requireCsrf,
+  upload.rejectLargeMultipart(8 * 1024 * 1024),
+  upload.spreadsheetUpload.single("planilha"),
+  upload.validateUploadedSpreadsheet,
+  auditAction("create", "aluno_importacao_legado"),
+  asyncHandler(AlunoController.importLegacySpreadsheet)
+);
+
+router.get(
+  "/alunos/:id",
+  ...adminOnly,
+  validate(idParamSchema, "params"),
+  asyncHandler(AlunoController.detail)
 );
 
 router.put(
@@ -427,6 +808,28 @@ router.delete(
   validate(idParamSchema, "params"),
   auditAction("delete", "aluno"),
   asyncHandler(AlunoController.remove)
+);
+
+router.post(
+  "/alunos/:id/matricula-whatsapp",
+  ...adminOnly,
+  matriculaSendIpLimiter,
+  matriculaSendLimiter,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  auditAction("send", "aluno_matricula_whatsapp"),
+  asyncHandler(AlunoController.matriculaWhatsapp)
+);
+
+router.post(
+  "/alunos/:id/revogar-sessoes",
+  ...adminOnly,
+  sensitiveIpLimiter,
+  sensitiveActionLimiter,
+  requireCsrf,
+  validate(idParamSchema, "params"),
+  auditAction("update", "aluno_sessao"),
+  asyncHandler(AlunoController.revokeSessions)
 );
 
 router.get(
@@ -500,22 +903,35 @@ router.delete(
 );
 
 router.get(
+  "/chamadas/turmas",
+  ...attendanceOnly,
+  asyncHandler(ChamadaController.turmas)
+);
+
+router.get(
   "/chamadas",
-  ...adminOnly,
+  ...attendanceOnly,
   validate(chamadaQuerySchema, "query"),
   asyncHandler(ChamadaController.get)
 );
 
 router.get(
   "/chamadas/historico",
-  ...adminOnly,
+  ...attendanceOnly,
   validate(chamadaHistoryQuerySchema, "query"),
   asyncHandler(ChamadaController.history)
 );
 
+router.get(
+  "/admin/graficos",
+  ...adminOnly,
+  validate(chartAnalyticsQuerySchema, "query"),
+  asyncHandler(ChamadaController.analytics)
+);
+
 router.post(
   "/chamadas",
-  ...adminOnly,
+  ...attendanceOnly,
   requireCsrf,
   validate(chamadaSchema),
   auditAction("create", "chamada"),

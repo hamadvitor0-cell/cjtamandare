@@ -4,18 +4,16 @@ CREATE TABLE IF NOT EXISTS inscricoes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome TEXT NOT NULL CHECK (char_length(nome) BETWEEN 3 AND 120),
   cpf TEXT UNIQUE CHECK (cpf IS NULL OR cpf ~ '^[0-9]{11}$'),
-  idade INTEGER NOT NULL CHECK (idade BETWEEN 0 AND 120),
   data_nascimento DATE,
+  idade INTEGER NOT NULL CHECK (idade BETWEEN 0 AND 99),
   telefone TEXT NOT NULL CHECK (char_length(telefone) BETWEEN 10 AND 20),
   responsavel TEXT CHECK (responsavel IS NULL OR char_length(responsavel) <= 120),
-  contato_responsavel TEXT CHECK (contato_responsavel IS NULL OR char_length(contato_responsavel) <= 40),
   email TEXT CHECK (email IS NULL OR char_length(email) <= 160),
-  bairro TEXT CHECK (bairro IS NULL OR char_length(bairro) <= 120),
   oficina TEXT NOT NULL CHECK (char_length(oficina) BETWEEN 2 AND 80),
   oficinas TEXT[] NOT NULL DEFAULT '{}',
   oficina_detalhes JSONB NOT NULL DEFAULT '[]'::jsonb,
-  possui_doenca BOOLEAN NOT NULL DEFAULT FALSE,
-  condicao_saude TEXT CHECK (condicao_saude IS NULL OR char_length(condicao_saude) <= 500),
+  possui_deficiencia BOOLEAN NOT NULL DEFAULT FALSE,
+  deficiencia_descricao TEXT CHECK (deficiencia_descricao IS NULL OR char_length(deficiencia_descricao) <= 500),
   observacoes TEXT CHECK (observacoes IS NULL OR char_length(observacoes) <= 500),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -42,6 +40,7 @@ CREATE TABLE IF NOT EXISTS admins (
   registration_code_hash TEXT,
   role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('master', 'admin')),
   active BOOLEAN NOT NULL DEFAULT TRUE,
+  token_version INTEGER NOT NULL DEFAULT 0,
   last_login_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -69,19 +68,18 @@ CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_username ON admins (username) WHERE username IS NOT NULL AND username <> '';
 ALTER TABLE admins ADD COLUMN IF NOT EXISTS registration_code_hash TEXT;
 ALTER TABLE admins ALTER COLUMN email DROP NOT NULL;
+ALTER TABLE admins ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0;
 CREATE INDEX IF NOT EXISTS idx_depoimentos_ordem ON depoimentos (ordem ASC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_depoimentos_seed_key_unique ON depoimentos (seed_key);
 
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS data_nascimento DATE;
-ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS bairro TEXT;
-ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS contato_responsavel TEXT;
-ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS possui_doenca BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS condicao_saude TEXT;
-ALTER TABLE inscricoes DROP CONSTRAINT IF EXISTS inscricoes_idade_check;
-ALTER TABLE inscricoes ADD CONSTRAINT inscricoes_idade_check CHECK (idade BETWEEN 0 AND 120);
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficinas TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficina_detalhes JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS possui_deficiencia BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS deficiencia_descricao TEXT;
+ALTER TABLE inscricoes DROP CONSTRAINT IF EXISTS inscricoes_idade_check;
+ALTER TABLE inscricoes ADD CONSTRAINT inscricoes_idade_check CHECK (idade BETWEEN 0 AND 99);
 UPDATE inscricoes SET oficinas = ARRAY[oficina] WHERE oficinas = '{}' AND oficina IS NOT NULL;
 UPDATE inscricoes
 SET oficina_detalhes = (
@@ -99,12 +97,11 @@ BEGIN
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_inscricoes_cpf ON inscricoes (cpf);
-CREATE INDEX IF NOT EXISTS idx_inscricoes_bairro ON inscricoes (bairro);
 
 ALTER TABLE inscricao_documentos ADD COLUMN IF NOT EXISTS file_content BYTEA;
 ALTER TABLE admins ADD COLUMN IF NOT EXISTS username TEXT;
 ALTER TABLE admins DROP CONSTRAINT IF EXISTS admins_role_check;
-ALTER TABLE admins ADD CONSTRAINT admins_role_check CHECK (role IN ('master', 'admin'));
+ALTER TABLE admins ADD CONSTRAINT admins_role_check CHECK (role IN ('master', 'admin', 'chamadas'));
 
 CREATE TABLE IF NOT EXISTS admin_audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -112,7 +109,7 @@ CREATE TABLE IF NOT EXISTS admin_audit_logs (
   admin_name TEXT NOT NULL,
   admin_email TEXT,
   admin_role TEXT,
-  action TEXT NOT NULL CHECK (action IN ('login', 'create', 'update', 'delete')),
+  action TEXT NOT NULL CHECK (action IN ('login', 'create', 'update', 'delete', 'send', 'export')),
   entity_type TEXT NOT NULL,
   entity_id TEXT,
   entity_label TEXT,

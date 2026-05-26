@@ -1,25 +1,26 @@
 const crypto = require("crypto");
 const path = require("path");
 const db = require("../database/pool");
+const config = require("../config/env");
 
 const defaultColaboradores = [
   {
     seed_key: "sesc-pr",
-    nome: "SESC Parana",
-    descricao: "O Sesc Parana atua em areas como acao social, cultura, educacao, esporte e lazer, saude, alimentacao e turismo, ampliando o acesso da comunidade a servicos e atividades formativas.",
+    nome: "SESC Paraná",
+    descricao: "O Sesc Paraná atua em áreas como ação social, cultura, educação, esporte e lazer, saúde, alimentação e turismo, ampliando o acesso da comunidade a serviços e atividades formativas.",
     site_url: "https://www.sescpr.com.br/",
     imagem_url: "/img/sesc-parana.png",
-    alt: "Logo do SESC Parana",
+    alt: "Logo do SESC Paraná",
     ordem: 1,
     ativo: true
   },
   {
     seed_key: "secretaria-cultura-turismo",
     nome: "Secretaria Municipal de Cultura e Turismo",
-    descricao: "A Secretaria de Cultura e Turismo de Almirante Tamandare promove o desenvolvimento cultural, protege o patrimonio local e incentiva acoes de turismo, eventos e valorizacao do Circuito da Natureza.",
+    descricao: "A Secretaria de Cultura e Turismo de Almirante Tamandaré promove o desenvolvimento cultural, protege o patrimônio local e incentiva ações de turismo, eventos e valorização do Circuito da Natureza.",
     site_url: "https://tamandare.pr.gov.br/secretarias/cultura-e-turismo",
     imagem_url: "",
-    alt: "Secretaria Municipal de Cultura e Turismo de Almirante Tamandare",
+    alt: "Secretaria Municipal de Cultura e Turismo de Almirante Tamandaré",
     ordem: 2,
     ativo: true
   }
@@ -71,7 +72,7 @@ function filePayload(file) {
 }
 
 async function ensureColaboradoresTable() {
-  if (!db.hasDatabase) return;
+  if (!db.hasDatabase || !config.runtimeDatabaseSetup) return;
   if (!setupPromise) {
     setupPromise = (async () => {
       await db.query(`

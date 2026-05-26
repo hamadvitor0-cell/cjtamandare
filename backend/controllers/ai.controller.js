@@ -10,7 +10,13 @@ async function adminStudentAssist(req, res) {
   return res.json(result);
 }
 
+async function adminMessageAssist(req, res) {
+  const result = await AiService.adminMessageAssist(req.validated.body);
+  return res.json(result);
+}
+
 module.exports = {
   chat,
-  adminStudentAssist
+  adminStudentAssist,
+  adminMessageAssist
 };

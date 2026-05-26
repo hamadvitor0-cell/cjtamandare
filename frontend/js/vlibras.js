@@ -9,7 +9,7 @@
     try {
       new window.VLibras.Widget("https://vlibras.gov.br/app");
     } catch (error) {
-      console.warn("VLibras nao pode ser iniciado neste navegador.", error);
+      console.warn("VLibras não pode ser iniciado neste navegador.", error);
     }
   }
 

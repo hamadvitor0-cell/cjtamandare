@@ -1,4 +1,16 @@
 const Audit = require("../models/audit.model");
+const { redactUrl } = require("../utils/redact");
+
+const privateEntityLabels = new Set([
+  "aluno",
+  "inscricao",
+  "suporte_ticket",
+  "aluno_matricula_whatsapp",
+  "first_access_guidance",
+  "bolsista",
+  "aluno_sessao",
+  "oficina_feedback"
+]);
 
 function pickEntityId(body) {
   return body?.id || body?.oficina?.id || body?.item?.id || body?.aluno?.id || body?.bolsista?.id || body?.evento?.id || "";
@@ -41,10 +53,12 @@ function auditAction(action, entityType) {
         action,
         entityType,
         entityId: req.params?.id || pickEntityId(responseBody),
-        entityLabel: defaultLabel(req, responseBody),
+        entityLabel: privateEntityLabels.has(entityType) ? "" : defaultLabel(req, responseBody),
         metadata: {
           method: req.method,
-          path: req.originalUrl,
+          path: redactUrl(req.originalUrl),
+          before: req.auditBefore || null,
+          after: responseBody || null,
           body: req.body || {}
         },
         ip: req.ip

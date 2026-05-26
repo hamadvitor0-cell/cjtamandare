@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const db = require("../database/pool");
+const config = require("../config/env");
 const Oficina = require("./oficina.model");
 
 const MAX_BOLSISTAS = 40;
@@ -24,7 +25,7 @@ function normalizeDays(payload = {}) {
 }
 
 async function ensureSchema() {
-  if (!db.hasDatabase) return;
+  if (!db.hasDatabase || !config.runtimeDatabaseSetup) return;
   if (!schemaPromise) {
     schemaPromise = db.query(`
       CREATE EXTENSION IF NOT EXISTS pgcrypto;

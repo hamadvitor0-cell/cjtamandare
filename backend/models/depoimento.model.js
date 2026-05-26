@@ -1,24 +1,16 @@
 const crypto = require("crypto");
 const db = require("../database/pool");
+const config = require("../config/env");
 
 const defaultDepoimentos = [
   {
-    seed_key: "aluno-cj",
-    nome: "Aluno do CJ",
-    vinculo: "Participante das oficinas",
-    texto: "O Centro da Juventude me ajudou a conhecer novas atividades, fazer amizades e participar mais da comunidade.",
-    oficina: "Oficinas do CJ",
+    seed_key: "relatos-autorizados-em-breve",
+    nome: "Relatos da comunidade",
+    vinculo: "Em breve",
+    texto: "Este espaço será publicado apenas com relatos autorizados pela equipe e pelos participantes.",
+    oficina: "",
     ordem: 1,
-    ativo: true
-  },
-  {
-    seed_key: "familia-participante",
-    nome: "Família participante",
-    vinculo: "Comunidade",
-    texto: "As oficinas criam oportunidades importantes para os jovens e aproximam as famílias dos serviços públicos.",
-    oficina: "Atividades comunitárias",
-    ordem: 2,
-    ativo: true
+    ativo: false
   }
 ].map((item) => ({
   id: crypto.randomUUID(),
@@ -29,6 +21,7 @@ const defaultDepoimentos = [
 
 const memory = [...defaultDepoimentos];
 let setupPromise = null;
+const DEPOIMENTOS_SETUP_LOCK_KEY = 520240524;
 
 function toPublic(row) {
   return {
@@ -45,58 +38,81 @@ function toPublic(row) {
 }
 
 async function ensureDepoimentosTable() {
-  if (!db.hasDatabase) return;
+  if (!db.hasDatabase || !config.runtimeDatabaseSetup) return;
   if (!setupPromise) {
     setupPromise = (async () => {
-      await db.query(`
-        CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
-        CREATE TABLE IF NOT EXISTS depoimentos (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          seed_key TEXT UNIQUE,
-          nome TEXT NOT NULL CHECK (char_length(nome) BETWEEN 2 AND 120),
-          vinculo TEXT CHECK (vinculo IS NULL OR char_length(vinculo) <= 120),
-          texto TEXT NOT NULL CHECK (char_length(texto) BETWEEN 10 AND 700),
-          oficina TEXT CHECK (oficina IS NULL OR char_length(oficina) <= 120),
-          ordem INTEGER NOT NULL DEFAULT 0,
-          ativo BOOLEAN NOT NULL DEFAULT TRUE,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        );
-
-        ALTER TABLE depoimentos ADD COLUMN IF NOT EXISTS seed_key TEXT;
-        CREATE INDEX IF NOT EXISTS idx_depoimentos_ordem ON depoimentos (ordem ASC);
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_depoimentos_seed_key_unique ON depoimentos (seed_key);
-
-        CREATE OR REPLACE FUNCTION set_updated_at()
-        RETURNS TRIGGER AS $$
-        BEGIN
-          NEW.updated_at = NOW();
-          RETURN NEW;
-        END;
-        $$ LANGUAGE plpgsql;
-
-        DROP TRIGGER IF EXISTS trg_depoimentos_updated_at ON depoimentos;
-        CREATE TRIGGER trg_depoimentos_updated_at
-        BEFORE UPDATE ON depoimentos
-        FOR EACH ROW
-        EXECUTE FUNCTION set_updated_at();
-      `);
-
-      for (const depoimento of defaultDepoimentos) {
+      let locked = false;
+      try {
+        await db.query("SELECT pg_advisory_lock($1)", [DEPOIMENTOS_SETUP_LOCK_KEY]);
+        locked = true;
         await db.query(
-          `INSERT INTO depoimentos (seed_key, nome, vinculo, texto, oficina, ordem, ativo)
-           VALUES ($1, $2, $3, $4, $5, $6, true)
-           ON CONFLICT (seed_key) DO NOTHING`,
-          [
-            depoimento.seed_key,
-            depoimento.nome,
-            depoimento.vinculo,
-            depoimento.texto,
-            depoimento.oficina,
-            depoimento.ordem
-          ]
+          `CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+          CREATE TABLE IF NOT EXISTS depoimentos (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            seed_key TEXT UNIQUE,
+            nome TEXT NOT NULL CHECK (char_length(nome) BETWEEN 2 AND 120),
+            vinculo TEXT CHECK (vinculo IS NULL OR char_length(vinculo) <= 120),
+            texto TEXT NOT NULL CHECK (char_length(texto) BETWEEN 10 AND 700),
+            oficina TEXT CHECK (oficina IS NULL OR char_length(oficina) <= 120),
+            ordem INTEGER NOT NULL DEFAULT 0,
+            ativo BOOLEAN NOT NULL DEFAULT TRUE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
+
+          ALTER TABLE depoimentos ADD COLUMN IF NOT EXISTS seed_key TEXT;
+          CREATE INDEX IF NOT EXISTS idx_depoimentos_ordem ON depoimentos (ordem ASC);
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_depoimentos_seed_key_unique ON depoimentos (seed_key);
+
+          CREATE OR REPLACE FUNCTION set_updated_at()
+          RETURNS TRIGGER AS $$
+          BEGIN
+            NEW.updated_at = NOW();
+            RETURN NEW;
+          END;
+          $$ LANGUAGE plpgsql;
+
+          DROP TRIGGER IF EXISTS trg_depoimentos_updated_at ON depoimentos;
+          CREATE TRIGGER trg_depoimentos_updated_at
+          BEFORE UPDATE ON depoimentos
+          FOR EACH ROW
+          EXECUTE FUNCTION set_updated_at();`
         );
+
+        for (const depoimento of defaultDepoimentos) {
+          await db.query(
+            `INSERT INTO depoimentos (seed_key, nome, vinculo, texto, oficina, ordem, ativo)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             ON CONFLICT (seed_key) DO NOTHING`,
+            [
+              depoimento.seed_key,
+              depoimento.nome,
+              depoimento.vinculo,
+              depoimento.texto,
+              depoimento.oficina,
+              depoimento.ordem,
+              depoimento.ativo
+            ]
+          );
+        }
+        await db.query(
+          `UPDATE depoimentos
+           SET ativo = false
+           WHERE seed_key = ANY($1::text[]) AND ativo = true`,
+          [[
+            "aluno-cj",
+            "familia-participante",
+            "responsavel-aluno",
+            "jovem-participante",
+            "comunidade-cj",
+            "ex-aluna"
+          ]]
+        );
+      } finally {
+        if (locked) {
+          await db.query("SELECT pg_advisory_unlock($1)", [DEPOIMENTOS_SETUP_LOCK_KEY]).catch(() => {});
+        }
       }
     })().catch((error) => {
       setupPromise = null;

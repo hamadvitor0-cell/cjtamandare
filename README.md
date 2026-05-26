@@ -18,7 +18,6 @@ Portal institucional full stack para divulgação de oficinas, inscrições onli
   /img
   index.html
   admin.html
-  admin-manual.html
 
 /backend
   server.js
@@ -239,7 +238,8 @@ git push -u origin main
 - Oficinas e galeria também podem ser gerenciadas pelo ADM. O arquivo `frontend/js/data.js` fica como fallback se a API estiver indisponível.
 - Cada oficina possui capacidade obrigatória. Quando a capacidade é atingida, novas inscrições online entram automaticamente em lista de espera.
 - O CPF unifica a ficha do aluno: a mesma pessoa pode entrar em várias oficinas, mas aparece uma única vez em `Inscritos`.
-- O manual para novos administradores fica em `/admin-manual.html` e exige sessão ADM ativa.
+- O manual para administradores fica integrado ao painel na seção `Manual ADM` (`/admin.html#manual`) e é carregado somente para perfis `ADM` e `Master`.
+- A antiga rota `/admin-manual.html` foi aposentada: sem sessão não entrega conteúdo; uma sessão autorizada é direcionada para a seção interna do painel.
 - Para usar chamada, cadastre alunos no ADM, vincule o mesmo aluno a uma ou mais oficinas, selecione oficina e data em `Chamada`, carregue a lista, marque as presenças e salve.
 - A ficha fica destacada em laranja quando o aluno soma mais de 2 faltas nos últimos 30 dias. Advertências e documentos pendentes podem ser registrados na ficha do ADM.
 - Atualize telefone, redes sociais e endereço em `frontend/index.html`.

@@ -5,9 +5,6 @@ const config = require("../config/env");
 
 const memoryAdmins = [];
 let ensured = false;
-let ensurePromise = null;
-// Shared with database bootstrapping so request-time schema checks cannot race migrations.
-const setupLockId = 20260509;
 
 function toAdmin(row) {
   if (!row) return null;
@@ -20,6 +17,7 @@ function toAdmin(row) {
     registration_code_hash: row.registration_code_hash || "",
     role: row.role,
     active: row.active,
+    token_version: Number(row.token_version || 0),
     last_login_at: row.last_login_at,
     created_at: row.created_at,
     updated_at: row.updated_at
@@ -28,7 +26,7 @@ function toAdmin(row) {
 
 function publicAdmin(admin) {
   if (!admin) return null;
-  const { password_hash: _passwordHash, registration_code_hash: _registrationCodeHash, ...safe } = admin;
+  const { password_hash: _passwordHash, registration_code_hash: _registrationCodeHash, token_version: _tokenVersion, ...safe } = admin;
   return safe;
 }
 
@@ -72,44 +70,41 @@ function seedMemoryAdmin() {
     registration_code_hash: codeHash,
     role: "master",
     active: true,
+    token_version: 0,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }));
 }
 
 async function ensureAdminTable() {
-  if (ensured || !db.hasDatabase) return;
-  if (!ensurePromise) {
-    // Constraint and index maintenance belongs to migrations, not first-request startup.
-    ensurePromise = db.query(`
-      SELECT pg_advisory_xact_lock(${setupLockId});
-      CREATE TABLE IF NOT EXISTS admins (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name TEXT NOT NULL CHECK (char_length(name) BETWEEN 2 AND 120),
-        username TEXT UNIQUE CHECK (username IS NULL OR username ~ '^[a-zA-Z0-9._-]{3,40}$'),
-        email TEXT UNIQUE,
-        password_hash TEXT NOT NULL,
-        registration_code_hash TEXT,
-        role TEXT NOT NULL DEFAULT 'admin',
-        active BOOLEAN NOT NULL DEFAULT TRUE,
-        last_login_at TIMESTAMPTZ,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-      ALTER TABLE admins ADD COLUMN IF NOT EXISTS username TEXT;
-      ALTER TABLE admins ADD COLUMN IF NOT EXISTS registration_code_hash TEXT;
-      ALTER TABLE admins ALTER COLUMN email DROP NOT NULL;
-      ALTER TABLE admins ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
-      ALTER TABLE admins ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
-    `)
-      .then(() => {
-        ensured = true;
-      })
-      .finally(() => {
-        ensurePromise = null;
-      });
-  }
-  await ensurePromise;
+  if (ensured || !db.hasDatabase || !config.runtimeDatabaseSetup) return;
+  ensured = true;
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS admins (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name TEXT NOT NULL CHECK (char_length(name) BETWEEN 2 AND 120),
+      username TEXT UNIQUE CHECK (username IS NULL OR username ~ '^[a-zA-Z0-9._-]{3,40}$'),
+      email TEXT UNIQUE,
+      password_hash TEXT NOT NULL,
+      registration_code_hash TEXT,
+      role TEXT NOT NULL DEFAULT 'admin',
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      token_version INTEGER NOT NULL DEFAULT 0,
+      last_login_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    ALTER TABLE admins ADD COLUMN IF NOT EXISTS username TEXT;
+    ALTER TABLE admins ADD COLUMN IF NOT EXISTS registration_code_hash TEXT;
+    ALTER TABLE admins ALTER COLUMN email DROP NOT NULL;
+    ALTER TABLE admins ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
+    ALTER TABLE admins ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE admins ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+    ALTER TABLE admins DROP CONSTRAINT IF EXISTS admins_role_check;
+    ALTER TABLE admins ADD CONSTRAINT admins_role_check CHECK (role IN ('master', 'admin', 'chamadas'));
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_username ON admins (username) WHERE username IS NOT NULL AND username <> '';
+    CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);
+  `);
   if (config.adminEmail || config.adminRegistrationCode) {
     const registrationCodeHash = masterSeedCode()
       ? await hashRegistrationCode(masterSeedCode())
@@ -137,7 +132,7 @@ async function findByLogin(identifier) {
 
   await ensureAdminTable();
   const result = await db.query(
-    `SELECT id, name, username, email, password_hash, registration_code_hash, role, active, last_login_at, created_at, updated_at
+    `SELECT id, name, username, email, password_hash, registration_code_hash, role, active, token_version, last_login_at, created_at, updated_at
      FROM admins
      WHERE LOWER(email) = $1 OR LOWER(COALESCE(username, '')) = $1
      LIMIT 1`,
@@ -158,7 +153,7 @@ async function findById(id) {
   }
   await ensureAdminTable();
   const result = await db.query(
-    `SELECT id, name, username, email, password_hash, registration_code_hash, role, active, last_login_at, created_at, updated_at
+    `SELECT id, name, username, email, password_hash, registration_code_hash, role, active, token_version, last_login_at, created_at, updated_at
      FROM admins
      WHERE id = $1`,
     [id]
@@ -173,11 +168,23 @@ async function list() {
   }
   await ensureAdminTable();
   const result = await db.query(
-    `SELECT id, name, username, email, role, active, last_login_at, created_at, updated_at
+    `SELECT id, name, username, email, role, active, token_version, last_login_at, created_at, updated_at
      FROM admins
      ORDER BY role DESC, name ASC`
   );
   return result.rows.map(toAdmin).map(publicAdmin);
+}
+
+async function countActiveMasters() {
+  if (!db.hasDatabase) {
+    seedMemoryAdmin();
+    return memoryAdmins.filter((admin) => admin.role === "master" && admin.active).length;
+  }
+  await ensureAdminTable();
+  const result = await db.query(
+    "SELECT COUNT(*)::int AS total FROM admins WHERE role = 'master' AND active = true"
+  );
+  return Number(result.rows[0]?.total || 0);
 }
 
 async function create({ name, username, registrationCode, password, role = "admin", active = true }) {
@@ -200,6 +207,7 @@ async function create({ name, username, registrationCode, password, role = "admi
       registration_code_hash: registrationCodeHash,
       role,
       active,
+      token_version: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
@@ -224,7 +232,7 @@ async function create({ name, username, registrationCode, password, role = "admi
   return publicAdmin(toAdmin(result.rows[0]));
 }
 
-async function createAdmin({ name, username = "master", email, passwordHash, registrationCodeHash, role = "master" }) {
+async function createAdmin({ name, username = "master", email, passwordHash, registrationCodeHash, role = "master", overwriteExisting = false }) {
   if (!db.hasDatabase) {
     throw new Error("Seed de administrador exige DATABASE_URL.");
   }
@@ -232,7 +240,18 @@ async function createAdmin({ name, username = "master", email, passwordHash, reg
   const loginEmail = email ? email.toLowerCase() : null;
   const normalizedUsername = String(username || "master").trim().toLowerCase();
   const codeHash = registrationCodeHash || passwordHash;
-  if (loginEmail) {
+  if (!overwriteExisting) {
+    const existing = await db.query(
+      `SELECT id, name, username, email, role, active, token_version, last_login_at, created_at, updated_at
+       FROM admins
+       WHERE LOWER(COALESCE(username, '')) = LOWER($1)
+          OR ($2::text IS NOT NULL AND LOWER(COALESCE(email, '')) = LOWER($2))
+       LIMIT 1`,
+      [normalizedUsername, loginEmail]
+    );
+    if (existing.rows[0]) return publicAdmin(toAdmin(existing.rows[0]));
+  }
+  if (loginEmail && overwriteExisting) {
     const existing = await db.query(
       `UPDATE admins
        SET name = $1,
@@ -241,9 +260,10 @@ async function createAdmin({ name, username = "master", email, passwordHash, reg
            registration_code_hash = $3,
            role = $4,
            active = true,
+           token_version = token_version + 1,
            updated_at = NOW()
        WHERE LOWER(email) = LOWER($5)
-       RETURNING id, name, username, email, role, active, created_at, updated_at`,
+       RETURNING id, name, username, email, role, active, token_version, created_at, updated_at`,
       [name, normalizedUsername, codeHash, role, loginEmail]
     );
     if (existing.rows[0]) return publicAdmin(toAdmin(existing.rows[0]));
@@ -258,6 +278,16 @@ async function createAdmin({ name, username = "master", email, passwordHash, reg
     );
   } catch (error) {
     if (error.code !== "23505") throw error;
+    if (!overwriteExisting) {
+      const existing = await db.query(
+        `SELECT id, name, username, email, role, active, token_version, last_login_at, created_at, updated_at
+         FROM admins
+         WHERE LOWER(COALESCE(username, '')) = LOWER($1)
+         LIMIT 1`,
+        [normalizedUsername]
+      );
+      return publicAdmin(toAdmin(existing.rows[0]));
+    }
     result = await db.query(
       `UPDATE admins
        SET name = $1,
@@ -266,9 +296,10 @@ async function createAdmin({ name, username = "master", email, passwordHash, reg
            registration_code_hash = $3,
            role = $4,
            active = true,
+           token_version = token_version + 1,
            updated_at = NOW()
        WHERE LOWER(COALESCE(username, '')) = LOWER($5)
-       RETURNING id, name, username, email, role, active, created_at, updated_at`,
+       RETURNING id, name, username, email, role, active, token_version, created_at, updated_at`,
       [name, loginEmail, codeHash, role, normalizedUsername]
     );
   }
@@ -290,6 +321,11 @@ async function update(id, payload) {
       email: current.email || "",
       role: payload.role || "admin",
       active: payload.active !== false,
+      token_version: Number(current.token_version || 0) + (
+        current.role !== (payload.role || "admin")
+        || current.active !== (payload.active !== false)
+        || Boolean(registrationCodeHash) ? 1 : 0
+      ),
       password_hash: registrationCodeHash || current.password_hash,
       registration_code_hash: registrationCodeHash || current.registration_code_hash,
       updated_at: new Date().toISOString()
@@ -309,9 +345,13 @@ async function update(id, payload) {
            active = $4,
            password_hash = COALESCE($5, password_hash),
            registration_code_hash = COALESCE($5, registration_code_hash),
+           token_version = token_version + CASE
+             WHEN role IS DISTINCT FROM $3 OR active IS DISTINCT FROM $4 OR $5 IS NOT NULL THEN 1
+             ELSE 0
+           END,
            updated_at = NOW()
        WHERE id = $6
-       RETURNING id, name, username, email, role, active, last_login_at, created_at, updated_at`,
+       RETURNING id, name, username, email, role, active, token_version, last_login_at, created_at, updated_at`,
       [
         payload.name,
         String(payload.username || "").trim().toLowerCase(),
@@ -347,15 +387,37 @@ async function updateLastLogin(id) {
   await db.query("UPDATE admins SET last_login_at = NOW(), updated_at = NOW() WHERE id = $1", [id]);
 }
 
+async function revokeSessions(id) {
+  if (!db.hasDatabase) {
+    seedMemoryAdmin();
+    const admin = memoryAdmins.find((item) => item.id === id);
+    if (!admin) return null;
+    admin.token_version = Number(admin.token_version || 0) + 1;
+    admin.updated_at = new Date().toISOString();
+    return publicAdmin(admin);
+  }
+  await ensureAdminTable();
+  const result = await db.query(
+    `UPDATE admins
+     SET token_version = token_version + 1, updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, name, username, email, role, active, token_version, last_login_at, created_at, updated_at`,
+    [id]
+  );
+  return result.rows[0] ? publicAdmin(toAdmin(result.rows[0])) : null;
+}
+
 module.exports = {
   ensureAdminTable,
   list,
   findByLogin,
   findByEmail,
   findById,
+  countActiveMasters,
   create,
   createAdmin,
   update,
   remove,
-  updateLastLogin
+  updateLastLogin,
+  revokeSessions
 };

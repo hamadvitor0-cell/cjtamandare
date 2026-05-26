@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const db = require("../database/pool");
+const config = require("../config/env");
 const { defaultOficinas } = require("../services/oficina.service");
 
 const memory = defaultOficinas.map((oficina) => ({
@@ -14,15 +15,33 @@ const memory = defaultOficinas.map((oficina) => ({
   capacidade: oficina.capacidade || 30,
   imagem_url: "/img/oficinas.png",
   initials: oficina.nome.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase(),
+  turmas: oficina.turmas || [],
   ativo: true,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString()
 }));
 
+let schemaEnsured = false;
+
+async function ensureSchema() {
+  if (schemaEnsured || !db.hasDatabase || !config.runtimeDatabaseSetup) return;
+  schemaEnsured = true;
+  await db.query("ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS turmas JSONB NOT NULL DEFAULT '[]'::jsonb");
+}
+
+function normalizeTurmas(value = []) {
+  const list = Array.isArray(value)
+    ? value
+    : String(value || "").split(/[\n;,|]/);
+  return Array.from(new Set(list.map((item) => String(item || "").trim()).filter(Boolean)));
+}
+
 function toPublic(row) {
-  const capacidade = Number(row.capacidade || 30);
-  const inscritosConfirmados = Number(row.inscritos_confirmados ?? row.inscritosConfirmados ?? 0);
+  const legacyCapacidade = Number(row.capacidade || 30);
+  const capacidade = Number(row.capacidade_total ?? row.capacidadeTotal ?? legacyCapacidade);
+  const inscritosConfirmados = Number(row.inscritos_confirmados ?? row.inscritosConfirmados ?? row.ocupadas_total ?? row.ocupadasTotal ?? 0);
   const vagasDisponiveis = Math.max(capacidade - inscritosConfirmados, 0);
+  const turmasAtivas = Number(row.turmas_ativas ?? row.turmasAtivas ?? 0);
   const situacaoVagas = vagasDisponiveis <= 0
     ? "lista_espera"
     : vagasDisponiveis <= 3
@@ -39,6 +58,9 @@ function toPublic(row) {
     periodo: row.periodo || "a definir",
     horario: row.horario,
     capacidade,
+    capacidadeLegada: legacyCapacidade,
+    turmas: normalizeTurmas(row.turmas || []),
+    turmasAtivas,
     inscritosConfirmados,
     vagasDisponiveis,
     situacaoVagas,
@@ -50,12 +72,54 @@ function toPublic(row) {
   };
 }
 
+async function applyTurmaSummaries(oficinas = []) {
+  try {
+    const Turma = require("./turma.model");
+    const turmas = await Turma.findAll({ includeInactive: false, publicOnly: true });
+    const turmasByOffice = turmas.reduce((acc, turma) => {
+      const current = acc.get(turma.oficinaId) || [];
+      current.push(Turma.toPublicSafe(turma));
+      acc.set(turma.oficinaId, current);
+      return acc;
+    }, new Map());
+    return oficinas.map((oficina) => {
+      const turmasDisponiveis = turmasByOffice.get(oficina.id) || [];
+      if (!turmasDisponiveis.length) return {
+        ...oficina,
+        turmasDisponiveis
+      };
+      const capacidade = turmasDisponiveis.reduce((total, turma) => total + Number(turma.vagasTotal || 0), 0);
+      const inscritosConfirmados = turmasDisponiveis.reduce((total, turma) => total + Number(turma.vagasOcupadas || 0), 0);
+      const vagasDisponiveis = Math.max(capacidade - inscritosConfirmados, 0);
+      return {
+        ...oficina,
+        capacidade,
+        inscritosConfirmados,
+        vagasDisponiveis,
+        situacaoVagas: vagasDisponiveis <= 0
+          ? "lista_espera"
+          : vagasDisponiveis <= 3
+            ? "poucas_vagas"
+            : "vagas_abertas",
+        capacidadeTotal: capacidade,
+        ocupadasTotal: inscritosConfirmados,
+        turmasAtivas: turmasDisponiveis.length,
+        turmasDisponiveis
+      };
+    });
+  } catch (error) {
+    return oficinas;
+  }
+}
+
 async function findAll({ includeInactive = false } = {}) {
+  await ensureSchema();
+
   if (!db.hasDatabase) {
-    return memory
+    return applyTurmaSummaries(memory
       .filter((item) => includeInactive || item.ativo)
       .sort((a, b) => a.nome.localeCompare(b.nome))
-      .map(toPublic);
+      .map(toPublic));
   }
 
   const result = await db.query(
@@ -69,39 +133,23 @@ async function findAll({ includeInactive = false } = {}) {
        o.periodo,
        o.horario,
        o.capacidade,
+       o.turmas,
        o.imagem_url,
        o.initials,
        o.ativo,
        o.created_at,
-       o.updated_at,
-       COALESCE(ocupacao.total, 0) AS inscritos_confirmados
+       o.updated_at
      FROM oficinas o
-     LEFT JOIN LATERAL (
-       SELECT COUNT(DISTINCT pessoa_key)::int AS total
-       FROM (
-         SELECT COALESCE(NULLIF(i.cpf, ''), i.id::text) AS pessoa_key
-         FROM inscricoes i
-         WHERE (o.nome = ANY(i.oficinas) OR i.oficina = o.nome)
-           AND NOT EXISTS (
-             SELECT 1
-             FROM jsonb_array_elements(COALESCE(i.oficina_detalhes, '[]'::jsonb)) AS detalhe
-             WHERE detalhe->>'oficina' = o.nome
-               AND detalhe->>'status' = 'lista_espera'
-           )
-         UNION ALL
-         SELECT COALESCE(NULLIF(a.cpf, ''), a.id::text) AS pessoa_key
-         FROM alunos a
-         INNER JOIN aluno_oficinas ao ON ao.aluno_id = a.id
-         WHERE ao.oficina_id = o.id AND a.status = 'ativo'
-       ) pessoas
-     ) ocupacao ON true
      ${includeInactive ? "" : "WHERE o.ativo = true"}
      ORDER BY categoria ASC, nome ASC`
   );
-  return result.rows.map(toPublic);
+  return applyTurmaSummaries(result.rows.map(toPublic));
 }
 
 async function create(payload) {
+  await ensureSchema();
+  const turmas = normalizeTurmas(payload.turmas);
+
   if (!db.hasDatabase) {
     const now = new Date().toISOString();
     const record = {
@@ -114,6 +162,7 @@ async function create(payload) {
       periodo: payload.periodo || "a definir",
       horario: payload.horario,
       capacidade: Number(payload.capacidade || 30),
+      turmas,
       imagem_url: payload.imagemUrl || "/img/oficinas.png",
       initials: payload.initials,
       ativo: payload.ativo !== false,
@@ -125,9 +174,9 @@ async function create(payload) {
   }
 
   const result = await db.query(
-    `INSERT INTO oficinas (nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, capacidade, imagem_url, initials, ativo)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-     RETURNING id, nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, capacidade, imagem_url, initials, ativo, created_at, updated_at`,
+    `INSERT INTO oficinas (nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, capacidade, turmas, imagem_url, initials, ativo)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+     RETURNING id, nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, capacidade, turmas, imagem_url, initials, ativo, created_at, updated_at`,
     [
       payload.nome,
       payload.categoria,
@@ -137,6 +186,7 @@ async function create(payload) {
       payload.periodo || "a definir",
       payload.horario,
       Number(payload.capacidade || 30),
+      JSON.stringify(turmas),
       payload.imagemUrl || "/img/oficinas.png",
       payload.initials,
       payload.ativo !== false
@@ -146,6 +196,9 @@ async function create(payload) {
 }
 
 async function update(id, payload) {
+  await ensureSchema();
+  const turmas = normalizeTurmas(payload.turmas);
+
   if (!db.hasDatabase) {
     const index = memory.findIndex((item) => item.id === id);
     if (index === -1) return null;
@@ -159,6 +212,7 @@ async function update(id, payload) {
       periodo: payload.periodo || "a definir",
       horario: payload.horario,
       capacidade: Number(payload.capacidade || 30),
+      turmas,
       imagem_url: payload.imagemUrl || "/img/oficinas.png",
       initials: payload.initials,
       ativo: payload.ativo !== false,
@@ -177,12 +231,13 @@ async function update(id, payload) {
          periodo = $6,
          horario = $7,
          capacidade = $8,
-         imagem_url = $9,
-         initials = $10,
-         ativo = $11,
+         turmas = $9,
+         imagem_url = $10,
+         initials = $11,
+         ativo = $12,
          updated_at = NOW()
-     WHERE id = $12
-     RETURNING id, nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, capacidade, imagem_url, initials, ativo, created_at, updated_at`,
+     WHERE id = $13
+     RETURNING id, nome, categoria, descricao, faixa_etaria, dias_semana, periodo, horario, capacidade, turmas, imagem_url, initials, ativo, created_at, updated_at`,
     [
       payload.nome,
       payload.categoria,
@@ -192,6 +247,7 @@ async function update(id, payload) {
       payload.periodo || "a definir",
       payload.horario,
       Number(payload.capacidade || 30),
+      JSON.stringify(turmas),
       payload.imagemUrl || "/img/oficinas.png",
       payload.initials,
       payload.ativo !== false,

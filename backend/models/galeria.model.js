@@ -22,7 +22,7 @@ const memory = [
     id: crypto.randomUUID(),
     titulo: "Identidade oficial",
     descricao: "Logo oficial do Centro da Juventude Almirante Tamandare",
-    imagem_url: "/img/LOGO_CJ.png",
+    imagem_url: "/img/logo.jpg",
     alt: "Logo oficial do Centro da Juventude Almirante Tamandare",
     ordem: 2,
     ativo: true,
@@ -40,12 +40,11 @@ function imagePath(id) {
 }
 
 function toPublic(row) {
-  const imagemUrl = row.imagem_url === "/img/logo.jpg" ? "/img/LOGO_CJ.png" : row.imagem_url;
   return {
     id: row.id,
     titulo: row.titulo,
     descricao: row.descricao || "",
-    imagemUrl,
+    imagemUrl: row.imagem_url,
     alt: row.alt || row.titulo,
     ordem: Number(row.ordem || 0),
     ativo: row.ativo,

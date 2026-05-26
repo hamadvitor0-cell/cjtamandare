@@ -12,13 +12,13 @@ async function createEvent(req, res) {
 
 async function updateEvent(req, res) {
   const evento = await Calendario.updateEvent(req.validated.params.id, req.validated.body);
-  if (!evento) return res.status(404).json({ message: "Evento nao encontrado." });
+  if (!evento) return res.status(404).json({ message: "Evento não encontrado." });
   return res.json({ message: "Evento atualizado com sucesso.", evento });
 }
 
 async function removeEvent(req, res) {
   const removed = await Calendario.removeEvent(req.validated.params.id);
-  if (!removed) return res.status(404).json({ message: "Evento nao encontrado." });
+  if (!removed) return res.status(404).json({ message: "Evento não encontrado." });
   return res.status(204).send();
 }
 

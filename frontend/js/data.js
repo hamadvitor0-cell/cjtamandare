@@ -3,8 +3,8 @@ export const categoryColors = {
   "Dança e Movimento": "#1257a6",
   Música: "#f07f12",
   Educação: "#c9181d",
-  Tecnologia: "#0b4f91",
-  Jogos: "#b5121b",
+  Tecnologia: "#c9181d",
+  Jogos: "#c9181d",
   "Artes e Cultura": "#5b2695"
 };
 
@@ -25,8 +25,8 @@ export const workshops = [
   ["Teclado", "Música", "Leitura musical inicial, harmonia e execução de repertório.", "12 a 18 anos", "Horários definidos pela secretaria", "TC"],
   ["Flauta Doce", "Música", "Prática instrumental para musicalização e desenvolvimento auditivo.", "12 a 18 anos", "Horários definidos pela secretaria", "FD"],
   ["Inglês", "Educação", "Comunicação básica, vocabulário cotidiano e apoio ao aprendizado.", "12 a 18 anos", "Horários definidos pela secretaria", "IN"],
-  ["Informática", "Tecnologia", "Noções digitais, uso seguro de tecnologia e ferramentas essenciais.", "12 a 18 anos", "Horários definidos pela secretaria", "IF"],
-  ["Xadrez", "Jogos", "Estratégia, concentração, raciocínio lógico e convivência.", "12 a 18 anos", "Horários definidos pela secretaria", "XZ"],
+  ["Informática", "Educação", "Noções digitais, uso seguro de tecnologia e ferramentas essenciais.", "12 a 18 anos", "Horários definidos pela secretaria", "IF"],
+  ["Xadrez", "Educação", "Estratégia, concentração, raciocínio lógico e convivência.", "12 a 18 anos", "Horários definidos pela secretaria", "XZ"],
   ["Libras", "Educação", "Introdução à Língua Brasileira de Sinais e comunicação inclusiva.", "12 a 18 anos", "Horários definidos pela secretaria", "LB"],
   ["Pintura em Tela", "Artes e Cultura", "Criação visual, técnicas de pintura e expressão artística.", "12 a 18 anos", "Horários definidos pela secretaria", "PT"],
   ["Teatro", "Artes e Cultura", "Jogos cênicos, expressão corporal, voz e criação coletiva.", "12 a 18 anos", "Horários definidos pela secretaria", "TT"]
@@ -79,7 +79,7 @@ export const galleryItems = [
     caption: "Oficinas disponíveis"
   },
   {
-    src: "/img/LOGO_CJ.png",
+    src: "/img/logo.jpg",
     alt: "Logo oficial do Centro da Juventude Almirante Tamandaré",
     caption: "Identidade oficial"
   }
@@ -87,36 +87,21 @@ export const galleryItems = [
 
 export const collaborators = [
   {
-    nome: "SESC Parana",
-    descricao: "O Sesc Parana atua em areas como acao social, cultura, educacao, esporte e lazer, saude, alimentacao e turismo, ampliando o acesso da comunidade a servicos e atividades formativas.",
+    nome: "SESC Paraná",
+    descricao: "O Sesc Paraná atua em áreas como ação social, cultura, educação, esporte e lazer, saúde, alimentação e turismo, ampliando o acesso da comunidade a serviços e atividades formativas.",
     siteUrl: "https://www.sescpr.com.br/",
     imagemUrl: "/img/sesc-parana.png",
-    alt: "Logo do SESC Parana",
+    alt: "Logo do SESC Paraná",
     ordem: 1
   },
   {
     nome: "Secretaria Municipal de Cultura e Turismo",
-    descricao: "A Secretaria de Cultura e Turismo de Almirante Tamandare promove o desenvolvimento cultural, protege o patrimonio local e incentiva acoes de turismo, eventos e valorizacao do Circuito da Natureza.",
+    descricao: "A Secretaria de Cultura e Turismo de Almirante Tamandaré promove o desenvolvimento cultural, protege o patrimônio local e incentiva ações de turismo, eventos e valorização do Circuito da Natureza.",
     siteUrl: "https://tamandare.pr.gov.br/secretarias/cultura-e-turismo",
     imagemUrl: "",
-    alt: "Secretaria Municipal de Cultura e Turismo de Almirante Tamandare",
+    alt: "Secretaria Municipal de Cultura e Turismo de Almirante Tamandaré",
     ordem: 2
   }
 ];
 
-export const testimonials = [
-  {
-    nome: "Aluno do CJ",
-    vinculo: "Participante das oficinas",
-    texto: "O Centro da Juventude me ajudou a conhecer novas atividades, fazer amizades e participar mais da comunidade.",
-    oficina: "Oficinas do CJ",
-    ordem: 1
-  },
-  {
-    nome: "Família participante",
-    vinculo: "Comunidade",
-    texto: "As oficinas criam oportunidades importantes para os jovens e aproximam as famílias dos serviços públicos.",
-    oficina: "Atividades comunitárias",
-    ordem: 2
-  }
-];
+export const testimonials = [];

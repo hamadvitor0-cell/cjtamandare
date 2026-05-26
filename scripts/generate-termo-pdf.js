@@ -5,7 +5,7 @@ const PDFDocument = require("pdfkit");
 const root = path.resolve(__dirname, "..");
 const outputDir = path.join(root, "frontend", "docs");
 const outputPath = path.join(outputDir, "termo-compromisso-cj.pdf");
-const logoPath = path.join(root, "frontend", "img", "LOGO_CJ.png");
+const logoPath = path.join(root, "frontend", "img", "logo.jpg");
 
 fs.mkdirSync(outputDir, { recursive: true });
 

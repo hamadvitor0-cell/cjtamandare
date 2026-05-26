@@ -49,9 +49,23 @@ const state = {
   galeria: [],
   colaboradores: [],
   depoimentos: [],
+  faq: [],
+  turmas: [],
+  supportTickets: [],
+  supportPosts: [],
+  workshopFeedbacks: [],
+  firstAccessStudents: [],
+  firstAccessPagination: { page: 1, limit: 20, total: 0, pages: 1 },
+  manual: null,
+  manualSearch: "",
+  graficos: null,
+  graficosOverview: null,
   adminUsers: [],
   auditLogs: [],
   alunos: [],
+  studentPagination: { page: 1, limit: 20, total: 0, pages: 1 },
+  classStudents: [],
+  attendanceClasses: [],
   bolsistas: [],
   attendanceRows: [],
   inscricoes: [],
@@ -59,10 +73,37 @@ const state = {
   oficina: "",
   studentSearch: "",
   studentOffice: "",
+  studentStatus: "",
+  studentSort: "nome",
+  loadedPages: new Set(),
+  pageLoads: new Map(),
+  classSearch: "",
+  classOffice: "",
+  classPeriod: "",
+  classStatus: "",
+  classBolsista: "",
   bolsistaSearch: "",
   bolsistaOffice: "",
+  feedbackOffice: "",
+  feedbackRating: "",
+  chartPeriod: "geral",
+  chartMonth: "",
+  chartWeek: "",
+  chartSort: "inscritos_desc",
   logSearch: "",
   logAction: "",
+  logEntity: "",
+  logStart: "",
+  logEnd: "",
+  firstAccessFilters: {
+    oficinaId: "",
+    turma: "",
+    statusPrimeiroAcesso: "sem_primeiro_acesso",
+    statusOrientacao: "todos",
+    search: "",
+    page: 1,
+    limit: 20
+  },
   calendar: {
     month: new Date().toISOString().slice(0, 7),
     aulas: [],
@@ -100,6 +141,9 @@ function formatPeriod(period = "a definir") {
     matutino: "Matutino",
     vespertino: "Vespertino",
     noturno: "Noturno",
+    manha: "Manhã",
+    tarde: "Tarde",
+    noite: "Noite",
     integral: "Integral",
     "a definir": "Período a definir"
   };
@@ -136,17 +180,20 @@ const bolsistaFunctionLabels = {
 };
 
 const bolsistaActionLabels = {
-  aula: "Da aula",
+  aula: "Dá aula",
   ajuda: "Ajuda professor",
   apoio: "Apoio",
-  sem_vinculo: "Sem vinculo direto"
+  sem_vinculo: "Sem vínculo direto"
 };
 
 const eventTypeLabels = {
-  reuniao: "Reuniao",
-  passeio: "Passeio",
+  aula: "Aula",
   evento: "Evento",
-  formacao: "Formacao",
+  reuniao: "Reunião",
+  passeio: "Passeio",
+  cancelamento: "Cancelamento",
+  comunicado: "Comunicado",
+  formacao: "Formação",
   outro: "Outro"
 };
 
@@ -169,14 +216,22 @@ const pageTitle = document.querySelector("[data-page-title]");
 
 const pageTitles = {
   dashboard: "Dashboard",
+  graficos: "Gráficos",
   "ia-adm": "IA ADM",
+  suporte: "Suporte",
+  "primeiro-acesso": "Primeiro Acesso",
+  manual: "Manual ADM",
+  mural: "Mural",
+  feedbacks: "Feedbacks",
   automacao: "Automação",
   relatorios: "Relatórios",
   inscritos: "Inscritos",
   oficinas: "Oficinas",
+  turmas: "Turmas",
   galeria: "Galeria",
   colaboradores: "Colaboradores",
   depoimentos: "Depoimentos",
+  faq: "FAQ",
   alunos: "Alunos",
   bolsistas: "Bolsistas",
   calendario: "Calendário",
@@ -190,23 +245,116 @@ const pageAliases = {
   assistente: "ia-adm",
   reports: "relatorios",
   relatorio: "relatorios",
+  comunicacao: "mural",
+  murais: "mural",
+  notificacoes: "mural",
   "gerenciar-oficinas": "oficinas",
   "gerenciar-galeria": "galeria",
   colaboradores: "colaboradores",
-  parceiros: "colaboradores"
+  parceiros: "colaboradores",
+  ajuda: "manual",
+  guia: "manual"
 };
+
+const navIconPaths = {
+  dashboard: ["M4 13h7V4H4v9Z", "M13 20h7V4h-7v16Z", "M4 20h7v-5H4v5Z"],
+  graficos: ["M5 19V5", "M5 19h14", "M9 16v-5", "M13 16V8", "M17 16v-10", "M7 7l4 3 5-5"],
+  inscritos: ["M5 5h14v14H5z", "M8 9h8", "M8 13h8", "M8 17h5"],
+  alunos: ["M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z", "M4 20a8 8 0 0 1 16 0"],
+  turmas: ["M4 7h16", "M4 12h16", "M4 17h16", "M8 4v16", "M16 4v16"],
+  oficinas: ["M5 18h14", "M7 18V8l5-4 5 4v10", "M10 18v-5h4v5"],
+  chamada: ["M5 4h14v16H5z", "M8 9l2 2 4-4", "M8 15h8"],
+  calendario: ["M5 6h14v14H5z", "M8 4v4", "M16 4v4", "M5 10h14"],
+  suporte: ["M4 12a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-2v-6h4", "M4 12v4a2 2 0 0 0 2 2h2v-6H4", "M12 18h3"],
+  "primeiro-acesso": ["M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z", "M5 20a7 7 0 0 1 14 0", "M17 10l2 2 3-4"],
+  mural: ["M5 5h14v12H8l-3 3V5z", "M8 9h8", "M8 13h6"],
+  feedbacks: ["M12 17.3 6.8 20l1-5.8L3.6 10.1l5.8-.8L12 4l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 17.3Z", "M4 21h16"],
+  faq: ["M12 18h.01", "M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-1.2 1-1.7 1.6-1.7 3.2", "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"],
+  "ia-adm": ["M12 3l1.7 4.2L18 9l-4.3 1.8L12 15l-1.7-4.2L6 9l4.3-1.8L12 3Z", "M5 16l.8 2L8 19l-2.2 1L5 22l-.8-2L2 19l2.2-1L5 16Z"],
+  automacao: ["M12 5v3", "M12 16v3", "M5 12h3", "M16 12h3", "M8 8l8 8", "M16 8l-8 8"],
+  relatorios: ["M5 19V5", "M5 19h14", "M9 16v-5", "M13 16V8", "M17 16v-8"],
+  galeria: ["M5 5h14v14H5z", "M8 15l3-3 2 2 2-3 3 4", "M9 9h.01"],
+  colaboradores: ["M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z", "M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z", "M3 20a5 5 0 0 1 10 0", "M11 20a5 5 0 0 1 10 0"],
+  depoimentos: ["M5 6h14v9H8l-3 4V6z", "M9 10h6", "M9 13h4"],
+  bolsistas: ["M12 4l8 4-8 4-8-4 8-4Z", "M6 10v4c0 2 3 4 6 4s6-2 6-4v-4"],
+  "usuarios-adm": ["M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z", "M4 20a8 8 0 0 1 16 0", "M18 5l1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2Z"],
+  logs: ["M5 5h14v14H5z", "M8 9h8", "M8 13h8", "M8 17h4"],
+  manual: ["M6 4h10a2 2 0 0 1 2 2v14H8a2 2 0 0 1-2-2V4Z", "M8 4v14a2 2 0 0 0 2 2", "M10 8h5"],
+  publico: ["M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z", "M3 12h18", "M12 3a14 14 0 0 1 0 18", "M12 3a14 14 0 0 0 0 18"]
+};
+
+function createIcon(name, className = "ui-icon") {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", className);
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  (navIconPaths[name] || navIconPaths.dashboard).forEach((pathData) => {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", pathData);
+    svg.append(path);
+  });
+  return svg;
+}
+
+function setupAdminNavIcons() {
+  document.querySelectorAll("[data-admin-nav] a").forEach((link) => {
+    if (link.querySelector(".nav-icon")) return;
+    const page = link.dataset.adminPageLink;
+    const iconName = page || (link.getAttribute("href") === "/" ? "publico" : "manual");
+    const label = link.textContent.trim();
+    link.replaceChildren(createIcon(iconName, "nav-icon"), createElement("span", { text: label }));
+  });
+}
 
 const roleLabels = {
   master: "Master",
-  admin: "ADM"
+  admin: "ADM",
+  chamadas: "Chamadas"
 };
 
 const auditActionLabels = {
   login: "Login",
   create: "Criou",
   update: "Editou",
-  delete: "Excluiu"
+  delete: "Excluiu",
+  send: "Enviou",
+  export: "Exportou",
+  denied: "Acesso negado"
 };
+
+const supportCategoryLabels = {
+  duvida: "Dúvida",
+  erro_matricula: "Erro com matrícula",
+  alteracao_documentos: "Alteração de documentos",
+  problemas_cj: "Problemas relacionados ao CJ",
+  problemas_site: "Problemas relacionados ao site"
+};
+
+const supportStatusLabels = {
+  aberto: "Aberto",
+  em_atendimento: "Em atendimento",
+  respondido: "Respondido",
+  encerrado: "Encerrado"
+};
+
+const rolePages = {
+  master: Object.keys(pageTitles),
+  admin: Object.keys(pageTitles).filter((page) => !["usuarios-adm", "logs"].includes(page)),
+  chamadas: ["chamada"]
+};
+
+function allowedPages() {
+  return rolePages[state.admin?.role || "admin"] || rolePages.admin;
+}
+
+function canAccessPage(page) {
+  return allowedPages().includes(page);
+}
+
+function firstAllowedPage() {
+  return allowedPages()[0] || "dashboard";
+}
 
 function showAdmin() {
   loginView.hidden = true;
@@ -221,8 +369,8 @@ function showLogin() {
 
 function normalizePage(page) {
   const normalized = pageAliases[page] || page;
-  if (normalized === "usuarios-adm" && state.admin?.role !== "master") return "dashboard";
-  return pageTitles[normalized] ? normalized : "dashboard";
+  if (!pageTitles[normalized]) return firstAllowedPage();
+  return canAccessPage(normalized) ? normalized : firstAllowedPage();
 }
 
 function updateMasterVisibility() {
@@ -230,6 +378,17 @@ function updateMasterVisibility() {
   document.querySelectorAll("[data-master-only]").forEach((node) => {
     node.hidden = !isMaster;
   });
+  document.querySelectorAll("[data-admin-page-link]").forEach((link) => {
+    link.hidden = !canAccessPage(link.dataset.adminPageLink);
+  });
+  document.querySelectorAll("[data-admin-nav] a:not([data-admin-page-link])").forEach((link) => {
+    link.hidden = state.admin?.role === "chamadas";
+  });
+  document.querySelectorAll("[data-admin-nav] .nav-section").forEach((section) => {
+    const visibleLinks = Array.from(section.querySelectorAll("a")).some((link) => !link.hidden);
+    section.hidden = !visibleLinks;
+  });
+  document.querySelector(".global-search")?.classList.toggle("is-disabled", state.admin?.role === "chamadas");
 }
 
 function showAdminPage(page, updateHash = false) {
@@ -253,6 +412,9 @@ function showAdminPage(page, updateHash = false) {
   if (adminView && !adminView.hidden) {
     document.querySelector(".admin-main")?.scrollTo({ top: 0, behavior: "smooth" });
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  if (state.admin) {
+    loadPageData(activePage).catch((error) => showToast(error.message || "Não foi possível carregar esta área.", "error"));
   }
 }
 
@@ -311,9 +473,11 @@ function populateSelects() {
     }
   });
 
-  document.querySelectorAll("[data-student-office-select], [data-student-office-filter], [data-attendance-office]").forEach((select) => {
-    const current = select.value;
-    const first = select.querySelector("option[value='']")?.cloneNode(true);
+  document.querySelectorAll("[data-student-office-select], [data-student-office-filter], [data-class-office-filter], [data-feedback-office-filter], [data-first-access-office-filter], [data-turma-office-select]").forEach((select) => {
+    const current = select.multiple
+      ? Array.from(select.selectedOptions).map((option) => option.value)
+      : select.value;
+    const first = !select.multiple ? select.querySelector("option[value='']")?.cloneNode(true) : null;
     select.replaceChildren();
     if (first && !select.multiple) select.append(first);
     state.oficinas.forEach((workshop) => {
@@ -322,10 +486,15 @@ function populateSelects() {
         attrs: { value: workshop.id }
       }));
     });
-    if (!select.multiple) {
+    if (select.multiple) {
+      setSelectedValues(select, current);
+    } else {
       select.value = state.oficinas.some((item) => item.id === current) ? current : (first ? "" : state.oficinas[0]?.id || "");
     }
   });
+  renderStudentOfficePicker();
+  renderTurmaDayPicker();
+  populateAttendanceClassSelect();
 
   document.querySelectorAll("[data-bolsista-office-select], [data-bolsista-office-filter]").forEach((select) => {
     const current = select.multiple
@@ -346,6 +515,8 @@ function populateSelects() {
       select.value = state.oficinas.some((item) => item.id === current) ? current : "";
     }
   });
+  renderBolsistaOfficePicker();
+  populateTurmaBolsistaSelects();
 
   document.querySelectorAll("[data-calendar-event-office]").forEach((select) => {
     const current = select.value;
@@ -360,6 +531,63 @@ function populateSelects() {
     });
     select.value = state.oficinas.some((item) => item.id === current) ? current : "";
   });
+}
+
+function populateTurmaBolsistaSelects() {
+  document.querySelectorAll("[data-turma-bolsista-select], [data-class-bolsista-filter]").forEach((select) => {
+    const current = select.value;
+    const first = select.querySelector("option[value='']")?.cloneNode(true);
+    select.replaceChildren();
+    if (first) select.append(first);
+    state.bolsistas
+      .filter((bolsista) => bolsista.status !== "inativo")
+      .forEach((bolsista) => {
+        select.append(createElement("option", {
+          text: bolsista.nome,
+          attrs: { value: bolsista.id }
+        }));
+      });
+    select.value = state.bolsistas.some((item) => item.id === current) ? current : "";
+  });
+}
+
+function attendanceClassValue(item = {}) {
+  return `${item.oficinaId || ""}::${item.turmaId || ""}::${encodeURIComponent(item.turma || "")}`;
+}
+
+function parseAttendanceClassValue(value = "") {
+  const parts = String(value || "").split("::");
+  const [oficinaId = "", maybeTurmaId = "", encodedTurma = ""] = parts.length >= 3
+    ? parts
+    : [parts[0] || "", "", parts[1] || ""];
+  return {
+    oficinaId,
+    turmaId: maybeTurmaId,
+    turma: decodeURIComponent(encodedTurma || "")
+  };
+}
+
+function populateAttendanceClassSelect() {
+  const select = document.querySelector("[data-attendance-office]");
+  if (!select) return;
+  const current = select.value;
+  select.replaceChildren();
+  select.append(createElement("option", { text: "Selecione uma turma", attrs: { value: "" } }));
+  const options = state.attendanceClasses.length
+    ? state.attendanceClasses
+    : state.oficinas.flatMap((oficina) => (oficina.turmas?.length ? oficina.turmas : [""]).map((turma) => ({
+      oficinaId: oficina.id,
+      oficina: oficina.nome,
+      turma,
+      label: [oficina.nome, turma].filter(Boolean).join(" · ")
+    })));
+  options.forEach((item) => {
+    select.append(createElement("option", {
+      text: item.label || [item.oficina, item.turma].filter(Boolean).join(" · "),
+      attrs: { value: attendanceClassValue(item) }
+    }));
+  });
+  select.value = Array.from(select.options).some((option) => option.value === current) ? current : "";
 }
 
 function populateBolsistaSelects() {
@@ -384,14 +612,18 @@ async function checkSession() {
 }
 
 async function refreshAll() {
-  await Promise.all([loadDashboard(), loadInscricoes(), loadAlunos(), loadBolsistas(), loadCalendar(), loadAttendanceHistory(), loadAuditLogs()]);
-  if (state.admin?.role === "master") await loadAdminUsers();
-  renderReports();
+  const page = normalizePage(window.location.hash.replace("#", "") || firstAllowedPage());
+  await loadPageData(page, true);
 }
 
 async function loadAdminData() {
-  await loadManagedContent();
-  await refreshAll();
+  state.loadedPages.clear();
+  state.pageLoads.clear();
+  const page = state.admin?.role === "chamadas"
+    ? "chamada"
+    : normalizePage(window.location.hash.replace("#", "") || "dashboard");
+  showAdminPage(page, true);
+  await loadPageData(page, true);
 }
 
 async function loadAdminUsers() {
@@ -405,6 +637,9 @@ async function loadAuditLogs() {
   const params = new URLSearchParams();
   if (state.logSearch) params.set("search", state.logSearch);
   if (state.logAction) params.set("action", state.logAction);
+  if (state.logEntity) params.set("entityType", state.logEntity);
+  if (state.logStart) params.set("dataInicio", state.logStart);
+  if (state.logEnd) params.set("dataFim", state.logEnd);
   const data = await apiRequest(`/admin/logs?${params.toString()}`);
   state.auditLogs = data.logs || [];
   renderAuditLogs();
@@ -427,33 +662,111 @@ async function loadInscricoes() {
   renderReports();
 }
 
-async function loadManagedContent() {
-  const [oficinasData, galeriaData, colaboradoresData, depoimentosData] = await Promise.all([
-    apiRequest("/admin/oficinas?includeInactive=true"),
-    apiRequest("/admin/galeria?includeInactive=true"),
-    apiRequest("/admin/colaboradores?includeInactive=true"),
-    apiRequest("/admin/depoimentos?includeInactive=true")
-  ]);
-  state.oficinas = oficinasData.oficinas || [];
-  state.galeria = galeriaData.galeria || [];
-  state.colaboradores = colaboradoresData.colaboradores || [];
-  state.depoimentos = depoimentosData.depoimentos || [];
+async function loadManagedModule(endpoint, label) {
+  try {
+    return await apiRequest(endpoint);
+  } catch (error) {
+    showToast(`Não foi possível carregar ${label}. Atualize a página ou tente novamente em instantes.`, "error");
+    return null;
+  }
+}
+
+async function loadManagedContent(requested = ["oficinas", "turmas", "galeria", "colaboradores", "depoimentos", "faq"]) {
+  if (state.admin?.role === "chamadas") {
+    const [oficinasData, turmasData] = await Promise.all([
+      loadManagedModule("/admin/oficinas?includeInactive=true", "oficinas"),
+      loadManagedModule("/admin/turmas?includeInactive=true", "turmas")
+    ]);
+    state.oficinas = oficinasData?.oficinas || state.oficinas || [];
+    state.turmas = turmasData?.turmas || state.turmas || [];
+    populateSelects();
+    return;
+  }
+  const endpoints = {
+    oficinas: ["/admin/oficinas?includeInactive=true", "oficinas"],
+    turmas: ["/admin/turmas?includeInactive=true", "turmas"],
+    galeria: ["/admin/galeria?includeInactive=true", "galeria"],
+    colaboradores: ["/admin/colaboradores?includeInactive=true", "colaboradores"],
+    depoimentos: ["/admin/depoimentos?includeInactive=true", "depoimentos"],
+    faq: ["/admin/faq", "FAQ"]
+  };
+  const responses = await Promise.all(requested.map(async (key) => [key, await loadManagedModule(...endpoints[key])]));
+  const loaded = Object.fromEntries(responses);
+  if (loaded.oficinas) state.oficinas = loaded.oficinas.oficinas || state.oficinas;
+  if (loaded.turmas) state.turmas = loaded.turmas.turmas || state.turmas;
+  if (loaded.galeria) state.galeria = loaded.galeria.galeria || state.galeria;
+  if (loaded.colaboradores) state.colaboradores = loaded.colaboradores.colaboradores || state.colaboradores;
+  if (loaded.depoimentos) state.depoimentos = loaded.depoimentos.depoimentos || state.depoimentos;
+  if (loaded.faq) state.faq = loaded.faq.faq || state.faq;
   populateSelects();
-  renderOfficeList();
-  renderGalleryList();
-  renderCollaboratorList();
-  renderTestimonialList();
+  populateSupportSelects();
+  if (loaded.oficinas) renderOfficeList();
+  if (loaded.turmas) renderClassList();
+  if (loaded.galeria) renderGalleryList();
+  if (loaded.colaboradores) renderCollaboratorList();
+  if (loaded.depoimentos) renderTestimonialList();
+  if (loaded.faq) renderFaqList();
+}
+
+async function loadPageData(page, force = false) {
+  if (!state.admin) return;
+  if (!force && state.loadedPages.has(page)) return;
+  if (state.pageLoads.has(page)) return state.pageLoads.get(page);
+  const pending = (async () => {
+    switch (page) {
+      case "dashboard": await loadDashboard(); break;
+      case "inscritos": await Promise.all([loadManagedContent(["oficinas"]), loadInscricoes()]); break;
+      case "alunos": await Promise.all([loadManagedContent(["oficinas", "turmas"]), loadAlunos()]); break;
+      case "oficinas": await loadManagedContent(["oficinas"]); break;
+      case "turmas": await Promise.all([loadManagedContent(["oficinas", "turmas"]), loadBolsistas()]); break;
+      case "galeria": await loadManagedContent(["galeria"]); break;
+      case "colaboradores": await loadManagedContent(["colaboradores"]); break;
+      case "depoimentos": await loadManagedContent(["depoimentos"]); break;
+      case "faq": await loadManagedContent(["faq"]); break;
+      case "bolsistas": await Promise.all([loadManagedContent(["oficinas"]), loadBolsistas()]); break;
+      case "calendario": await Promise.all([loadManagedContent(["oficinas"]), loadBolsistas(), loadCalendar()]); break;
+      case "chamada": await Promise.all([loadManagedContent(["oficinas", "turmas"]), loadAttendanceClasses(), loadAttendanceHistory()]); break;
+      case "suporte":
+      case "mural": await loadSupport(); break;
+      case "graficos": await loadGraficos(); break;
+      case "feedbacks": await loadWorkshopFeedbacks(); break;
+      case "primeiro-acesso": await Promise.all([loadManagedContent(["oficinas", "turmas"]), loadFirstAccess()]); break;
+      case "manual": await loadManual(); break;
+      case "usuarios-adm": await loadAdminUsers(); break;
+      case "logs": await loadAuditLogs(); break;
+      case "relatorios": await Promise.all([loadInscricoes(), loadBolsistas()]); renderReports(); break;
+      default: break;
+    }
+    state.loadedPages.add(page);
+  })();
+  state.pageLoads.set(page, pending);
+  try {
+    await pending;
+  } finally {
+    state.pageLoads.delete(page);
+  }
+}
+
+async function loadAttendanceClasses() {
+  const data = await apiRequest("/chamadas/turmas");
+  state.attendanceClasses = data.turmas || [];
+  populateAttendanceClassSelect();
 }
 
 async function loadAlunos() {
+  renderSkeletonList(document.querySelector("[data-student-list]"), 4);
   const params = new URLSearchParams();
   if (state.studentSearch) params.set("search", state.studentSearch);
   if (state.studentOffice) params.set("oficinaId", state.studentOffice);
+  if (state.studentStatus) params.set("status", state.studentStatus);
+  params.set("sort", state.studentSort);
+  params.set("page", String(state.studentPagination.page));
+  params.set("limit", String(state.studentPagination.limit));
   const data = await apiRequest(`/alunos?${params.toString()}`);
   state.alunos = data.alunos || [];
+  state.studentPagination = data.pagination || state.studentPagination;
   renderStudentList();
-  renderAutomation();
-  renderReports();
+  populateSupportSelects();
 }
 
 async function loadBolsistas() {
@@ -463,6 +776,7 @@ async function loadBolsistas() {
   const data = await apiRequest(`/admin/bolsistas?${params.toString()}`);
   state.bolsistas = data.bolsistas || [];
   populateBolsistaSelects();
+  populateTurmaBolsistaSelects();
   renderBolsistaList(data.limite || 40);
   renderReports();
 }
@@ -478,12 +792,858 @@ async function loadCalendar() {
 }
 
 async function loadAttendanceHistory() {
-  const officeId = document.querySelector("[data-attendance-office]")?.value || "";
+  const selected = parseAttendanceClassValue(document.querySelector("[data-attendance-office]")?.value || "");
+  const officeId = selected.oficinaId;
   if (officeId && !uuidPattern.test(officeId)) return;
   const params = new URLSearchParams();
   if (officeId) params.set("oficinaId", officeId);
+  if (selected.turmaId) params.set("turmaId", selected.turmaId);
+  if (selected.turma) params.set("turma", selected.turma);
   const data = await apiRequest(`/chamadas/historico?${params.toString()}`);
   renderAttendanceHistory(data.chamadas || []);
+}
+
+async function loadSupport() {
+  renderSupportLoading();
+  const data = await apiRequest(`/admin/suporte?_=${Date.now()}`, { cache: "no-store" });
+  const support = data.support || {};
+  state.supportTickets = support.tickets || [];
+  state.supportPosts = support.posts || [];
+  populateSupportSelects();
+  renderSupportAdmin();
+}
+
+async function loadGraficos() {
+  renderChartsLoading();
+  const params = new URLSearchParams();
+  params.set("periodo", state.chartPeriod || "geral");
+  params.set("sort", state.chartSort || "inscritos_desc");
+  if (state.chartPeriod === "mes" && state.chartMonth) params.set("mes", state.chartMonth);
+  if (state.chartPeriod === "semana" && state.chartWeek) params.set("semana", state.chartWeek);
+  params.set("_", String(Date.now()));
+  const overviewParams = new URLSearchParams({ periodo: "geral", sort: "inscritos_desc", _: String(Date.now()) });
+  const [data, overviewData] = await Promise.all([
+    apiRequest(`/admin/graficos?${params.toString()}`, { cache: "no-store" }),
+    apiRequest(`/admin/graficos?${overviewParams.toString()}`, { cache: "no-store" })
+  ]);
+  state.graficos = data.graficos || {};
+  state.graficosOverview = overviewData.graficos || state.graficos;
+  renderGraficos();
+}
+
+async function loadWorkshopFeedbacks() {
+  renderSkeletonList(document.querySelector("[data-feedback-list]"));
+  const params = new URLSearchParams();
+  if (state.feedbackOffice) params.set("oficinaId", state.feedbackOffice);
+  if (state.feedbackRating) params.set("rating", state.feedbackRating);
+  params.set("_", String(Date.now()));
+  const data = await apiRequest(`/admin/feedbacks?${params.toString()}`, { cache: "no-store" });
+  state.workshopFeedbacks = data.feedbacks || [];
+  renderWorkshopFeedbacks();
+}
+
+async function loadFirstAccess() {
+  if (!state.admin || state.admin.role === "chamadas") return;
+  renderSkeletonList(document.querySelector("[data-first-access-list]"), 3);
+  const params = new URLSearchParams();
+  Object.entries(state.firstAccessFilters).forEach(([key, value]) => {
+    if (value !== "" && value !== undefined) params.set(key, String(value));
+  });
+  const data = await apiRequest(`/admin/primeiro-acesso/alunos?${params.toString()}`, { cache: "no-store" });
+  state.firstAccessStudents = data.alunos || [];
+  state.firstAccessPagination = data.pagination || state.firstAccessPagination;
+  renderFirstAccess();
+}
+
+function emptyState(title, text, iconName = "mural") {
+  const node = createElement("div", { className: "empty-state" });
+  node.append(
+    createIcon(iconName, "empty-state-icon"),
+    createElement("strong", { text: title }),
+    createElement("p", { text })
+  );
+  return node;
+}
+
+const accessEventLabels = {
+  copied_access_message: "Mensagem copiada",
+  opened_access_whatsapp: "WhatsApp aberto manualmente",
+  marked_access_guidance_sent: "Orientação marcada como enviada",
+  unmarked_access_guidance_sent: "Orientação desmarcada",
+  generated_access_guidance_pdf: "PDF gerado"
+};
+
+async function loadFirstAccessHistory(student, target) {
+  const data = await apiRequest(`/admin/primeiro-acesso/alunos/${student.id}/historico`, { cache: "no-store" });
+  const events = data.events || [];
+  target.replaceChildren();
+  if (!events.length) {
+    target.append(createElement("small", { text: "Nenhuma orientação registrada." }));
+    return;
+  }
+  events.forEach((event) => {
+    target.append(createElement("span", {
+      text: `${accessEventLabels[event.actionType] || event.actionType} · ${formatDate(event.created_at)} · ${event.adminName || "Usuário administrativo"}`
+    }));
+  });
+}
+
+async function accessMessageFor(student, actionType) {
+  return secureApiRequest(`/admin/primeiro-acesso/alunos/${student.id}/mensagem`, {
+    method: "POST",
+    body: { actionType }
+  });
+}
+
+async function copyFirstAccessMessage(student) {
+  const result = await accessMessageFor(student, "copied_access_message");
+  await navigator.clipboard.writeText(result.message);
+  showToast("Mensagem copiada. Marque como enviada somente após orientar o aluno.", "success");
+}
+
+async function openFirstAccessWhatsapp(student) {
+  const result = await accessMessageFor(student, "opened_access_whatsapp");
+  if (!result.canOpenWhatsapp || !result.whatsappUrl) {
+    showToast(result.warning || "Telefone não cadastrado ou inválido.", "error");
+    return;
+  }
+  window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
+  showToast("WhatsApp aberto para envio manual individual.", "success");
+}
+
+async function markFirstAccessStudent(student, method) {
+  await secureRequest(`/admin/primeiro-acesso/alunos/${student.id}/marcar-enviado`, {
+    method: "POST",
+    body: { method }
+  });
+  await loadFirstAccess();
+}
+
+async function unmarkFirstAccessStudent(student) {
+  await secureRequest(`/admin/primeiro-acesso/alunos/${student.id}/desmarcar-enviado`, {
+    method: "POST",
+    body: {}
+  });
+  await loadFirstAccess();
+}
+
+function renderFirstAccess() {
+  const list = document.querySelector("[data-first-access-list]");
+  const pagination = document.querySelector("[data-first-access-pagination]");
+  if (!list || !pagination) return;
+  list.replaceChildren();
+  pagination.replaceChildren();
+  if (!state.firstAccessStudents.length) {
+    list.append(emptyState("Nenhum aluno encontrado", "Ajuste os filtros para localizar alunos pendentes de orientação.", "primeiro-acesso"));
+  }
+  state.firstAccessStudents.forEach((student) => {
+    const item = createElement("article", { className: "first-access-card" });
+    const header = createElement("div", { className: "first-access-card-header" });
+    const title = createElement("div");
+    title.append(
+      createElement("strong", { text: student.nome }),
+      createElement("span", { text: `${(student.oficinas || []).join(", ") || "Sem oficina"}${student.turmas?.length ? ` · ${student.turmas.join(", ")}` : ""}` })
+    );
+    const statuses = createElement("div", { className: "first-access-badges" });
+    statuses.append(
+      createElement("span", {
+        className: `status-badge ${student.primeiroAcessoConcluido ? "status-confirmado" : "status-pendente"}`,
+        text: student.primeiroAcessoConcluido ? "Acesso registrado" : "Sem acesso registrado"
+      }),
+      createElement("span", {
+        className: `status-badge ${student.orientacaoEnviada ? "status-confirmado" : "status-pendente"}`,
+        text: student.orientacaoEnviada ? "Orientação enviada" : "Orientação pendente"
+      })
+    );
+    header.append(title, statuses);
+    const details = createElement("div", { className: "first-access-details" });
+    details.append(
+      createElement("span", { text: `Matrícula: ${student.matricula || "Não gerada"}` }),
+      createElement("span", { text: `CPF: ${student.cpfMascarado || "Não informado"}` }),
+      createElement("span", { text: `Telefone: ${student.telefoneMascarado || "Não cadastrado"}` }),
+      createElement("span", { text: student.orientacaoEnviadaEm ? `Última orientação: ${formatDate(student.orientacaoEnviadaEm)}` : "Sem orientação registrada" }),
+      ...(student.orientacaoEnviadaPorNome ? [createElement("span", { text: `Responsável: ${student.orientacaoEnviadaPorNome}` })] : [])
+    );
+    const actions = createElement("div", { className: "first-access-actions" });
+    const copy = createElement("button", { className: "button button-secondary", text: "Copiar mensagem", attrs: { type: "button" } });
+    copy.addEventListener("click", () => copyFirstAccessMessage(student).catch((error) => showToast(error.message, "error")));
+    const whatsapp = createElement("button", {
+      className: "button button-secondary",
+      text: "Abrir WhatsApp",
+      attrs: { type: "button", disabled: student.telefoneWhatsappDisponivel ? null : "disabled" }
+    });
+    whatsapp.addEventListener("click", () => openFirstAccessWhatsapp(student).catch((error) => showToast(error.message, "error")));
+    const method = createElement("select", { attrs: { "aria-label": `Método de orientação de ${student.nome}` } });
+    [["whatsapp_manual", "WhatsApp manual"], ["presencial", "Presencial"], ["telefone", "Telefone"], ["outro", "Outro"]].forEach(([value, text]) => {
+      method.append(createElement("option", { text, attrs: { value } }));
+    });
+    const mark = createElement("button", {
+      className: "button button-primary",
+      text: student.orientacaoEnviada ? "Desmarcar envio" : "Marcar como enviada",
+      attrs: { type: "button" }
+    });
+    mark.addEventListener("click", () => {
+      const promise = student.orientacaoEnviada ? unmarkFirstAccessStudent(student) : markFirstAccessStudent(student, method.value);
+      promise.catch((error) => showToast(error.message, "error"));
+    });
+    const historyToggle = createElement("button", { className: "button button-secondary", text: "Histórico", attrs: { type: "button" } });
+    const history = createElement("div", { className: "first-access-history", attrs: { hidden: "hidden" } });
+    historyToggle.addEventListener("click", () => {
+      history.hidden = !history.hidden;
+      if (!history.hidden) loadFirstAccessHistory(student, history).catch((error) => showToast(error.message, "error"));
+    });
+    actions.append(copy, whatsapp, method, mark, historyToggle);
+    item.append(header, details, actions, history);
+    list.append(item);
+  });
+
+  const { page, pages, total } = state.firstAccessPagination;
+  const previous = createElement("button", { className: "button button-secondary", text: "Anterior", attrs: { type: "button", disabled: page <= 1 ? "disabled" : null } });
+  previous.addEventListener("click", () => {
+    state.firstAccessFilters.page = Math.max(1, page - 1);
+    loadFirstAccess();
+  });
+  const next = createElement("button", { className: "button button-secondary", text: "Próxima", attrs: { type: "button", disabled: page >= pages ? "disabled" : null } });
+  next.addEventListener("click", () => {
+    state.firstAccessFilters.page = Math.min(pages, page + 1);
+    loadFirstAccess();
+  });
+  pagination.append(previous, createElement("span", { text: `Página ${page} de ${pages} · ${total} aluno(s)` }), next);
+}
+
+async function downloadFirstAccessPdf() {
+  const payload = {
+    oficinaId: state.firstAccessFilters.oficinaId,
+    turma: state.firstAccessFilters.turma,
+    somenteSemPrimeiroAcesso: state.firstAccessFilters.statusPrimeiroAcesso === "sem_primeiro_acesso",
+    somenteNaoOrientados: state.firstAccessFilters.statusOrientacao === "pendente",
+    formato: "cards",
+    confirmLarge: false
+  };
+  if (!payload.oficinaId && !payload.turma) {
+    throw new Error("Selecione uma oficina ou informe a turma antes de gerar o PDF.");
+  }
+  if (!window.confirm("Gerar cartões com matrículas para entrega individual? Guarde o PDF em local seguro.")) return;
+  payload.confirmLarge = true;
+  const csrfToken = await getCsrfToken();
+  const response = await fetch(apiUrl("/admin/primeiro-acesso/pdf"), {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRF-Token": csrfToken
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || "Não foi possível gerar o PDF.");
+  }
+  const href = URL.createObjectURL(await response.blob());
+  const link = createElement("a", { attrs: { href, download: "primeiro-acesso-cj.pdf" } });
+  link.click();
+  URL.revokeObjectURL(href);
+  showToast("PDF gerado. Entregue cada cartão apenas à pessoa autorizada.", "success");
+}
+
+const manualToneLabels = {
+  attention: "Atenção",
+  danger: "Não faça",
+  practice: "Boa prática"
+};
+
+async function loadManual() {
+  if (!state.admin || state.admin.role === "chamadas") return;
+  const feedback = document.querySelector("[data-manual-feedback]");
+  if (!state.manual) {
+    setFeedback(feedback, "Carregando guia interno...");
+    const data = await apiRequest("/admin/manual", { cache: "no-store" });
+    state.manual = data.manual;
+  }
+  setFeedback(feedback, "");
+  renderManual();
+}
+
+function manualSectionMatches(section, query) {
+  if (!query) return true;
+  return searchableText(
+    section.title,
+    section.category,
+    section.summary,
+    section.profiles,
+    section.steps,
+    (section.blocks || []).flatMap((block) => [block.title, ...(block.items || [])]),
+    (section.notices || []).flatMap((notice) => [notice.label, notice.text])
+  ).includes(query);
+}
+
+function manualProfileBadge(profile) {
+  return createElement("span", {
+    className: `manual-badge manual-badge-${String(profile).toLowerCase()}`,
+    text: profile
+  });
+}
+
+function renderManual() {
+  const summary = document.querySelector("[data-manual-summary]");
+  const sections = document.querySelector("[data-manual-sections]");
+  const feedback = document.querySelector("[data-manual-feedback]");
+  if (!summary || !sections || !state.manual) return;
+  const query = searchableText(state.manualSearch);
+  const visibleSections = state.manual.sections.filter((section) => manualSectionMatches(section, query));
+  summary.replaceChildren();
+  sections.replaceChildren();
+
+  if (!visibleSections.length) {
+    sections.append(emptyState("Nenhuma orientação encontrada", "Tente outra palavra, como aluno, matrícula, suporte ou chamada.", "manual"));
+    setFeedback(feedback, "Nenhuma seção corresponde à busca.");
+    return;
+  }
+  setFeedback(feedback, state.manualSearch ? `${visibleSections.length} seção(ões) encontrada(s).` : "");
+
+  const summaryTitle = createElement("strong", { className: "manual-summary-title", text: "Sumário" });
+  summary.append(summaryTitle);
+  visibleSections.forEach((section, index) => {
+    const sectionId = `manual-${section.id}`;
+    const summaryButton = createElement("button", {
+      className: "manual-summary-link",
+      attrs: { type: "button" }
+    });
+    summaryButton.append(
+      createElement("span", { text: String(index + 1).padStart(2, "0") }),
+      createElement("strong", { text: section.title })
+    );
+    summaryButton.addEventListener("click", () => {
+      const target = document.getElementById(sectionId);
+      if (!target) return;
+      target.open = true;
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    summary.append(summaryButton);
+
+    const details = createElement("details", {
+      className: "manual-section-card",
+      attrs: { id: sectionId }
+    });
+    details.open = Boolean(state.manualSearch) || section.id === "boas-vindas";
+    const header = createElement("summary", { className: "manual-section-heading" });
+    const headingCopy = createElement("div");
+    const headingLine = createElement("div", { className: "manual-section-title" });
+    headingLine.append(
+      createElement("span", { className: "manual-section-number", text: String(index + 1).padStart(2, "0") }),
+      createElement("h3", { text: section.title })
+    );
+    headingCopy.append(headingLine, createElement("p", { text: section.summary }));
+    const badges = createElement("div", { className: "manual-section-badges" });
+    (section.profiles || []).forEach((profile) => badges.append(manualProfileBadge(profile)));
+    header.append(headingCopy, badges);
+
+    const body = createElement("div", { className: "manual-section-body" });
+    if (section.steps?.length) {
+      const list = createElement("ol", { className: "manual-step-list" });
+      section.steps.forEach((step) => list.append(createElement("li", { text: step })));
+      body.append(list);
+    }
+    if (section.blocks?.length) {
+      const grid = createElement("div", { className: "manual-block-grid" });
+      section.blocks.forEach((block) => {
+        const card = createElement("section", { className: "manual-block" });
+        card.append(createElement("h4", { text: block.title }));
+        const items = createElement("ul");
+        (block.items || []).forEach((item) => items.append(createElement("li", { text: item })));
+        card.append(items);
+        grid.append(card);
+      });
+      body.append(grid);
+    }
+    (section.notices || []).forEach((notice) => {
+      const callout = createElement("aside", { className: `manual-callout is-${notice.tone || "attention"}` });
+      callout.append(
+        createElement("strong", { text: notice.label || manualToneLabels[notice.tone] || "Atenção" }),
+        createElement("p", { text: notice.text })
+      );
+      body.append(callout);
+    });
+    const shortcuts = (section.shortcuts || []).filter((shortcut) => canAccessPage(shortcut.page));
+    if (shortcuts.length) {
+      const actions = createElement("div", { className: "manual-shortcuts" });
+      shortcuts.forEach((shortcut) => {
+        const button = createElement("button", {
+          className: "button button-secondary",
+          text: shortcut.label,
+          attrs: { type: "button" }
+        });
+        button.addEventListener("click", () => showAdminPage(shortcut.page, true));
+        actions.append(button);
+      });
+      body.append(actions);
+    }
+    details.append(header, body);
+    sections.append(details);
+  });
+}
+
+function ratingStars(rating = 0, label = "") {
+  const value = Math.max(0, Math.min(5, Number(rating) || 0));
+  const node = createElement("span", {
+    className: "feedback-stars",
+    attrs: { "aria-label": label || `Nota ${value} de 5` }
+  });
+  Array.from({ length: 5 }).forEach((_, index) => {
+    node.append(createElement("span", {
+      className: index < value ? "is-filled" : "is-empty",
+      text: "★",
+      attrs: { "aria-hidden": "true" }
+    }));
+  });
+  node.append(createElement("small", { text: `${value}/5` }));
+  return node;
+}
+
+function renderSkeletonList(list, count = 3) {
+  if (!list) return;
+  list.replaceChildren();
+  Array.from({ length: count }).forEach(() => {
+    const item = createElement("div", { className: "skeleton-card" });
+    item.append(
+      createElement("span", { className: "skeleton-line skeleton-line-title" }),
+      createElement("span", { className: "skeleton-line" }),
+      createElement("span", { className: "skeleton-line skeleton-line-short" })
+    );
+    list.append(item);
+  });
+}
+
+function renderSupportLoading() {
+  renderSkeletonList(document.querySelector("[data-support-ticket-list]"));
+  renderSkeletonList(document.querySelector("[data-support-post-list]"));
+}
+
+function renderChartsLoading() {
+  renderSkeletonList(document.querySelector("[data-charts-summary]"), 4);
+  renderSkeletonList(document.querySelector("[data-charts-grid]"), 4);
+  renderSkeletonList(document.querySelector("[data-charts-filtered-grid]"), 1);
+  renderSkeletonList(document.querySelector("[data-charts-table]"), 4);
+}
+
+function metricLabel(value = 0) {
+  return new Intl.NumberFormat("pt-BR").format(Number(value || 0));
+}
+
+function chartLeader(rows = [], key = "inscritos") {
+  return rows.find((row) => Number(row[key] || 0) > 0) || null;
+}
+
+const chartSortLabels = {
+  inscritos_desc: "Inscritos - maior para menor",
+  inscritos_asc: "Inscritos - menor para maior",
+  frequencia_desc: "Maior frequência",
+  frequencia_asc: "Menor frequência",
+  presencas_desc: "Mais presenças",
+  presencas_asc: "Menos presenças",
+  faltas_desc: "Mais faltas",
+  faltas_asc: "Menos faltas",
+  justificadas_desc: "Mais faltas justificadas",
+  justificadas_asc: "Menos faltas justificadas",
+  chamadas_desc: "Mais chamadas",
+  chamadas_asc: "Menos chamadas"
+};
+
+function chartValueLabel(value, key) {
+  return key === "frequenciaPercentual" ? `${Number(value || 0)}%` : metricLabel(value);
+}
+
+function chartMetricCard(title, value, subtitle, iconName = "graficos") {
+  const card = createElement("article", { className: "chart-metric-card" });
+  card.append(
+    createIcon(iconName, "chart-metric-icon"),
+    createElement("span", { text: title }),
+    createElement("strong", { text: metricLabel(value) }),
+    createElement("small", { text: subtitle || "Sem dados lançados ainda." })
+  );
+  return card;
+}
+
+function renderBarChart(title, rows = [], key, accentClass = "") {
+  const card = createElement("article", { className: `chart-card ${accentClass}`.trim() });
+  card.append(createElement("h3", { text: title }));
+  const max = Math.max(...rows.map((row) => Number(row[key] || 0)), 1);
+  const list = createElement("div", { className: "chart-bars" });
+  rows.slice(0, 10).forEach((row, index) => {
+    const value = Number(row[key] || 0);
+    const bar = createElement("div", { className: "chart-bar-row" });
+    bar.append(
+      createElement("span", { className: "chart-rank", text: String(index + 1).padStart(2, "0") }),
+      createElement("span", { className: "chart-label", text: row.oficina }),
+      createElement("span", { className: "chart-track" }),
+      createElement("strong", { text: chartValueLabel(value, key) })
+    );
+    bar.querySelector(".chart-track").style.setProperty("--bar-size", `${Math.max((value / max) * 100, value ? 4 : 0)}%`);
+    list.append(bar);
+  });
+  if (!list.children.length) {
+    list.append(emptyState("Sem dados para este gráfico", "Os números aparecerão depois de importar alunos e salvar chamadas.", "graficos"));
+  }
+  card.append(list);
+  return card;
+}
+
+function renderDonutChart(title, rows = [], key, accentClass = "") {
+  const card = createElement("article", { className: `chart-card chart-donut-card ${accentClass}`.trim() });
+  card.append(createElement("h3", { text: title }));
+  const items = rows.filter((row) => Number(row[key] || 0) > 0).slice(0, 6);
+  const total = items.reduce((sum, row) => sum + Number(row[key] || 0), 0);
+  if (!total) {
+    card.append(emptyState("Sem dados para este gráfico", "Os números aparecerão depois de importar alunos e salvar chamadas.", "graficos"));
+    return card;
+  }
+  let current = 0;
+  const colors = ["#2563eb", "#16a34a", "#f97316", "#d946ef", "#facc15", "#14b8a6"];
+  const segments = items.map((row, index) => {
+    const value = Number(row[key] || 0);
+    const start = current;
+    current += (value / total) * 100;
+    return `${colors[index % colors.length]} ${start}% ${current}%`;
+  });
+  const chart = createElement("div", { className: "chart-donut" });
+  chart.style.setProperty("--donut-segments", segments.join(", "));
+  chart.append(
+    createElement("strong", { text: metricLabel(total) }),
+    createElement("span", { text: "total" })
+  );
+  const legend = createElement("div", { className: "chart-donut-legend" });
+  items.forEach((row, index) => {
+    const item = createElement("span", { className: "chart-donut-item" });
+    item.style.setProperty("--dot-color", colors[index % colors.length]);
+    item.append(
+      createElement("i", { attrs: { "aria-hidden": "true" } }),
+      createElement("b", { text: row.oficina }),
+      createElement("em", { text: chartValueLabel(row[key], key) })
+    );
+    legend.append(item);
+  });
+  card.append(chart, legend);
+  return card;
+}
+
+function populateChartFilters(graficos = {}) {
+  const period = document.querySelector("[data-chart-period-filter]");
+  const month = document.querySelector("[data-chart-month-filter]");
+  const week = document.querySelector("[data-chart-week-filter]");
+  const sort = document.querySelector("[data-chart-sort-filter]");
+  const monthField = document.querySelector("[data-chart-month-field]");
+  const weekField = document.querySelector("[data-chart-week-field]");
+  if (period) period.value = state.chartPeriod || "geral";
+  if (sort) sort.value = state.chartSort || "inscritos_desc";
+  if (month) {
+    const months = graficos.periodOptions?.months || [];
+    const current = state.chartMonth || months[months.length - 1]?.key || "";
+    month.replaceChildren(createElement("option", { text: "Selecione o mês", attrs: { value: "" } }));
+    months.forEach((item) => {
+      month.append(createElement("option", { text: item.label || item.key, attrs: { value: item.key } }));
+    });
+    month.value = current;
+    state.chartMonth = month.value;
+  }
+  if (week) {
+    const weeks = graficos.periodOptions?.weeks || [];
+    const current = state.chartWeek || weeks[weeks.length - 1]?.key || "";
+    week.replaceChildren(createElement("option", { text: "Selecione a semana", attrs: { value: "" } }));
+    weeks.forEach((item) => {
+      week.append(createElement("option", { text: `${item.key} - ${item.label || ""}`.trim(), attrs: { value: item.key } }));
+    });
+    week.value = current;
+    state.chartWeek = week.value;
+  }
+  if (monthField) monthField.hidden = state.chartPeriod !== "mes";
+  if (weekField) weekField.hidden = state.chartPeriod !== "semana";
+}
+
+function renderChartsTable(rows = []) {
+  const table = document.querySelector("[data-charts-table]");
+  if (!table) return;
+  table.replaceChildren();
+  if (!rows.length) {
+    table.append(emptyState("Nenhum dado de oficina encontrado", "Importe os inscritos e registre chamadas para visualizar o resumo por oficina.", "graficos"));
+    return;
+  }
+  const header = createElement("div", { className: "charts-table-row charts-table-head" });
+  ["Oficina", "Inscritos", "Chamadas", "Presenças", "Faltas", "Justificadas", "Freq."].forEach((label) => {
+    header.append(createElement("span", { text: label }));
+  });
+  table.append(header);
+  rows.slice(0, 60).forEach((row) => {
+    const item = createElement("div", { className: "charts-table-row" });
+    item.append(
+      createElement("strong", { text: row.oficina }),
+      createElement("span", { text: metricLabel(row.inscritos) }),
+      createElement("span", { text: metricLabel(row.chamadas) }),
+      createElement("span", { text: metricLabel(row.presencas) }),
+      createElement("span", { text: metricLabel(row.faltas) }),
+      createElement("span", { text: metricLabel(row.justificadas) }),
+      createElement("span", { text: `${row.frequenciaPercentual || 0}%` })
+    );
+    table.append(item);
+  });
+}
+
+function renderGraficos() {
+  const summary = document.querySelector("[data-charts-summary]");
+  const grid = document.querySelector("[data-charts-grid]");
+  const filteredGrid = document.querySelector("[data-charts-filtered-grid]");
+  if (!summary || !grid || !filteredGrid) return;
+  const graficos = state.graficos || {};
+  const overview = state.graficosOverview || graficos;
+  populateChartFilters(graficos);
+  const totals = overview.totals || {};
+  const rows = graficos.byOficina || [];
+  const overviewRows = overview.byOficina || [];
+  const leaderInscritos = chartLeader(overview.topInscritos || [], "inscritos");
+  const leaderFaltas = chartLeader(overview.topFaltas || [], "faltas");
+  const leaderJustificadas = chartLeader(overview.topJustificadas || [], "justificadas");
+  const leaderPresencas = chartLeader(overview.topPresencas || [], "presencas");
+  summary.replaceChildren(
+    chartMetricCard("Total de inscritos", totals.inscritos, leaderInscritos ? `Maior turma: ${leaderInscritos.oficina}` : "Nenhuma oficina com inscritos.", "alunos"),
+    chartMetricCard("Presenças registradas", totals.presencas, leaderPresencas ? `Mais presenças: ${leaderPresencas.oficina}` : "Nenhuma chamada salva.", "chamada"),
+    chartMetricCard("Faltas registradas", totals.faltas, leaderFaltas ? `Mais faltas: ${leaderFaltas.oficina}` : "Sem faltas registradas.", "suporte"),
+    chartMetricCard("Faltas justificadas", totals.justificadas, leaderJustificadas ? `Mais justificadas: ${leaderJustificadas.oficina}` : "Sem justificativas registradas.", "faq")
+  );
+  if (overview.source === "planilhas_chamadas_2026") {
+    const notice = createElement("p", {
+      className: "charts-source-note",
+      text: `Dados exibidos a partir do resumo geral das planilhas de chamadas 2026 (${overview.files || 0} arquivos). O banco será priorizado quando tiver a base de chamadas completa.`
+    });
+    summary.append(notice);
+  }
+  grid.replaceChildren(
+    renderDonutChart("Distribuição de inscritos", overview.topInscritos || overviewRows, "inscritos", "chart-accent-primary"),
+    renderBarChart("Oficinas com mais inscritos", overview.topInscritos || [], "inscritos", "chart-accent-primary"),
+    renderBarChart("Presenças por oficina", overview.topPresencas || [], "presencas", "chart-accent-success"),
+    renderBarChart("Faltas por oficina", overview.topFaltas || [], "faltas", "chart-accent-danger")
+  );
+  filteredGrid.replaceChildren(
+    renderBarChart(
+      graficos.rankingTitle || chartSortLabels[state.chartSort] || "Ranking filtrado",
+      graficos.ranking || rows,
+      graficos.rankingKey || "inscritos",
+      "chart-accent-primary"
+    )
+  );
+  renderChartsTable(rows);
+}
+
+function statusBadge(status) {
+  return createElement("span", {
+    className: `status-badge status-${status || "aberto"}`,
+    text: supportStatusLabels[status] || status || "Aberto"
+  });
+}
+
+function supportTicketTimeline(ticket) {
+  const status = ticket.status || "aberto";
+  const steps = [
+    ["aberto", "Aberto"],
+    ["em_atendimento", "Em atendimento"],
+    [status === "encerrado" ? "encerrado" : "respondido", status === "encerrado" ? "Encerrado" : "Resposta"]
+  ];
+  const activeIndex = Math.max(0, steps.findIndex(([value]) => value === status));
+  const normalizedActive = activeIndex === -1 ? (status === "respondido" || status === "encerrado" ? 2 : 0) : activeIndex;
+  const timeline = createElement("ol", { className: "ticket-timeline" });
+  steps.forEach(([value, label], index) => {
+    timeline.append(createElement("li", {
+      className: `${index <= normalizedActive ? "is-active" : ""} ${value === status ? "is-current" : ""}`.trim(),
+      text: label
+    }));
+  });
+  return timeline;
+}
+
+function attachmentType(attachment) {
+  if (attachment.mimeType === "application/pdf") return "PDF";
+  if (String(attachment.mimeType || "").startsWith("image/")) return "IMG";
+  return "DOC";
+}
+
+function populateSupportSelects() {
+  document.querySelectorAll("[data-support-office-select]").forEach((select) => {
+    const current = select.value;
+    select.replaceChildren();
+    select.append(createElement("option", { text: "Selecione uma turma", attrs: { value: "" } }));
+    state.oficinas.forEach((oficina) => {
+      select.append(createElement("option", { text: oficina.nome, attrs: { value: oficina.id } }));
+    });
+    select.value = state.oficinas.some((oficina) => oficina.id === current) ? current : "";
+  });
+
+  document.querySelectorAll("[data-support-student-select]").forEach((select) => {
+    const current = select.value;
+    select.replaceChildren();
+    select.append(createElement("option", { text: "Selecione um aluno", attrs: { value: "" } }));
+    state.alunos.forEach((aluno) => {
+      select.append(createElement("option", {
+        text: `${aluno.nome}${aluno.cpf ? ` - ${maskCpfValue(aluno.cpf)}` : ""}`,
+        attrs: { value: aluno.id }
+      }));
+    });
+    select.value = state.alunos.some((aluno) => aluno.id === current) ? current : "";
+  });
+}
+
+function renderSupportAdmin() {
+  const ticketList = document.querySelector("[data-support-ticket-list]");
+  const postList = document.querySelector("[data-support-post-list]");
+  if (ticketList) {
+    ticketList.replaceChildren();
+    if (!state.supportTickets.length) {
+      ticketList.append(emptyState("Nenhum ticket aberto", "Quando um aluno abrir um chamado pelo portal, ele aparecerá aqui para resposta da equipe.", "suporte"));
+    }
+    state.supportTickets.forEach((ticket) => {
+      const item = createElement("article", { className: `support-admin-ticket ticket-status-${ticket.status || "aberto"}` });
+      const responseForm = createElement("form", { className: "support-response-form", attrs: { "data-support-response-form": ticket.id } });
+      const status = createElement("select", { attrs: { name: "status" } });
+      Object.entries(supportStatusLabels).forEach(([value, label]) => {
+        const option = createElement("option", { text: label, attrs: { value } });
+        if (value === ticket.status) option.selected = true;
+        status.append(option);
+      });
+      responseForm.append(
+        status,
+        createElement("textarea", { text: ticket.resposta || "", attrs: { name: "resposta", rows: "3", maxlength: "2000", placeholder: "Resposta para o aluno" } }),
+        createElement("button", { className: "button button-secondary", text: "Responder", attrs: { type: "submit" } })
+      );
+      const attachments = createElement("div", { className: "support-attachment-list" });
+      (ticket.anexos || []).forEach((attachment) => {
+        attachments.append(createElement("a", {
+          className: "file-chip",
+          text: attachment.originalName || "Anexo do ticket",
+          attrs: {
+            href: apiUrl(attachment.downloadPath || "#"),
+            target: "_blank",
+            rel: "noopener noreferrer",
+            "data-file-type": attachmentType(attachment)
+          }
+        }));
+      });
+      const heading = createElement("div", { className: "support-ticket-heading" });
+      heading.append(
+        createElement("strong", { text: `${ticket.codigo} - ${ticket.nome}` }),
+        statusBadge(ticket.status)
+      );
+      item.append(
+        heading,
+        createElement("span", { text: `${supportCategoryLabels[ticket.categoria] || ticket.categoria} · ${supportStatusLabels[ticket.status] || ticket.status} · expira em ${formatDate(ticket.expiresAt)}` }),
+        supportTicketTimeline(ticket),
+        createElement("p", { text: ticket.descricao }),
+        attachments.children.length ? attachments : createElement("small", { text: "Sem anexos enviados." }),
+        responseForm
+      );
+      ticketList.append(item);
+    });
+  }
+
+  if (postList) {
+    postList.replaceChildren();
+    if (!state.supportPosts.length) {
+      postList.append(emptyState("Nenhuma mensagem publicada", "Avisos do mural geral, turmas ou alunos aparecerão aqui depois da publicação.", "mural"));
+    }
+    state.supportPosts.forEach((post) => {
+      const item = createElement("article", { className: `support-admin-post priority-${post.prioridade || "normal"}` });
+      const target = post.targetType === "geral" ? "Mural geral" : post.oficina || post.aluno || post.targetType;
+      const actions = createElement("div", { className: "content-actions" });
+      const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button", "data-edit-support-post": post.id } });
+      const remove = createElement("button", { className: "icon-action danger", text: "Remover", attrs: { type: "button", "data-remove-support-post": post.id } });
+      actions.append(edit, remove);
+      item.append(
+        createElement("strong", { text: post.titulo }),
+        createElement("span", { text: `${target} · ${post.tipo} · ${post.prioridade || "normal"} · ${formatDate(post.created_at)}` }),
+        createElement("p", { text: post.mensagem }),
+        actions
+      );
+      postList.append(item);
+    });
+  }
+}
+
+function renderWorkshopFeedbacks() {
+  const list = document.querySelector("[data-feedback-list]");
+  const summary = document.querySelector("[data-feedback-summary]");
+  if (!list) return;
+
+  const rows = state.workshopFeedbacks || [];
+  list.replaceChildren();
+  if (summary) {
+    const average = rows.length
+      ? (rows.reduce((sum, item) => sum + Number(item.rating || 0), 0) / rows.length).toFixed(1)
+      : "0.0";
+    const lowRatings = rows.filter((item) => Number(item.rating || 0) <= 2).length;
+    summary.replaceChildren(
+      createElement("article", { className: "feedback-metric" }),
+      createElement("article", { className: "feedback-metric" }),
+      createElement("article", { className: "feedback-metric" })
+    );
+    summary.children[0].append(createElement("span", { text: "Avaliações" }), createElement("strong", { text: String(rows.length) }));
+    summary.children[1].append(createElement("span", { text: "Média" }), createElement("strong", { text: `${average} ★` }));
+    summary.children[2].append(createElement("span", { text: "Notas 1-2" }), createElement("strong", { text: String(lowRatings) }));
+  }
+
+  if (!rows.length) {
+    list.append(emptyState("Nenhum feedback encontrado", "As avaliações enviadas pelo Portal do Aluno aparecerão aqui para leitura da equipe.", "feedbacks"));
+    return;
+  }
+
+  rows.forEach((feedback) => {
+    const item = createElement("article", { className: `feedback-admin-card rating-${feedback.rating}` });
+    item.append(
+      createElement("div", { className: "feedback-admin-heading" }),
+      createElement("p", { text: feedback.comentario }),
+      createElement("span", { text: `${feedback.aluno} · ${feedback.cpf || "CPF não informado"} · ${formatDate(feedback.created_at)}` })
+    );
+    item.querySelector(".feedback-admin-heading").append(
+      createElement("strong", { text: feedback.oficina }),
+      ratingStars(feedback.rating)
+    );
+    list.append(item);
+  });
+}
+
+function resetSupportPostForm() {
+  const form = document.querySelector("[data-support-post-form]");
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = "";
+  document.querySelector("[data-support-post-form-title]").textContent = "Publicar mural ou notificação";
+  document.querySelector("[data-support-post-submit]").textContent = "Publicar mensagem";
+  document.querySelector("[data-support-target-type]")?.dispatchEvent(new Event("change"));
+  setFeedback(document.querySelector("[data-support-post-feedback]"), "");
+}
+
+function editSupportPost(post) {
+  const form = document.querySelector("[data-support-post-form]");
+  if (!form) return;
+  setFormValues(form, {
+    id: post.id,
+    targetType: post.targetType || "geral",
+    tipo: post.tipo || "aviso",
+    prioridade: post.prioridade || "normal",
+    oficinaId: post.oficinaId || "",
+    alunoId: post.alunoId || "",
+    titulo: post.titulo || "",
+    mensagem: post.mensagem || ""
+  });
+  document.querySelector("[data-support-post-form-title]").textContent = "Editar mural ou notificação";
+  document.querySelector("[data-support-post-submit]").textContent = "Salvar alterações";
+  document.querySelector("[data-support-target-type]")?.dispatchEvent(new Event("change"));
+  setFeedback(document.querySelector("[data-support-post-feedback]"), "Edite os campos e salve as alterações.", "success");
+  showAdminPage("mural", true);
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function deleteSupportPost(post) {
+  if (!window.confirm(`Remover o aviso "${post.titulo}"?`)) return;
+  await secureRequest(`/admin/suporte/murais/${post.id}`, { method: "DELETE" });
+  resetSupportPostForm();
+  await loadSupport();
 }
 
 function renderDashboard(dashboard) {
@@ -558,7 +1718,7 @@ function automationMessages(person) {
   return {
     documentos: `Olá, ${name}! Para concluir sua matrícula no Centro da Juventude, precisamos regularizar documentos pendentes do cadastro. Em caso de dúvida, responda esta mensagem.`,
     faltas: `Olá, ${name}! Identificamos ${faltas} falta(s) recente(s) em ${oficinas}. Procure a equipe para justificar ou regularizar a frequência.`,
-    listaEspera: `Olá, ${name}! Você esta em lista de espera para ${lista || oficinas}. A equipe avisará quando houver vaga disponível.`,
+    listaEspera: `Olá, ${name}! Você está em lista de espera para ${lista || oficinas}. A equipe avisará quando houver vaga disponível.`,
     contato: `Olá, ${name}! Estamos entrando em contato pelo Centro da Juventude sobre seu cadastro em ${oficinas}.`
   };
 }
@@ -744,10 +1904,31 @@ function peopleCard(title, description, people, actionLabel = "Abrir ficha") {
   return card;
 }
 
+function reportMetric(label, value, description = "") {
+  const metric = createElement("article", { className: "report-metric" });
+  metric.append(
+    createElement("span", { text: label }),
+    createElement("strong", { text: String(value) }),
+    createElement("small", { text: description })
+  );
+  return metric;
+}
+
+function reportPriorityCard(title, value, description, tone = "neutral") {
+  const card = createElement("article", { className: `report-priority-card is-${tone}` });
+  card.append(
+    createElement("span", { text: title }),
+    createElement("strong", { text: String(value) }),
+    createElement("p", { text: description })
+  );
+  return card;
+}
+
 function renderReports() {
   const summary = document.querySelector("[data-reports-summary]");
+  const priority = document.querySelector("[data-reports-priority]");
   const grid = document.querySelector("[data-reports-grid]");
-  if (!summary || !grid) return;
+  if (!summary || !priority || !grid) return;
 
   const people = uniquePeople();
   const docsMissing = people.filter((person) => Boolean(person.documentosPendentes || Number(person.documentosCount || 0) === 0));
@@ -760,30 +1941,31 @@ function renderReports() {
     .sort((a, b) => String(a.data).localeCompare(String(b.data)))
     .slice(0, 4);
 
-  const metrics = [
-    ["Cadastros filtrados", people.length],
-    ["Com documentos", withDocs.length],
-    ["Pendência de docs", docsMissing.length],
-    ["Alertas de falta", absences.length],
-    ["Lista de espera", waitlist.length],
-    ["Bolsistas ativos", activeBolsistas.length]
-  ];
-  summary.replaceChildren(...metrics.map(([label, value]) => {
-    const metric = createElement("article", { className: "report-metric" });
-    metric.append(createElement("span", { text: label }), createElement("strong", { text: String(value) }));
-    return metric;
-  }));
+  summary.replaceChildren(
+    reportMetric("Cadastros filtrados", people.length, "Alunos na visão atual"),
+    reportMetric("Com documentos", withDocs.length, "Prontos para conferência"),
+    reportMetric("Pendência de docs", docsMissing.length, "Prioridade administrativa"),
+    reportMetric("Alertas de falta", absences.length, "Mais de 2 faltas recentes"),
+    reportMetric("Lista de espera", waitlist.length, "Aguardando vaga ou retorno"),
+    reportMetric("Bolsistas ativos", activeBolsistas.length, "Vinculados ao calendário")
+  );
+
+  priority.replaceChildren(
+    reportPriorityCard("Primeiro", docsMissing.length, "Conferir documentos pendentes antes da confirmação final.", docsMissing.length ? "danger" : "ok"),
+    reportPriorityCard("Depois", absences.length, "Verificar alunos com faltas acima do limite e registrar orientação.", absences.length ? "warning" : "ok"),
+    reportPriorityCard("Retorno", waitlist.length, "Acompanhar lista de espera quando houver novas vagas.", waitlist.length ? "info" : "ok")
+  );
 
   const eventCard = createElement("article", { className: "report-card" });
   const eventHeader = createElement("div", { className: "report-card-header" });
   eventHeader.append(
-    createElement("span", { text: "Proximos eventos" }),
+    createElement("span", { text: "Próximos eventos" }),
     createElement("strong", { text: String(nextEvents.length) })
   );
-  eventCard.append(eventHeader, createElement("p", { text: "Reunioes, passeios e eventos cadastrados para acompanhamento interno." }));
+  eventCard.append(eventHeader, createElement("p", { text: "Reuniões, passeios e eventos cadastrados para acompanhamento interno." }));
   const eventList = createElement("div", { className: "report-list" });
   if (!nextEvents.length) {
-    eventList.append(createElement("span", { className: "form-feedback", text: "Nenhum evento futuro neste mes." }));
+    eventList.append(createElement("span", { className: "form-feedback", text: "Nenhum evento futuro neste mês." }));
   } else {
     nextEvents.forEach((event) => {
       eventList.append(createElement("span", {
@@ -926,7 +2108,7 @@ function renderAdminUserList() {
   if (!list) return;
   list.replaceChildren();
   if (state.admin?.role !== "master") {
-    list.append(createElement("p", { className: "form-feedback", text: "Somente o ADM master acessa esta area." }));
+    list.append(createElement("p", { className: "form-feedback", text: "Somente o ADM master acessa esta área." }));
     return;
   }
   if (!state.adminUsers.length) {
@@ -938,7 +2120,7 @@ function renderAdminUserList() {
     const main = createElement("div", { className: "content-item-main" });
     main.append(
       createElement("strong", { text: admin.name }),
-      createElement("span", { text: `Usuario: ${admin.username || "-"}` }),
+      createElement("span", { text: `Usuário: ${admin.username || "-"}` }),
       createElement("span", { text: `${roleLabels[admin.role] || admin.role} - ${admin.active ? "ativo" : "inativo"}${admin.last_login_at ? ` - último login ${formatDate(admin.last_login_at)}` : ""}` })
     );
     const actions = createElement("div", { className: "table-actions" });
@@ -979,6 +2161,103 @@ function renderAuditLogs() {
     );
     item.append(main);
     list.append(item);
+  });
+}
+
+function searchableText(...parts) {
+  return parts
+    .flat()
+    .filter(Boolean)
+    .join(" ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function globalSearchResults(term) {
+  const query = searchableText(term);
+  if (!query || query.length < 2) return [];
+  const results = [];
+  Object.entries(pageTitles).forEach(([page, title]) => {
+    if (!canAccessPage(page)) return;
+    const aliases = [title, page, pageAliases[page] || ""];
+    if (searchableText(aliases).includes(query)) {
+      results.push({ type: "page", title, subtitle: "Abrir página do ADM", page });
+    }
+  });
+  state.alunos.forEach((aluno) => {
+    const haystack = searchableText(aluno.nome, aluno.cpf, aluno.matricula, aluno.responsavel, aluno.bairro, aluno.oficinas, aluno.turmas, aluno.documentosLinks);
+    if (haystack.includes(query)) {
+      results.push({
+        type: "aluno",
+        title: aluno.nome || "Aluno",
+        subtitle: `${aluno.matricula || "Sem matrícula"} · CPF ${maskCpfValue(aluno.cpf || "") || "não informado"}`,
+        aluno
+      });
+    }
+  });
+  state.supportTickets.forEach((ticket) => {
+    const haystack = searchableText(ticket.codigo, ticket.nome, ticket.cpf, ticket.categoria, ticket.descricao, ticket.status);
+    if (haystack.includes(query)) {
+      results.push({
+        type: "ticket",
+        title: ticket.codigo || "Ticket",
+        subtitle: `${ticket.nome || "Aluno"} · ${supportStatusLabels[ticket.status] || ticket.status}`,
+        page: "suporte"
+      });
+    }
+  });
+  state.oficinas.forEach((oficina) => {
+    const haystack = searchableText(oficina.nome, oficina.categoria, oficina.horario, oficina.turmas);
+    if (haystack.includes(query)) {
+      results.push({
+        type: "oficina",
+        title: oficina.nome,
+        subtitle: [oficina.categoria, oficina.horario].filter(Boolean).join(" · ") || "Oficina",
+        page: "oficinas"
+      });
+    }
+  });
+  state.supportPosts.forEach((post) => {
+    const haystack = searchableText(post.titulo, post.mensagem, post.oficina, post.aluno, post.tipo, post.prioridade);
+    if (haystack.includes(query)) {
+      results.push({
+        type: "aviso",
+        title: post.titulo,
+        subtitle: `${post.prioridade || "normal"} · ${post.oficina || post.aluno || "Mural geral"}`,
+        page: "mural"
+      });
+    }
+  });
+  return results.slice(0, 8);
+}
+
+function renderGlobalSearch(term) {
+  const box = document.querySelector("[data-global-search-results]");
+  if (!box) return;
+  const results = globalSearchResults(term);
+  box.replaceChildren();
+  box.hidden = !results.length;
+  results.forEach((result) => {
+    const button = createElement("button", {
+      className: "global-search-item",
+      attrs: { type: "button" }
+    });
+    button.append(
+      createElement("strong", { text: result.title }),
+      createElement("span", { text: result.subtitle })
+    );
+    button.addEventListener("click", () => {
+      box.hidden = true;
+      document.querySelector("[data-global-search]").value = "";
+      if (result.type === "aluno") {
+        showAdminPage("alunos", true);
+        openStudentProfile(result.aluno);
+        return;
+      }
+      showAdminPage(result.page || "dashboard", true);
+    });
+    box.append(button);
   });
 }
 
@@ -1024,17 +2303,6 @@ function addProfileField(container, label, value) {
     createElement("strong", { text: value || "-" })
   );
   container.append(item);
-}
-
-function linksToTextarea(values = []) {
-  return (Array.isArray(values) ? values : [values]).filter(Boolean).join("\n");
-}
-
-function textareaToLinks(value = "") {
-  return String(value || "")
-    .split(/\r?\n|[,;]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
 }
 
 function multilineText(value, fallback) {
@@ -1102,21 +2370,16 @@ function openStudentProfile(person) {
   const grid = createElement("div", { className: "profile-grid" });
   addProfileField(grid, "Nome", person.nome);
   addProfileField(grid, "CPF", cpf);
+  addProfileField(grid, "Matrícula", person.matricula);
   addProfileField(grid, "Idade", person.idade === "" || person.idade === undefined ? "-" : `${person.idade} anos`);
-  addProfileField(grid, "Data de nascimento", person.dataNascimento ? String(person.dataNascimento).slice(0, 10) : "");
-  addProfileField(grid, "Bairro", person.bairro);
   addProfileField(grid, "Telefone", person.telefone);
   addProfileField(grid, "Responsável", person.responsavel);
-  addProfileField(grid, "Contato do responsavel", person.contatoResponsavel);
   addProfileField(grid, "E-mail", person.email);
   addProfileField(grid, "Status", person.status || "inscrito");
   addProfileField(grid, "Faltas nos últimos 30 dias", String(person.faltasUltimos30Dias || 0));
   addProfileField(grid, "Documentos", person.documentosPendentes ? "Faltando" : "Sem pendências marcadas");
   addProfileField(grid, "Primeiro cadastro", formatDate(person.created_at));
   summary.append(grid);
-  if (person.fichaAlerta) {
-    summary.append(createElement("p", { className: "form-feedback is-error", text: person.fichaAlerta }));
-  }
 
   const officesSection = makeProfileSection("Oficinas e matrículas");
   const timeline = createElement("div", { className: "profile-timeline" });
@@ -1144,22 +2407,10 @@ function openStudentProfile(person) {
   }
   officesSection.append(timeline);
 
-  const history = makeProfileSection("Historico do aluno");
-  appendProfileNote(history, "Doenca, deficiencia ou problema fisico/psicologico", person.condicaoSaude, "Nada informado.");
-  if (person.documentosLinks?.length) {
-    const docsLinks = createElement("div", { className: "profile-timeline" });
-    person.documentosLinks.forEach((link, index) => {
-      docsLinks.append(createElement("a", {
-        className: "button button-secondary",
-        text: `Documento ${index + 1}`,
-        attrs: { href: link, target: "_blank", rel: "noopener noreferrer" }
-      }));
-    });
-    history.append(docsLinks);
-  }
-  appendProfileNote(history, "Advertencias", person.advertencias, "Sem advertencias registradas.");
+  const history = makeProfileSection("Histórico do aluno");
+  appendProfileNote(history, "Advertências", person.advertencias, "Sem advertências registradas.");
   appendProfileNote(history, "Oficinas anteriores", person.historicoOficinas, "Sem historico anterior registrado.");
-  appendProfileNote(history, "Observacoes", person.observacoes, "Sem observacoes registradas.");
+  appendProfileNote(history, "Observações", person.observacoes, "Sem observações registradas.");
 
   const callsSection = makeProfileSection("Ultimas chamadas");
   const callsList = createElement("div", { className: "profile-timeline" });
@@ -1258,11 +2509,22 @@ function openStudentProfile(person) {
   }
   const warningButton = createElement("button", {
     className: "button button-secondary",
-    text: "Dar advertencia",
+    text: "Dar advertência",
     attrs: { type: "button" }
   });
   warningButton.addEventListener("click", () => addWarningToStudent(person));
   actions.append(warningButton);
+
+  const studentIdForMatricula = student?.sourceId || (person.source === "aluno" ? person.sourceId || person.id : "");
+  if (studentIdForMatricula) {
+    const matriculaButton = createElement("button", {
+      className: "button button-secondary",
+      text: "Enviar matrícula por WhatsApp",
+      attrs: { type: "button" }
+    });
+    matriculaButton.addEventListener("click", () => sendMatriculaWhatsApp({ id: studentIdForMatricula }));
+    actions.append(matriculaButton);
+  }
 
   profileContent.replaceChildren(summary, officesSection, history, callsSection, sourceSection, actions);
   if (profileDialog.open) profileDialog.close();
@@ -1398,19 +2660,13 @@ function studentPayload(aluno, advertencias) {
     nome: aluno.nome,
     cpf: maskCpfValue(aluno.cpf || ""),
     idade: aluno.idade || "",
-    dataNascimento: aluno.dataNascimento || "",
     telefone: aluno.telefone || "",
     responsavel: aluno.responsavel || "",
-    contatoResponsavel: aluno.contatoResponsavel || "",
     email: aluno.email || "",
-    bairro: aluno.bairro || "",
     oficinaIds: aluno.oficinaIds || [],
     oficinaId: aluno.oficinaIds?.[0] || "",
     status: aluno.status || "ativo",
     documentosPendentes: Boolean(aluno.documentosPendentes),
-    documentosLinks: aluno.documentosLinks || [],
-    condicaoSaude: aluno.condicaoSaude || "",
-    fichaAlerta: aluno.fichaAlerta || "",
     advertencias,
     historicoOficinas: aluno.historicoOficinas || "",
     observacoes: aluno.observacoes || ""
@@ -1462,7 +2718,7 @@ async function getStudentForPerson(person) {
 }
 
 async function addWarningToStudent(person) {
-  const text = window.prompt(`Descreva a advertencia para ${person.nome}:`);
+  const text = window.prompt(`Descreva a advertência para ${person.nome}:`);
   if (!text || !text.trim()) return;
 
   try {
@@ -1499,6 +2755,7 @@ function renderOfficeList() {
       createElement("span", { text: `${oficina.categoria} · ${oficina.faixaEtaria} · ${formatDays(oficina.diasSemana)} · ${formatPeriod(oficina.periodo)}` }),
       createElement("span", { text: `Horário: ${oficina.horario}` }),
       createElement("span", { text: `Capacidade: ${oficina.capacidade || 30} vagas` }),
+      createElement("span", { text: `${(oficina.turmas || []).length} turma(s) cadastrada(s)` }),
       createElement("span", { text: oficina.ativo ? "Ativa no site" : "Inativa" })
     );
     const actions = createElement("div", { className: "content-actions" });
@@ -1512,6 +2769,191 @@ function renderOfficeList() {
   });
 }
 
+function normalizeSearchText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function getClassRows() {
+  if (state.turmas.length) {
+    return state.turmas
+      .map((turma) => ({
+        ...turma,
+        alunosCount: Number(turma.vagasOcupadas || 0),
+        oficina: state.oficinas.find((oficina) => oficina.id === turma.oficinaId) || { id: turma.oficinaId, nome: turma.oficina, categoria: "" }
+      }))
+      .sort((a, b) => {
+        const officeSort = String(a.oficina?.nome || a.oficina || "").localeCompare(String(b.oficina?.nome || b.oficina || ""), "pt-BR");
+        return officeSort || String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR");
+      });
+  }
+  const classCounts = new Map();
+  (state.classStudents.length ? state.classStudents : state.alunos).forEach((aluno) => {
+    (aluno.turmas || []).forEach((turma) => {
+      const key = String(turma || "").trim();
+      if (!key) return;
+      classCounts.set(key, (classCounts.get(key) || 0) + 1);
+    });
+  });
+
+  return state.oficinas
+    .flatMap((oficina) => (oficina.turmas || [])
+      .map((turma) => String(turma || "").trim())
+      .filter(Boolean)
+      .map((turma) => ({
+        turma,
+        oficina,
+        alunosCount: classCounts.get(turma) || 0
+      })))
+    .sort((a, b) => {
+      const officeSort = String(a.oficina.nome || "").localeCompare(String(b.oficina.nome || ""), "pt-BR");
+      return officeSort || a.turma.localeCompare(b.turma, "pt-BR");
+    });
+}
+
+function renderClassList() {
+  const summary = document.querySelector("[data-class-summary]");
+  const list = document.querySelector("[data-class-list]");
+  if (!summary || !list) return;
+
+  const term = normalizeSearchText(state.classSearch);
+  if (state.classOffice && !state.oficinas.some((oficina) => oficina.id === state.classOffice)) {
+    state.classOffice = "";
+  }
+  const rows = getClassRows();
+  const visibleRows = rows.filter((row) => {
+    const oficina = row.oficina || {};
+    const matchesOffice = !state.classOffice || row.oficinaId === state.classOffice || oficina.id === state.classOffice;
+    const matchesPeriod = !state.classPeriod || row.periodo === state.classPeriod;
+    const matchesStatus = !state.classStatus
+      || (state.classStatus === "ativa" && row.ativa)
+      || (state.classStatus === "inativa" && !row.ativa);
+    const matchesBolsista = !state.classBolsista || row.bolsistaId === state.classBolsista;
+    const searchable = normalizeSearchText([row.nome || row.turma, row.oficina || oficina.nome, oficina.categoria, row.bolsista].join(" "));
+    return matchesOffice && matchesPeriod && matchesStatus && matchesBolsista && (!term || searchable.includes(term));
+  });
+  const officeCount = new Set(visibleRows.map((row) => row.oficinaId || row.oficina?.id)).size;
+  const linkedStudents = visibleRows.reduce((sum, row) => sum + row.alunosCount, 0);
+  const capacity = visibleRows.reduce((sum, row) => sum + Number(row.vagasTotal || 0), 0);
+  const metrics = [
+    ["Turmas", visibleRows.length],
+    ["Oficinas com turma", officeCount],
+    ["Ocupação", capacity ? `${linkedStudents}/${capacity}` : linkedStudents]
+  ];
+
+  summary.replaceChildren(...metrics.map(([label, value]) => {
+    const metric = createElement("article", { className: "turma-metric" });
+    metric.append(
+      createElement("span", { text: label }),
+      createElement("strong", { text: String(value) })
+    );
+    return metric;
+  }));
+
+  list.replaceChildren();
+  if (!rows.length) {
+    list.append(createElement("p", { className: "form-feedback", text: "Nenhuma turma cadastrada. Use o formulário acima para adicionar a primeira turma." }));
+    return;
+  }
+  if (!visibleRows.length) {
+    list.append(createElement("p", { className: "form-feedback", text: "Nenhuma turma encontrada para o filtro." }));
+    return;
+  }
+
+  visibleRows.forEach((row) => {
+    const item = createElement("article", { className: "content-item" });
+    const main = createElement("div", { className: "content-item-main" });
+    const turmaNome = row.nome || row.turma;
+    const oficinaNome = row.oficina?.nome || row.oficina || "";
+    const horario = row.horario || [row.horarioInicio, row.horarioFim].filter(Boolean).join(" às ") || "Horário a definir";
+    const faixa = row.idadeMinima !== undefined ? `${row.idadeMinima} a ${row.idadeMaxima} anos` : "Faixa etária a definir";
+    main.append(
+      createElement("strong", { text: turmaNome }),
+      createElement("span", { text: `${oficinaNome} · ${formatDays(row.diasSemana || [])} · ${formatPeriod(row.periodo)} · ${horario}` }),
+      createElement("span", { text: `Faixa etária: ${faixa}` }),
+      createElement("span", { text: `Vagas: ${row.vagasOcupadas ?? row.alunosCount}/${row.vagasTotal || "sem limite definido"}${row.bolsista ? ` · Bolsista: ${row.bolsista}` : ""}` })
+    );
+    const actions = createElement("div", { className: "content-actions" });
+    const status = createElement("span", { className: `status-badge ${row.ativa === false ? "danger" : "success"}`, text: row.ativa === false ? "Inativa" : "Ativa" });
+    actions.append(status);
+    if (row.id) {
+      const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
+      const toggle = createElement("button", { className: "icon-action", text: row.ativa === false ? "Ativar" : "Inativar", attrs: { type: "button" } });
+      const del = createElement("button", { className: "icon-action danger", text: "Excluir", attrs: { type: "button", disabled: row.podeExcluir === false ? "disabled" : null } });
+      edit.addEventListener("click", () => editTurma(row));
+      toggle.addEventListener("click", () => toggleTurmaStatus(row));
+      del.addEventListener("click", () => deleteTurma(row));
+      actions.append(edit, toggle, del);
+    } else {
+      const edit = createElement("button", { className: "icon-action", text: "Editar oficina", attrs: { type: "button" } });
+      edit.addEventListener("click", () => editOffice(row.oficina));
+      actions.append(edit);
+    }
+    item.append(main, actions);
+    list.append(item);
+  });
+}
+
+function resetTurmaForm() {
+  const form = document.querySelector("[data-turma-form]");
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = "";
+  form.elements.periodo.value = "manha";
+  form.elements.idadeMinima.value = "6";
+  form.elements.idadeMaxima.value = "17";
+  form.elements.vagasTotal.value = "20";
+  form.elements.ativa.checked = true;
+  setTurmaDays([]);
+  setFeedback(document.querySelector("[data-turma-feedback]"), "");
+}
+
+function editTurma(turma) {
+  const form = document.querySelector("[data-turma-form]");
+  if (!form) return;
+  setFormValues(form, {
+    id: turma.id,
+    oficinaId: turma.oficinaId,
+    nome: turma.nome,
+    periodo: turma.periodo,
+    horarioInicio: turma.horarioInicio,
+    horarioFim: turma.horarioFim,
+    idadeMinima: turma.idadeMinima,
+    idadeMaxima: turma.idadeMaxima,
+    vagasTotal: turma.vagasTotal,
+    bolsistaId: turma.bolsistaId || "",
+    local: turma.local || "",
+    observacoes: turma.observacoes || "",
+    ativa: turma.ativa !== false
+  });
+  setTurmaDays(turma.diasSemana || []);
+  showAdminPage("turmas", true);
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function toggleTurmaStatus(turma) {
+  await secureRequest(`/admin/turmas/${turma.id}/status`, {
+    method: "PATCH",
+    body: { ativa: turma.ativa === false }
+  });
+  await loadManagedContent();
+  await loadAttendanceClasses();
+}
+
+async function deleteTurma(turma) {
+  if (turma.podeExcluir === false) {
+    setFeedback(document.querySelector("[data-turma-feedback]"), "Esta turma possui vínculos. Inative em vez de excluir.", "error");
+    return;
+  }
+  if (!window.confirm(`Excluir a turma ${turma.nome}?`)) return;
+  await secureRequest(`/admin/turmas/${turma.id}`, { method: "DELETE" });
+  await loadManagedContent();
+  await loadAttendanceClasses();
+}
+
 function resetOfficeForm() {
   const form = document.querySelector("[data-office-form]");
   form.reset();
@@ -1519,6 +2961,7 @@ function resetOfficeForm() {
   form.elements.imagemUrl.value = "/img/oficinas.png";
   form.elements.periodo.value = "a definir";
   form.elements.capacidade.value = "30";
+  if (form.elements.turmas) form.elements.turmas.value = "";
   form.elements.ativo.checked = true;
   setCheckedValues(form, "diasSemana", []);
   setFeedback(document.querySelector("[data-office-feedback]"), "");
@@ -1537,6 +2980,7 @@ function editOffice(oficina) {
     imagemUrl: oficina.imagemUrl,
     initials: oficina.initials,
     descricao: oficina.descricao,
+    turmas: arrayToLines(oficina.turmas),
     ativo: oficina.ativo
   });
   setCheckedValues(form, "diasSemana", oficina.diasSemana || []);
@@ -1551,13 +2995,15 @@ async function deleteOffice(oficina) {
 }
 
 async function openStudentFromEnrollment(item) {
-  if (!state.alunos.some((aluno) => aluno.id === item.sourceId)) {
-    await loadAlunos();
+  if (!item.sourceId) {
+    showAdminPage("alunos", true);
+    return;
   }
-  const aluno = state.alunos.find((record) => record.id === item.sourceId);
-  if (aluno) {
-    editStudent(aluno);
-  } else {
+  try {
+    const data = await apiRequest(`/alunos/${item.sourceId}`, { cache: "no-store" });
+    await editStudent(data.aluno, true);
+  } catch (error) {
+    showToast(error.message || "Não foi possível abrir a ficha do aluno.", "error");
     showAdminPage("alunos", true);
   }
 }
@@ -1681,6 +3127,43 @@ function initialsFromName(name) {
     .toUpperCase();
 }
 
+function linesToArray(value) {
+  return String(value || "")
+    .split(/[\n;,|]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function arrayToLines(value) {
+  return Array.isArray(value) ? value.filter(Boolean).join("\n") : "";
+}
+
+function renderLegacyImportSummary(result) {
+  const summary = document.querySelector("[data-student-legacy-import-summary]");
+  if (!summary) return;
+  summary.replaceChildren();
+  if (!result) return;
+  const items = [
+    `Linhas lidas: ${result.totalRows || 0}`,
+    `Novos alunos: ${result.importedCount || 0}`,
+    `Fichas atualizadas: ${result.updatedCount || 0}`,
+    `Alertas/erros: ${result.errorCount || 0}`,
+    `Turmas reconhecidas: ${result.plannedTurmas || 0}`
+  ];
+  if (result.plannedOffices?.length) items.push(`Oficinas faltantes: ${result.plannedOffices.join(", ")}`);
+  if (result.createdOffices?.length) items.push(`Oficinas criadas: ${result.createdOffices.join(", ")}`);
+  const list = createElement("ul");
+  items.forEach((text) => list.append(createElement("li", { text })));
+  summary.append(list);
+  if (result.errors?.length) {
+    const errorList = createElement("ul", { className: "import-errors" });
+    result.errors.slice(0, 10).forEach((item) => {
+      errorList.append(createElement("li", { text: `Linha ${item.linha}: ${item.erro}` }));
+    });
+    summary.append(createElement("strong", { text: "Primeiros alertas" }), errorList);
+  }
+}
+
 function collaboratorThumb(item) {
   if (item.imagemUrl) {
     return createElement("img", {
@@ -1711,7 +3194,7 @@ function renderCollaboratorList() {
     const main = createElement("div", { className: "content-item-main" });
     main.append(
       createElement("strong", { text: itemData.nome }),
-      createElement("span", { text: itemData.descricao || "Sem descricao." }),
+      createElement("span", { text: itemData.descricao || "Sem descrição." }),
       createElement("span", { text: itemData.siteUrl }),
       createElement("span", { text: itemData.hasUploadedFile ? `Arquivo: ${itemData.originalName || "imagem enviada"}` : (itemData.imagemUrl ? "Origem: URL" : "Sem imagem") }),
       createElement("span", { text: itemData.ativo ? `Ativo - ordem ${itemData.ordem}` : `Inativo - ordem ${itemData.ordem}` })
@@ -1818,78 +3301,468 @@ async function deleteTestimonial(item) {
   await loadManagedContent();
 }
 
-function renderStudentList() {
-  const list = document.querySelector("[data-student-list]");
+function renderFaqList() {
+  const list = document.querySelector("[data-faq-list]");
   if (!list) return;
   list.replaceChildren();
 
-  if (!state.alunos.length) {
-    list.append(createElement("p", { className: "form-feedback", text: "Nenhum aluno cadastrado para o filtro." }));
+  if (!state.faq.length) {
+    list.append(createElement("p", { className: "form-feedback", text: "Nenhuma pergunta cadastrada no FAQ." }));
     return;
   }
 
-  state.alunos.forEach((aluno) => {
-    const item = createElement("article", {
-      className: `content-item student-item${Number(aluno.faltasUltimos30Dias || 0) > 2 ? " is-attention" : ""}`
-    });
+  state.faq.forEach((itemData) => {
+    const item = createElement("article", { className: `content-item${itemData.ativo ? "" : " is-inactive"}` });
     const main = createElement("div", { className: "content-item-main" });
-    const chips = createElement("div", { className: "item-chips" });
-    chips.append(
-      createElement("span", { className: `chip ${aluno.status === "ativo" ? "chip-success" : "chip-muted"}`, text: aluno.status || "ativo" }),
-      createElement("span", { className: aluno.documentosPendentes ? "chip chip-warning" : "chip chip-success", text: aluno.documentosPendentes ? "docs pendentes" : "docs ok" }),
-      createElement("span", { className: Number(aluno.faltasUltimos30Dias || 0) > 2 ? "chip chip-warning" : "chip chip-muted", text: `${aluno.faltasUltimos30Dias || 0} faltas/30d` })
-    );
     main.append(
-      createElement("strong", { text: aluno.nome }),
-      chips,
-      createElement("span", { text: `${(aluno.oficinas || []).join(", ") || "Sem oficina"} - CPF: ${maskCpfValue(aluno.cpf || "") || "sem CPF"}` }),
-      createElement("span", { text: [aluno.telefone || "sem telefone", aluno.responsavel ? `Responsavel: ${aluno.responsavel}` : aluno.email || "", aluno.bairro ? `Bairro: ${aluno.bairro}` : ""].filter(Boolean).join(" - ") }),
-      createElement("span", { className: aluno.fichaAlerta ? "form-feedback is-error" : "muted-cell", text: aluno.fichaAlerta || "" })
+      createElement("strong", { text: itemData.pergunta }),
+      createElement("span", { text: itemData.resposta }),
+      createElement("span", { text: itemData.ativo ? `Ativo - ordem ${itemData.ordem}` : `Inativo - ordem ${itemData.ordem}` })
     );
     const actions = createElement("div", { className: "content-actions" });
     const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
     const del = createElement("button", { className: "icon-action danger", text: "Excluir", attrs: { type: "button" } });
-    edit.addEventListener("click", () => editStudent(aluno));
-    del.addEventListener("click", () => deleteStudent(aluno));
+    edit.addEventListener("click", () => editFaq(itemData));
+    del.addEventListener("click", () => deleteFaq(itemData));
     actions.append(edit, del);
     item.append(main, actions);
     list.append(item);
   });
 }
 
+function resetFaqForm() {
+  const form = document.querySelector("[data-faq-form]");
+  if (!form) return;
+  form.reset();
+  form.elements.id.value = "";
+  form.elements.ordem.value = String(state.faq.length + 1);
+  form.elements.ativo.checked = true;
+  setFeedback(document.querySelector("[data-faq-feedback]"), "");
+}
+
+function editFaq(item) {
+  const form = document.querySelector("[data-faq-form]");
+  setFormValues(form, {
+    id: item.id,
+    pergunta: item.pergunta,
+    resposta: item.resposta,
+    ordem: item.ordem,
+    ativo: item.ativo
+  });
+  showAdminPage("faq", true);
+}
+
+async function deleteFaq(item) {
+  if (!window.confirm(`Excluir a pergunta "${item.pergunta}"?`)) return;
+  await secureRequest(`/admin/faq/${item.id}`, { method: "DELETE" });
+  await loadManagedContent();
+}
+
+function selectedTurmaDays() {
+  return Array.from(document.querySelectorAll("[data-turma-day-check]:checked")).map((input) => input.value);
+}
+
+function setTurmaDays(days = []) {
+  const values = new Set(days);
+  document.querySelectorAll("[data-turma-day-check]").forEach((input) => {
+    input.checked = values.has(input.value);
+    input.closest(".office-picker-option")?.classList.toggle("is-selected", input.checked);
+  });
+}
+
+function renderTurmaDayPicker() {
+  const picker = document.querySelector("[data-turma-days-picker]");
+  if (!picker || picker.children.length) return;
+  Object.entries(dayLabels).forEach(([value, label]) => {
+    const item = createElement("label", { className: "office-picker-option" });
+    const input = createElement("input", {
+      attrs: {
+        type: "checkbox",
+        value,
+        "data-turma-day-check": ""
+      }
+    });
+    input.addEventListener("change", () => {
+      item.classList.toggle("is-selected", input.checked);
+    });
+    item.append(input, createElement("span", { text: label }));
+    picker.append(item);
+  });
+}
+
+function syncStudentOfficeSelectFromPicker() {
+  const select = document.querySelector("[data-student-office-select]");
+  if (!select) return;
+  const values = Array.from(document.querySelectorAll("[data-student-office-check]:checked")).map((input) => input.value);
+  setSelectedValues(select, values);
+  document.querySelector("[data-student-office-picker]")?.classList.toggle("is-invalid", values.length === 0);
+  renderStudentOfficeChips();
+  renderStudentTurmaPicker();
+}
+
+function renderStudentOfficePicker() {
+  const picker = document.querySelector("[data-student-office-picker]");
+  const select = document.querySelector("[data-student-office-select]");
+  if (!picker || !select) {
+    renderStudentOfficeChips();
+    return;
+  }
+
+  picker.replaceChildren();
+  const options = Array.from(select.options);
+  if (!options.length) {
+    picker.append(createElement("span", { className: "form-feedback", text: "Nenhuma oficina cadastrada." }));
+    renderStudentOfficeChips();
+    return;
+  }
+
+  options.forEach((option) => {
+    const item = createElement("label", {
+      className: `office-picker-option${option.selected ? " is-selected" : ""}`
+    });
+    const input = createElement("input", {
+      attrs: {
+        type: "checkbox",
+        value: option.value,
+        "data-student-office-check": ""
+      }
+    });
+    input.checked = option.selected;
+    input.addEventListener("change", () => {
+      item.classList.toggle("is-selected", input.checked);
+      syncStudentOfficeSelectFromPicker();
+    });
+    item.append(input, createElement("span", { text: option.textContent }));
+    picker.append(item);
+  });
+
+  picker.classList.toggle("is-invalid", selectedValues(select).length === 0);
+  renderStudentOfficeChips();
+  renderStudentTurmaPicker();
+}
+
+function renderStudentOfficeChips() {
+  const container = document.querySelector("[data-student-office-chips]");
+  const select = document.querySelector("[data-student-office-select]");
+  if (!container || !select) return;
+
+  const selected = Array.from(select.selectedOptions)
+    .map((option) => option.textContent.trim())
+    .filter(Boolean);
+
+  container.replaceChildren();
+  if (!selected.length) {
+    container.append(createElement("span", { className: "chip chip-muted", text: "Nenhuma oficina selecionada" }));
+    return;
+  }
+
+  selected.slice(0, 10).forEach((label) => {
+    container.append(createElement("span", { className: "chip chip-success", text: label }));
+  });
+
+  if (selected.length > 10) {
+    container.append(createElement("span", { className: "chip chip-muted", text: `+${selected.length - 10}` }));
+  }
+}
+
+function getStudentFormAge() {
+  const form = document.querySelector("[data-student-form]");
+  if (!form) return null;
+  const explicitAge = Number(form.elements.idade?.value || "");
+  if (Number.isInteger(explicitAge) && explicitAge >= 0) return explicitAge;
+  const birthDate = form.elements.dataNascimento?.value;
+  if (!birthDate) return null;
+  const birth = new Date(`${birthDate}T12:00:00`);
+  if (Number.isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age -= 1;
+  return Number.isInteger(age) && age >= 0 ? age : null;
+}
+
+function selectedStudentTurmaIds() {
+  return Array.from(document.querySelectorAll("[data-student-turma-check]:checked")).map((input) => input.value);
+}
+
+function turmaMatchesStudentAge(turma, age) {
+  if (!Number.isInteger(age)) return true;
+  return age >= Number(turma.idadeMinima ?? 0) && age <= Number(turma.idadeMaxima ?? 99);
+}
+
+function formatTurmaDetails(turma) {
+  const schedule = turma.horario || [turma.horarioInicio, turma.horarioFim].filter(Boolean).join(" às ") || "horário a definir";
+  const age = `${turma.idadeMinima ?? 0} a ${turma.idadeMaxima ?? 99} anos`;
+  const vacancies = Number(turma.vagasTotal || 0) > 0
+    ? `${Number(turma.vagasOcupadas || 0)}/${Number(turma.vagasTotal || 0)} vagas`
+    : "vagas a definir";
+  return `${formatDays(turma.diasSemana || [])} · ${formatPeriod(turma.periodo)} · ${schedule} · ${age} · ${vacancies}`;
+}
+
+function selectedStudentTurmas() {
+  const ids = new Set(selectedStudentTurmaIds());
+  return state.turmas.filter((turma) => ids.has(turma.id));
+}
+
+function renderStudentTurmaPicker(preferredIds = selectedStudentTurmaIds()) {
+  const picker = document.querySelector("[data-student-turma-picker]");
+  const help = document.querySelector("[data-student-turma-help]");
+  const officeSelect = document.querySelector("[data-student-office-select]");
+  if (!picker || !officeSelect) return;
+
+  const officeIds = selectedValues(officeSelect);
+  const selected = new Set(preferredIds);
+  const age = getStudentFormAge();
+  picker.replaceChildren();
+
+  if (!officeIds.length) {
+    picker.append(createElement("p", { className: "form-feedback", text: "Selecione uma oficina para ver as turmas disponíveis." }));
+    if (help) help.textContent = "Depois de escolher a oficina, selecione uma turma compatível com a idade do aluno.";
+    return;
+  }
+
+  let renderedOptions = 0;
+  officeIds.forEach((officeId) => {
+    const office = state.oficinas.find((item) => item.id === officeId);
+    const group = createElement("section", { className: "student-turma-group" });
+    group.append(createElement("strong", { text: office?.nome || "Oficina selecionada" }));
+
+    const turmas = state.turmas
+      .filter((turma) => turma.oficinaId === officeId && turma.ativa !== false)
+      .filter((turma) => turmaMatchesStudentAge(turma, age));
+
+    if (!turmas.length) {
+      group.append(createElement("p", {
+        className: "form-feedback",
+        text: Number.isInteger(age)
+          ? "Nenhuma turma ativa compatível com a idade informada."
+          : "Nenhuma turma ativa cadastrada para esta oficina."
+      }));
+      picker.append(group);
+      return;
+    }
+
+    const options = createElement("div", { className: "student-turma-options" });
+    turmas.forEach((turma) => {
+      renderedOptions += 1;
+      const item = createElement("label", {
+        className: `office-picker-option turma-picker-option${selected.has(turma.id) ? " is-selected" : ""}`
+      });
+      const input = createElement("input", {
+        attrs: {
+          type: "checkbox",
+          value: turma.id,
+          "data-student-turma-check": "",
+          "data-office-id": officeId,
+          "data-turma-name": turma.nome
+        }
+      });
+      input.checked = selected.has(turma.id);
+      input.addEventListener("change", () => {
+        if (input.checked) {
+          document.querySelectorAll(`[data-student-turma-check][data-office-id="${officeId}"]`).forEach((other) => {
+            if (other !== input) {
+              other.checked = false;
+              other.closest(".turma-picker-option")?.classList.remove("is-selected");
+            }
+          });
+        }
+        item.classList.toggle("is-selected", input.checked);
+      });
+      const text = createElement("span");
+      text.append(
+        createElement("strong", { text: turma.nome }),
+        createElement("small", { text: formatTurmaDetails(turma) })
+      );
+      item.append(input, text);
+      options.append(item);
+    });
+    group.append(options);
+    picker.append(group);
+  });
+
+  if (help) {
+    help.textContent = renderedOptions
+      ? "Selecione no máximo uma turma por oficina. Turmas incompatíveis com a idade não aparecem."
+      : "Nenhuma turma disponível para as oficinas e idade informadas.";
+  }
+}
+
+function syncBolsistaOfficeSelectFromPicker() {
+  const select = document.querySelector("[data-bolsista-office-select]");
+  if (!select) return;
+  const values = Array.from(document.querySelectorAll("[data-bolsista-office-check]:checked")).map((input) => input.value);
+  setSelectedValues(select, values);
+}
+
+function renderBolsistaOfficePicker() {
+  const picker = document.querySelector("[data-bolsista-office-picker]");
+  const select = document.querySelector("[data-bolsista-office-select]");
+  if (!picker || !select) return;
+
+  picker.replaceChildren();
+  const options = Array.from(select.options);
+  if (!options.length) {
+    picker.append(createElement("span", { className: "form-feedback", text: "Nenhuma oficina cadastrada." }));
+    return;
+  }
+
+  options.forEach((option) => {
+    const item = createElement("label", {
+      className: `office-picker-option${option.selected ? " is-selected" : ""}`
+    });
+    const input = createElement("input", {
+      attrs: {
+        type: "checkbox",
+        value: option.value,
+        "data-bolsista-office-check": ""
+      }
+    });
+    input.checked = option.selected;
+    input.addEventListener("change", () => {
+      item.classList.toggle("is-selected", input.checked);
+      syncBolsistaOfficeSelectFromPicker();
+    });
+    item.append(input, createElement("span", { text: option.textContent }));
+    picker.append(item);
+  });
+}
+
+function renderStudentOverview() {
+  const summary = document.querySelector("[data-student-overview]");
+  if (!summary) return;
+
+  const alunos = state.alunos || [];
+  const active = alunos.filter((aluno) => aluno.status !== "inativo").length;
+  const documentsPending = alunos.filter((aluno) => Boolean(aluno.documentosPendentes)).length;
+  const linkedWorkshops = new Set(alunos.flatMap((aluno) => aluno.oficinas || []).filter(Boolean)).size;
+
+  summary.replaceChildren(
+    reportMetric("Total encontrado", state.studentPagination.total, "Resultado da busca atual"),
+    reportMetric("Exibidos", alunos.length, "Nesta página"),
+    reportMetric("Ativos exibidos", active, "Nesta página"),
+    reportMetric("Pendência de docs", documentsPending, "Nesta página"),
+    reportMetric("Oficinas exibidas", linkedWorkshops, "Nesta página")
+  );
+}
+
+function renderStudentList() {
+  const list = document.querySelector("[data-student-list]");
+  const pagination = document.querySelector("[data-student-pagination]");
+  if (!list) return;
+  renderStudentOverview();
+  list.replaceChildren();
+  pagination?.replaceChildren();
+
+  if (!state.alunos.length) {
+    const empty = createElement("article", { className: "empty-state student-empty" });
+    empty.append(
+      createElement("span", { className: "empty-state-icon", attrs: { "aria-hidden": "true" } }),
+      createElement("strong", { text: "Nenhum aluno encontrado" }),
+      createElement("p", { text: "Ajuste os filtros ou cadastre um novo aluno para começar o acompanhamento." })
+    );
+    list.append(empty);
+    return;
+  }
+
+  state.alunos.forEach((aluno) => {
+    const item = createElement("article", {
+      className: `content-item student-item student-card${Number(aluno.faltasUltimos30Dias || 0) > 2 ? " is-attention" : ""}`
+    });
+    const main = createElement("div", { className: "content-item-main student-card-main" });
+    const title = createElement("div", { className: "student-title" });
+    title.append(
+      createElement("strong", { text: aluno.nome || "Aluno sem nome" }),
+      createElement("span", { text: `${(aluno.oficinas || []).join(", ") || "Sem oficina"} · CPF: ${aluno.cpfMascarado || maskCpfValue(aluno.cpf || "") || "sem CPF"} · Matrícula: ${aluno.matricula || "gerando"}` })
+    );
+
+    const heading = createElement("div", { className: "student-card-heading" });
+    heading.append(title);
+
+    main.append(
+      heading
+    );
+    const actions = createElement("div", { className: "content-actions" });
+    const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
+    const whatsapp = createElement("button", { className: "icon-action", text: "Enviar matrícula", attrs: { type: "button" } });
+    const del = createElement("button", { className: "icon-action danger", text: "Excluir", attrs: { type: "button" } });
+    edit.addEventListener("click", () => editStudent(aluno));
+    whatsapp.addEventListener("click", () => sendMatriculaWhatsApp(aluno));
+    del.addEventListener("click", () => deleteStudent(aluno));
+    actions.append(edit, whatsapp, del);
+    item.append(main, actions);
+    list.append(item);
+  });
+
+  if (pagination) {
+    const { page, pages, total } = state.studentPagination;
+    const previous = createElement("button", { className: "button button-secondary", text: "Anterior", attrs: { type: "button", disabled: page <= 1 ? "disabled" : null } });
+    const next = createElement("button", { className: "button button-secondary", text: "Próxima", attrs: { type: "button", disabled: page >= pages ? "disabled" : null } });
+    previous.addEventListener("click", () => {
+      if (page <= 1) return;
+      state.studentPagination.page = page - 1;
+      loadAlunos();
+    });
+    next.addEventListener("click", () => {
+      if (page >= pages) return;
+      state.studentPagination.page = page + 1;
+      loadAlunos();
+    });
+    pagination.append(previous, createElement("span", { text: `Página ${page} de ${pages} · ${total} aluno(s)` }), next);
+  }
+}
+
 function resetStudentForm() {
   const form = document.querySelector("[data-student-form]");
   form.reset();
   form.elements.id.value = "";
+  const matriculaInput = document.querySelector("[data-student-matricula]");
+  if (matriculaInput) matriculaInput.value = "";
   form.elements.status.value = "ativo";
   form.elements.documentosPendentes.checked = false;
+  if (form.elements.possuiDeficiencia) form.elements.possuiDeficiencia.value = "false";
+  if (form.elements.documentosLinks) form.elements.documentosLinks.value = "";
   setSelectedValues(form.elements.oficinaIds, []);
+  renderStudentOfficePicker();
+  renderStudentTurmaPicker([]);
   setFeedback(document.querySelector("[data-student-feedback]"), "");
 }
 
-function editStudent(aluno) {
+async function editStudent(aluno, loaded = false) {
+  if (aluno?.id && !loaded) {
+    try {
+      const data = await apiRequest(`/alunos/${aluno.id}`, { cache: "no-store" });
+      return editStudent(data.aluno, true);
+    } catch (error) {
+      showToast(error.message || "Não foi possível carregar os detalhes do aluno.", "error");
+      return;
+    }
+  }
   const form = document.querySelector("[data-student-form]");
+  const matriculaInput = document.querySelector("[data-student-matricula]");
+  if (matriculaInput) matriculaInput.value = aluno.matricula || "";
   setFormValues(form, {
     id: aluno.id,
     nome: aluno.nome,
     cpf: maskCpfValue(aluno.cpf || ""),
     idade: aluno.idade,
-    dataNascimento: aluno.dataNascimento ? String(aluno.dataNascimento).slice(0, 10) : "",
     telefone: aluno.telefone,
     responsavel: aluno.responsavel,
-    contatoResponsavel: aluno.contatoResponsavel,
     email: aluno.email,
+    dataNascimento: aluno.dataNascimento,
     bairro: aluno.bairro,
+    possuiDeficiencia: aluno.possuiDeficiencia ? "true" : "false",
+    deficienciaDescricao: aluno.deficienciaDescricao,
+    documentosLinks: arrayToLines(aluno.documentosLinks),
     status: aluno.status,
     documentosPendentes: Boolean(aluno.documentosPendentes),
-    documentosLinks: linksToTextarea(aluno.documentosLinks || []),
-    condicaoSaude: aluno.condicaoSaude,
-    fichaAlerta: aluno.fichaAlerta,
     advertencias: aluno.advertencias,
     historicoOficinas: aluno.historicoOficinas,
     observacoes: aluno.observacoes
   });
   setSelectedValues(form.elements.oficinaIds, aluno.oficinaIds || []);
+  renderStudentOfficePicker();
+  renderStudentTurmaPicker(aluno.turmaIds || (aluno.turmaId ? [aluno.turmaId] : []));
   showAdminPage("alunos", true);
 }
 
@@ -1897,6 +3770,20 @@ async function deleteStudent(aluno) {
   if (!window.confirm(`Excluir o aluno ${aluno.nome}?`)) return;
   await secureRequest(`/alunos/${aluno.id}`, { method: "DELETE" });
   await refreshAll();
+}
+
+async function sendMatriculaWhatsApp(aluno) {
+  if (!aluno?.id) return;
+  try {
+    const result = await secureRequest(`/alunos/${aluno.id}/matricula-whatsapp`, { method: "POST" });
+    if (!result.whatsappUrl) {
+      showToast("Não foi possível preparar a mensagem de WhatsApp.", "error");
+      return;
+    }
+    window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
+  } catch (error) {
+    showToast(error.message || "Não há telefone disponível para envio da matrícula.", "error");
+  }
 }
 
 function renderBolsistaSummary(limit = 40) {
@@ -1967,6 +3854,7 @@ function resetBolsistaForm() {
   form.elements.status.value = "ativo";
   setCheckedValues(form, "diasSemana", []);
   setSelectedValues(form.elements.oficinaIds, []);
+  renderBolsistaOfficePicker();
   setFeedback(document.querySelector("[data-bolsista-feedback]"), "");
 }
 
@@ -1986,6 +3874,7 @@ function editBolsista(bolsista) {
   });
   setCheckedValues(form, "diasSemana", bolsista.diasSemana || []);
   setSelectedValues(form.elements.oficinaIds, bolsista.oficinaIds || []);
+  renderBolsistaOfficePicker();
   showAdminPage("bolsistas", true);
 }
 
@@ -2033,9 +3922,20 @@ function renderCalendarItem(item) {
   return node;
 }
 
+function calendarMetric(label, value, description = "") {
+  const metric = createElement("article", { className: "calendar-metric" });
+  metric.append(
+    createElement("span", { text: label }),
+    createElement("strong", { text: String(value) }),
+    createElement("small", { text: description })
+  );
+  return metric;
+}
+
 function renderCalendar() {
   const grid = document.querySelector("[data-calendar-grid]");
   const eventList = document.querySelector("[data-calendar-event-list]");
+  const summary = document.querySelector("[data-calendar-summary]");
   const monthInput = document.querySelector("[data-calendar-month]");
   if (!grid || !eventList) return;
 
@@ -2046,6 +3946,20 @@ function renderCalendar() {
   const leading = weekdayIndexMondayFirst(firstDate);
   const today = new Date().toISOString().slice(0, 10);
   const grouped = itemsByDate();
+
+  if (summary) {
+    const busyDays = Array.from(grouped.values()).filter((items) => items.length).length;
+    const nextItem = Array.from(grouped.entries())
+      .flatMap(([date, items]) => items.map((item) => ({ ...item, data: date })))
+      .filter((item) => item.data >= today)
+      .sort((a, b) => String(a.data).localeCompare(String(b.data)) || String(timeRange(a)).localeCompare(String(timeRange(b))))[0];
+    summary.replaceChildren(
+      calendarMetric("Aulas previstas", state.calendar.aulas.length, monthLabel(state.calendar.month)),
+      calendarMetric("Eventos manuais", state.calendar.eventos.length, "Reuniões, passeios e formações"),
+      calendarMetric("Dias com agenda", busyDays, `${totalDays} dias no mês`),
+      calendarMetric("Próximo item", nextItem ? String(nextItem.data).slice(8, 10) : "-", nextItem ? (nextItem.titulo || eventTypeLabels[nextItem.tipo] || "Agenda") : "Nada futuro no mês")
+    );
+  }
 
   grid.replaceChildren();
   ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"].forEach((label) => {
@@ -2074,28 +3988,37 @@ function renderCalendar() {
     grid.append(cell);
   }
 
+  const agendaItems = Array.from(grouped.entries())
+    .flatMap(([date, items]) => items.map((item) => ({ ...item, data: date })))
+    .sort((a, b) => String(a.data).localeCompare(String(b.data)) || String(timeRange(a)).localeCompare(String(timeRange(b))));
+
   eventList.replaceChildren();
-  if (!state.calendar.eventos.length) {
-    eventList.append(createElement("p", { className: "form-feedback", text: `Nenhum evento manual em ${monthLabel(state.calendar.month)}.` }));
+  if (!agendaItems.length) {
+    eventList.append(createElement("p", { className: "form-feedback", text: `Nenhuma aula ou evento em ${monthLabel(state.calendar.month)}.` }));
     return;
   }
 
-  state.calendar.eventos.forEach((evento) => {
-    const item = createElement("article", { className: "content-item" });
+  agendaItems.forEach((evento) => {
+    const item = createElement("article", { className: `content-item calendar-agenda-item is-${evento.kind === "aula" ? "class" : evento.tipo || "event"}` });
     const main = createElement("div", { className: "content-item-main" });
+    const title = evento.kind === "aula" ? evento.titulo : `${eventTypeLabels[evento.tipo] || evento.tipo}: ${evento.titulo}`;
     main.append(
-      createElement("strong", { text: evento.titulo }),
-      createElement("span", { text: `${eventTypeLabels[evento.tipo] || evento.tipo} - ${evento.data} ${timeRange(evento)}`.trim() }),
-      createElement("span", { text: [evento.local, evento.oficina].filter(Boolean).join(" - ") || "Sem local/oficina" }),
-      createElement("span", { text: (evento.bolsistas || []).length ? `Bolsistas: ${evento.bolsistas.join(", ")}` : "Sem bolsista vinculado" }),
+      createElement("strong", { text: title }),
+      createElement("span", { text: `${evento.data} ${timeRange(evento)}`.trim() }),
+      createElement("span", { text: [evento.local, evento.oficina, evento.periodo].filter(Boolean).join(" - ") || "Sem local/oficina" }),
+      createElement("span", { text: (evento.bolsistas || []).length ? `Bolsistas: ${(evento.bolsistas || []).map((bolsista) => bolsista.nome || bolsista).join(", ")}` : "Sem bolsista vinculado" }),
       createElement("span", { text: evento.descricao || "" })
     );
     const actions = createElement("div", { className: "content-actions" });
-    const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
-    const del = createElement("button", { className: "icon-action danger", text: "Excluir", attrs: { type: "button" } });
-    edit.addEventListener("click", () => editCalendarEvent(evento));
-    del.addEventListener("click", () => deleteCalendarEvent(evento));
-    actions.append(edit, del);
+    if (evento.kind === "evento") {
+      const edit = createElement("button", { className: "icon-action", text: "Editar", attrs: { type: "button" } });
+      const del = createElement("button", { className: "icon-action danger", text: "Excluir", attrs: { type: "button" } });
+      edit.addEventListener("click", () => editCalendarEvent(evento));
+      del.addEventListener("click", () => deleteCalendarEvent(evento));
+      actions.append(edit, del);
+    } else {
+      actions.append(createElement("span", { className: "status-badge", text: "Aula prevista" }));
+    }
     item.append(main, actions);
     eventList.append(item);
   });
@@ -2109,6 +4032,7 @@ function resetCalendarEventForm() {
   form.elements.data.value = `${state.calendar.month}-01`;
   setSelectedValues(form.elements.bolsistaIds, []);
   setFeedback(document.querySelector("[data-calendar-feedback]"), "");
+  document.querySelector(".calendar-composer")?.setAttribute("open", "");
 }
 
 function editCalendarEvent(evento) {
@@ -2125,6 +4049,7 @@ function editCalendarEvent(evento) {
     descricao: evento.descricao
   });
   setSelectedValues(form.elements.bolsistaIds, evento.bolsistaIds || []);
+  document.querySelector(".calendar-composer")?.setAttribute("open", "");
   showAdminPage("calendario", true);
 }
 
@@ -2132,6 +4057,28 @@ async function deleteCalendarEvent(evento) {
   if (!window.confirm(`Excluir o evento ${evento.titulo}?`)) return;
   await secureRequest(`/admin/calendario/eventos/${evento.id}`, { method: "DELETE" });
   await loadCalendar();
+}
+
+function renderAttendanceSummary() {
+  const summary = document.querySelector("[data-attendance-summary]");
+  if (!summary) return;
+  const rows = state.attendanceRows || [];
+  const counts = rows.reduce((acc, aluno) => {
+    const status = document.querySelector(`[data-presence-status="${aluno.id}"]`)?.value || aluno.presenca || "presente";
+    acc.total += 1;
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, { total: 0, presente: 0, ausente: 0, justificado: 0 });
+  if (!counts.total) {
+    summary.replaceChildren(createElement("p", { className: "form-feedback", text: "Carregue uma turma e data para iniciar a chamada." }));
+    return;
+  }
+  summary.replaceChildren(
+    reportMetric("Alunos na turma", counts.total, "Lista carregada"),
+    reportMetric("Presentes", counts.presente, "Marcados para hoje"),
+    reportMetric("Ausentes", counts.ausente, "Faltas sem justificativa"),
+    reportMetric("Justificados", counts.justificado, "Faltas justificadas")
+  );
 }
 
 function renderAttendanceRows(payload) {
@@ -2145,9 +4092,16 @@ function renderAttendanceRows(payload) {
   if (!state.attendanceRows.length) {
     list.append(createElement("p", {
       className: "form-feedback",
-      text: "Nenhum aluno ativo cadastrado para esta oficina."
+      text: "Nenhum aluno ativo cadastrado para esta turma."
     }));
+    renderAttendanceSummary();
     return;
+  }
+  if (payload.fallbackTurma) {
+    list.append(createElement("p", {
+      className: "form-feedback",
+      text: "Nenhum aluno tinha esta turma vinculada diretamente; a lista completa da oficina foi carregada para conferência."
+    }));
   }
 
   state.attendanceRows.forEach((aluno) => {
@@ -2156,7 +4110,7 @@ function renderAttendanceRows(payload) {
     const header = createElement("header");
     header.append(
       createElement("strong", { text: aluno.nome }),
-      createElement("span", { text: aluno.responsavel ? `Responsável: ${aluno.responsavel}` : aluno.telefone || "Sem telefone" })
+      createElement("span", { text: [aluno.matricula, maskCpfValue(aluno.cpf || ""), aluno.responsavel ? `Responsável: ${aluno.responsavel}` : aluno.telefone || "Sem telefone"].filter(Boolean).join(" · ") })
     );
 
     const controls = createElement("div", { className: "attendance-status" });
@@ -2170,6 +4124,7 @@ function renderAttendanceRows(payload) {
       }));
     });
     status.value = aluno.presenca || "presente";
+    status.addEventListener("change", renderAttendanceSummary);
     statusLabel.append(status);
 
     const obsLabel = createElement("label");
@@ -2187,6 +4142,7 @@ function renderAttendanceRows(payload) {
     row.append(header, controls);
     list.append(row);
   });
+  renderAttendanceSummary();
 }
 
 function renderAttendanceHistory(chamadas) {
@@ -2203,7 +4159,7 @@ function renderAttendanceHistory(chamadas) {
     const item = createElement("article", { className: "content-item" });
     const main = createElement("div", { className: "content-item-main" });
     main.append(
-      createElement("strong", { text: `${chamada.oficina || "Oficina"} · ${chamada.data}` }),
+      createElement("strong", { text: `${chamada.turmaLabel || [chamada.oficina || "Oficina", chamada.turma].filter(Boolean).join(" · ")} · ${chamada.data}` }),
       createElement("span", { text: `Presentes: ${chamada.presentes} · Ausentes: ${chamada.ausentes} · Justificados: ${chamada.justificados}` }),
       createElement("span", { text: chamada.observacoes || "" })
     );
@@ -2213,17 +4169,21 @@ function renderAttendanceHistory(chamadas) {
 }
 
 async function loadAttendance() {
-  const officeId = document.querySelector("[data-attendance-office]")?.value;
+  const selected = parseAttendanceClassValue(document.querySelector("[data-attendance-office]")?.value || "");
+  const officeId = selected.oficinaId;
   const date = document.querySelector("[data-attendance-date]")?.value;
   const feedback = document.querySelector("[data-attendance-feedback]");
   if (!officeId || !date) {
-    setFeedback(feedback, "Selecione oficina e data para carregar a chamada.", "error");
+    setFeedback(feedback, "Selecione turma e data para carregar a chamada.", "error");
     return;
   }
 
-  const data = await apiRequest(`/chamadas?oficinaId=${encodeURIComponent(officeId)}&data=${encodeURIComponent(date)}`);
+  const params = new URLSearchParams({ oficinaId: officeId, data: date });
+  if (selected.turmaId) params.set("turmaId", selected.turmaId);
+  if (selected.turma) params.set("turma", selected.turma);
+  const data = await apiRequest(`/chamadas?${params.toString()}`);
   renderAttendanceRows(data);
-  setFeedback(feedback, "Chamada carregada.", "success");
+  setFeedback(feedback, data.chamada ? "Chamada já existente carregada para edição." : "Lista da turma carregada.", "success");
 }
 
 function openEdit(item) {
@@ -2244,7 +4204,7 @@ function validateInscricao(data) {
   if (!data.nome || data.nome.trim().length < 3) return "Informe o nome completo.";
   if (data.cpf && !isValidCpf(data.cpf)) return "Informe um CPF válido.";
   const idade = Number(data.idade);
-  if (!Number.isInteger(idade) || idade < 0 || idade > 120) return "Informe uma idade válida.";
+  if (!Number.isInteger(idade) || idade < 10 || idade > 99) return "Informe uma idade válida.";
   if (!/^[0-9()+\-\s]{10,20}$/.test(data.telefone || "")) return "Informe um telefone válido.";
   if (!data.oficinas?.length) return "Selecione pelo menos uma oficina.";
   if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return "Informe um e-mail válido.";
@@ -2341,7 +4301,7 @@ function setupEvents() {
       });
       state.admin = result.admin;
       await getCsrfToken(true);
-      document.querySelector("[data-admin-name]").textContent = `${result.admin.name} - ${result.admin.username || result.admin.role}`;
+      document.querySelector("[data-admin-name]").textContent = `${result.admin.name} - ${roleLabels[result.admin.role] || result.admin.role}`;
       showAdmin();
       try {
         await loadAdminData();
@@ -2362,13 +4322,181 @@ function setupEvents() {
   });
 
   document.querySelector("[data-refresh]")?.addEventListener("click", refreshAll);
+  document.querySelector("[data-global-search]")?.addEventListener("input", debounce((event) => {
+    renderGlobalSearch(event.target.value);
+  }, 80));
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".global-search")) {
+      const results = document.querySelector("[data-global-search-results]");
+      if (results) results.hidden = true;
+    }
+  });
+  document.querySelectorAll("[data-refresh-support]").forEach((button) => {
+    button.addEventListener("click", loadSupport);
+  });
+  document.querySelector("[data-refresh-charts]")?.addEventListener("click", loadGraficos);
+  document.querySelector("[data-chart-period-filter]")?.addEventListener("change", (event) => {
+    state.chartPeriod = event.target.value || "geral";
+    renderGraficos();
+    loadGraficos();
+  });
+  document.querySelector("[data-chart-month-filter]")?.addEventListener("change", (event) => {
+    state.chartMonth = event.target.value;
+    loadGraficos();
+  });
+  document.querySelector("[data-chart-week-filter]")?.addEventListener("change", (event) => {
+    state.chartWeek = event.target.value;
+    loadGraficos();
+  });
+  document.querySelector("[data-chart-sort-filter]")?.addEventListener("change", (event) => {
+    state.chartSort = event.target.value || "inscritos_desc";
+    loadGraficos();
+  });
+  document.querySelector("[data-refresh-feedbacks]")?.addEventListener("click", loadWorkshopFeedbacks);
+  document.querySelector("[data-refresh-first-access]")?.addEventListener("click", loadFirstAccess);
+  document.querySelector("[data-manual-search]")?.addEventListener("input", debounce((event) => {
+    state.manualSearch = event.target.value.trim();
+    renderManual();
+  }, 100));
+  document.querySelector("[data-first-access-filters]")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = getFormData(event.currentTarget);
+    state.firstAccessFilters = {
+      oficinaId: data.oficinaId || "",
+      turma: String(data.turma || "").trim(),
+      statusPrimeiroAcesso: data.statusPrimeiroAcesso || "sem_primeiro_acesso",
+      statusOrientacao: data.statusOrientacao || "todos",
+      search: String(data.search || "").trim(),
+      page: 1,
+      limit: Number(data.limit || 20)
+    };
+    loadFirstAccess().catch((error) => showToast(error.message, "error"));
+  });
+  document.querySelector("[data-first-access-pdf]")?.addEventListener("click", () => {
+    const form = document.querySelector("[data-first-access-filters]");
+    if (form) {
+      const data = getFormData(form);
+      state.firstAccessFilters.oficinaId = data.oficinaId || "";
+      state.firstAccessFilters.turma = String(data.turma || "").trim();
+      state.firstAccessFilters.statusPrimeiroAcesso = data.statusPrimeiroAcesso || "sem_primeiro_acesso";
+      state.firstAccessFilters.statusOrientacao = data.statusOrientacao || "todos";
+    }
+    downloadFirstAccessPdf().catch((error) => showToast(error.message, "error"));
+  });
   document.querySelector("[data-render-automation]")?.addEventListener("click", renderAutomation);
   document.querySelector("[data-generate-ai-summary]")?.addEventListener("click", generateAdminAiSummary);
 
+  document.querySelector("[data-support-target-type]")?.addEventListener("change", (event) => {
+    const target = event.target.value;
+    const officeField = document.querySelector("[data-support-office-field]");
+    const studentField = document.querySelector("[data-support-student-field]");
+    if (officeField) officeField.hidden = target !== "oficina";
+    if (studentField) studentField.hidden = target !== "aluno";
+  });
+
+  document.querySelector("[data-support-post-form]")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const feedback = document.querySelector("[data-support-post-feedback]");
+    const data = getFormData(form);
+    if (data.targetType === "oficina" && !data.oficinaId) {
+      setFeedback(feedback, "Selecione a turma/oficina de destino.", "error");
+      return;
+    }
+    if (data.targetType === "aluno" && !data.alunoId) {
+      setFeedback(feedback, "Selecione o aluno de destino.", "error");
+      return;
+    }
+    if (data.targetType !== "oficina") data.oficinaId = "";
+    if (data.targetType !== "aluno") data.alunoId = "";
+    const id = String(data.id || "").trim();
+    delete data.id;
+    try {
+      await secureRequest(id ? `/admin/suporte/murais/${id}` : "/admin/suporte/murais", {
+        method: id ? "PUT" : "POST",
+        body: data
+      });
+      resetSupportPostForm();
+      setFeedback(feedback, id ? "Mensagem atualizada." : "Mensagem publicada.", "success");
+      await loadSupport();
+    } catch (error) {
+      setFeedback(feedback, error.message, "error");
+    }
+  });
+
+  document.querySelector("[data-support-ai-form]")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const output = document.querySelector("[data-support-ai-output]");
+    output.replaceChildren(createElement("p", { className: "form-feedback", text: "Gerando texto..." }));
+    try {
+      const result = await secureRequest("/ai/admin/message-assist", {
+        method: "POST",
+        body: getFormData(form)
+      });
+      output.replaceChildren();
+      output.append(
+        createElement("strong", { text: result.titulo || "Mensagem sugerida" }),
+        createElement("p", { text: result.mensagem || "" }),
+        createElement("button", { className: "button button-secondary", text: "Usar no formulário", attrs: { type: "button", "data-use-support-ai": "" } })
+      );
+      output.dataset.title = result.titulo || "";
+      output.dataset.message = result.mensagem || "";
+    } catch (error) {
+      output.replaceChildren(createElement("p", { className: "form-feedback is-error", text: error.message }));
+    }
+  });
+
+  document.addEventListener("click", async (event) => {
+    const editPost = event.target.closest("[data-edit-support-post]");
+    if (editPost) {
+      const post = state.supportPosts.find((item) => item.id === editPost.dataset.editSupportPost);
+      if (post) editSupportPost(post);
+    }
+    const removePost = event.target.closest("[data-remove-support-post]");
+    if (removePost) {
+      const post = state.supportPosts.find((item) => item.id === removePost.dataset.removeSupportPost);
+      if (post) await deleteSupportPost(post);
+    }
+    const useAi = event.target.closest("[data-use-support-ai]");
+    if (useAi) {
+      const output = document.querySelector("[data-support-ai-output]");
+      const form = document.querySelector("[data-support-post-form]");
+      if (form && output) {
+        form.elements.titulo.value = output.dataset.title || "";
+        form.elements.mensagem.value = output.dataset.message || "";
+        showAdminPage("mural", true);
+      }
+    }
+  });
+
+  document.addEventListener("submit", async (event) => {
+    const responseForm = event.target.closest("[data-support-response-form]");
+    if (!responseForm) return;
+    event.preventDefault();
+    const data = getFormData(responseForm);
+    try {
+      await secureRequest(`/admin/suporte/tickets/${responseForm.dataset.supportResponseForm}/responder`, {
+        method: "POST",
+        body: data
+      });
+      await loadSupport();
+    } catch (error) {
+      showToast(error.message, "error");
+    }
+  });
+
   document.querySelector("[data-reset-office-form]")?.addEventListener("click", resetOfficeForm);
+  document.querySelector("[data-open-office-form]")?.addEventListener("click", () => {
+    resetOfficeForm();
+    showAdminPage("oficinas", true);
+  });
+  document.querySelector("[data-reset-turma-form]")?.addEventListener("click", resetTurmaForm);
+  document.querySelector("[data-cancel-turma-form]")?.addEventListener("click", resetTurmaForm);
   document.querySelector("[data-reset-gallery-form]")?.addEventListener("click", resetGalleryForm);
   document.querySelector("[data-reset-collaborator-form]")?.addEventListener("click", resetCollaboratorForm);
   document.querySelector("[data-reset-testimonial-form]")?.addEventListener("click", resetTestimonialForm);
+  document.querySelector("[data-reset-faq-form]")?.addEventListener("click", resetFaqForm);
   document.querySelector("[data-reset-student-form]")?.addEventListener("click", resetStudentForm);
   document.querySelector("[data-reset-bolsista-form]")?.addEventListener("click", resetBolsistaForm);
   document.querySelector("[data-reset-calendar-event-form]")?.addEventListener("click", resetCalendarEventForm);
@@ -2392,12 +4520,72 @@ function setupEvents() {
 
   document.querySelector("[data-student-search]")?.addEventListener("input", debounce((event) => {
     state.studentSearch = event.target.value.trim();
+    state.studentPagination.page = 1;
     loadAlunos();
-  }, 180));
+  }, 400));
 
   document.querySelector("[data-student-office-filter]")?.addEventListener("change", (event) => {
     state.studentOffice = event.target.value;
+    state.studentPagination.page = 1;
     loadAlunos();
+  });
+
+  document.querySelector("[data-student-status-filter]")?.addEventListener("change", (event) => {
+    state.studentStatus = event.target.value;
+    state.studentPagination.page = 1;
+    loadAlunos();
+  });
+
+  document.querySelector("[data-student-sort]")?.addEventListener("change", (event) => {
+    state.studentSort = event.target.value || "nome";
+    state.studentPagination.page = 1;
+    loadAlunos();
+  });
+
+  document.querySelector("[data-student-limit]")?.addEventListener("change", (event) => {
+    state.studentPagination.limit = Number(event.target.value || 20);
+    state.studentPagination.page = 1;
+    loadAlunos();
+  });
+
+  document.querySelector("[data-student-office-select]")?.addEventListener("change", renderStudentOfficePicker);
+  document.querySelector("[data-student-form] input[name='idade']")?.addEventListener("input", debounce(() => renderStudentTurmaPicker(), 120));
+  document.querySelector("[data-student-form] input[name='dataNascimento']")?.addEventListener("change", () => renderStudentTurmaPicker());
+  document.querySelector("[data-refresh-students]")?.addEventListener("click", () => loadAlunos());
+
+  document.querySelector("[data-toggle-student-imports]")?.addEventListener("click", (event) => {
+    const button = event.currentTarget;
+    const area = document.querySelector("[data-student-import-area]");
+    if (!area) return;
+    const willOpen = area.hidden;
+    area.hidden = !willOpen;
+    button.setAttribute("aria-expanded", String(willOpen));
+    button.textContent = willOpen ? "Ocultar importações" : "Mostrar importações";
+  });
+
+  document.querySelector("[data-class-search]")?.addEventListener("input", debounce((event) => {
+    state.classSearch = event.target.value.trim();
+    renderClassList();
+  }, 180));
+
+  document.querySelector("[data-class-office-filter]")?.addEventListener("change", (event) => {
+    state.classOffice = event.target.value;
+    renderClassList();
+  });
+
+  document.querySelector("[data-class-period-filter]")?.addEventListener("change", (event) => {
+    state.classPeriod = event.target.value;
+    renderClassList();
+  });
+
+  document.querySelector("[data-class-status-filter]")?.addEventListener("change", (event) => {
+    state.classStatus = event.target.value;
+    renderClassList();
+  });
+
+  document.querySelector("[data-class-bolsista-filter]")?.addEventListener("change", (event) => {
+    state.classBolsista = event.target.value;
+    renderClassList();
   });
 
   document.querySelector("[data-student-import-form]")?.addEventListener("submit", async (event) => {
@@ -2431,6 +4619,50 @@ function setupEvents() {
     }
   });
 
+  async function runLegacyImport(preview = false) {
+    const form = document.querySelector("[data-student-legacy-import-form]");
+    const feedback = document.querySelector("[data-student-legacy-import-feedback]");
+    if (!form) return;
+    const file = form.elements.planilha?.files?.[0];
+    if (!file) {
+      setFeedback(feedback, "Selecione a planilha CSV ou XLSX de inscritos.", "error");
+      return;
+    }
+    const submit = form.querySelector("button[type='submit']");
+    const previewButton = form.querySelector("[data-student-legacy-preview]");
+    submit.disabled = true;
+    previewButton.disabled = true;
+    const originalSubmitText = submit.textContent;
+    const originalPreviewText = previewButton.textContent;
+    submit.textContent = preview ? "Lendo..." : "Importando...";
+    previewButton.textContent = preview ? "Lendo..." : "Aguarde...";
+    try {
+      const result = await secureRequest(`/alunos/importar-legado?preview=${preview ? "true" : "false"}`, {
+        method: "POST",
+        body: new FormData(form)
+      });
+      renderLegacyImportSummary(result);
+      setFeedback(feedback, result.message, result.errorCount ? "error" : "success");
+      if (!preview) {
+        form.reset();
+        await refreshAll();
+      }
+    } catch (error) {
+      setFeedback(feedback, error.message, "error");
+    } finally {
+      submit.disabled = false;
+      previewButton.disabled = false;
+      submit.textContent = originalSubmitText;
+      previewButton.textContent = originalPreviewText;
+    }
+  }
+
+  document.querySelector("[data-student-legacy-preview]")?.addEventListener("click", () => runLegacyImport(true));
+  document.querySelector("[data-student-legacy-import-form]")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    runLegacyImport(false);
+  });
+
   document.querySelector("[data-bolsista-search]")?.addEventListener("input", debounce((event) => {
     state.bolsistaSearch = event.target.value.trim();
     loadBolsistas();
@@ -2449,6 +4681,31 @@ function setupEvents() {
   document.querySelector("[data-log-action]")?.addEventListener("change", (event) => {
     state.logAction = event.target.value;
     loadAuditLogs();
+  });
+
+  document.querySelector("[data-log-entity]")?.addEventListener("input", debounce((event) => {
+    state.logEntity = event.target.value.trim();
+    loadAuditLogs();
+  }, 180));
+
+  document.querySelector("[data-log-start]")?.addEventListener("change", (event) => {
+    state.logStart = event.target.value;
+    loadAuditLogs();
+  });
+
+  document.querySelector("[data-log-end]")?.addEventListener("change", (event) => {
+    state.logEnd = event.target.value;
+    loadAuditLogs();
+  });
+
+  document.querySelector("[data-feedback-office-filter]")?.addEventListener("change", (event) => {
+    state.feedbackOffice = event.target.value;
+    loadWorkshopFeedbacks();
+  });
+
+  document.querySelector("[data-feedback-rating-filter]")?.addEventListener("change", (event) => {
+    state.feedbackRating = event.target.value;
+    loadWorkshopFeedbacks();
   });
 
   document.querySelector("[data-refresh-logs]")?.addEventListener("click", loadAuditLogs);
@@ -2485,10 +4742,11 @@ function setupEvents() {
 
   document.querySelector("[data-save-attendance]")?.addEventListener("click", async () => {
     const feedback = document.querySelector("[data-attendance-feedback]");
-    const officeId = document.querySelector("[data-attendance-office]")?.value;
+    const selected = parseAttendanceClassValue(document.querySelector("[data-attendance-office]")?.value || "");
+    const officeId = selected.oficinaId;
     const date = document.querySelector("[data-attendance-date]")?.value;
     if (!officeId || !date) {
-      setFeedback(feedback, "Selecione oficina e data antes de salvar.", "error");
+      setFeedback(feedback, "Selecione turma e data antes de salvar.", "error");
       return;
     }
     const presencas = state.attendanceRows.map((aluno) => ({
@@ -2501,12 +4759,14 @@ function setupEvents() {
         method: "POST",
         body: {
           oficinaId: officeId,
+          turmaId: selected.turmaId,
+          turma: selected.turma,
           data: date,
           observacoes: document.querySelector("[data-attendance-notes]")?.value || "",
           presencas
         }
       });
-      setFeedback(feedback, "Chamada salva com sucesso.", "success");
+      setFeedback(feedback, "Chamada salva com sucesso. Se já existia chamada para esta turma/data, ela foi atualizada.", "success");
       await loadAttendanceHistory();
     } catch (error) {
       setFeedback(feedback, error.message, "error");
@@ -2539,7 +4799,7 @@ function setupEvents() {
     const id = data.id;
     delete data.id;
     if (!id && !data.registrationCode) {
-      setFeedback(feedback, "Informe um codigo de 6 digitos para o novo ADM.", "error");
+      setFeedback(feedback, "Informe um código de 6 dígitos para o novo ADM.", "error");
       return;
     }
     if (id && !data.registrationCode) delete data.registrationCode;
@@ -2610,6 +4870,7 @@ function setupEvents() {
     const data = getFormData(form);
     data.ativo = activeFromForm(form);
     data.diasSemana = checkedValues(form, "diasSemana");
+    data.turmas = linesToArray(data.turmas);
     data.imagemUrl = data.imagemUrl || "/img/oficinas.png";
     data.capacidade = Number(data.capacidade || 0);
     if (!Number.isInteger(data.capacidade) || data.capacidade < 1) {
@@ -2627,6 +4888,36 @@ function setupEvents() {
       resetOfficeForm();
       await loadManagedContent();
       await refreshAll();
+    } catch (error) {
+      setFeedback(feedback, error.message, "error");
+    }
+  });
+
+  document.querySelector("[data-turma-form]")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const feedback = document.querySelector("[data-turma-feedback]");
+    const data = getFormData(form);
+    data.diasSemana = selectedTurmaDays();
+    data.ativa = form.elements.ativa.checked;
+    data.idadeMinima = Number(data.idadeMinima);
+    data.idadeMaxima = Number(data.idadeMaxima);
+    data.vagasTotal = Number(data.vagasTotal);
+    if (!data.diasSemana.length) {
+      setFeedback(feedback, "Selecione pelo menos um dia da semana.", "error");
+      return;
+    }
+    const id = data.id;
+    delete data.id;
+    try {
+      await secureRequest(id ? `/admin/turmas/${id}` : "/admin/turmas", {
+        method: id ? "PUT" : "POST",
+        body: data
+      });
+      setFeedback(feedback, "Turma salva com sucesso.", "success");
+      resetTurmaForm();
+      await loadManagedContent();
+      await loadAttendanceClasses();
     } catch (error) {
       setFeedback(feedback, error.message, "error");
     }
@@ -2723,6 +5014,35 @@ function setupEvents() {
     }
   });
 
+  document.querySelector("[data-faq-form]")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const feedback = document.querySelector("[data-faq-feedback]");
+    const data = getFormData(form);
+    const id = data.id;
+
+    data.ativo = activeFromForm(form);
+    data.ordem = Number(data.ordem || 0);
+    delete data.id;
+
+    if (!String(data.pergunta || "").trim() || !String(data.resposta || "").trim()) {
+      setFeedback(feedback, "Informe a pergunta e a resposta do FAQ.", "error");
+      return;
+    }
+
+    try {
+      await secureRequest(id ? `/admin/faq/${id}` : "/admin/faq", {
+        method: id ? "PUT" : "POST",
+        body: data
+      });
+      resetFaqForm();
+      setFeedback(feedback, "FAQ salvo com sucesso.", "success");
+      await loadManagedContent();
+    } catch (error) {
+      setFeedback(feedback, error.message, "error");
+    }
+  });
+
   document.querySelector("[data-student-form]")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -2730,8 +5050,27 @@ function setupEvents() {
     const data = getFormData(form);
     data.oficinaIds = selectedValues(form.elements.oficinaIds);
     data.oficinaId = data.oficinaIds[0] || "";
+    const selectedTurmas = selectedStudentTurmas();
+    data.turmaIds = selectedTurmas.map((turma) => turma.id);
+    data.turmaId = data.turmaIds[0] || "";
+    data.turmas = selectedTurmas.map((turma) => turma.nome);
+    data.documentosLinks = linesToArray(data.documentosLinks);
+    data.possuiDeficiencia = data.possuiDeficiencia === "true";
     data.documentosPendentes = Boolean(form.elements.documentosPendentes?.checked);
-    data.documentosLinks = textareaToLinks(data.documentosLinks);
+    if (!data.oficinaIds.length) {
+      document.querySelector("[data-student-office-picker]")?.classList.add("is-invalid");
+      setFeedback(feedback, "Selecione pelo menos uma oficina.", "error");
+      return;
+    }
+    const age = getStudentFormAge();
+    const officesWithAvailableTurmas = data.oficinaIds.filter((officeId) => state.turmas.some((turma) => turma.oficinaId === officeId && turma.ativa !== false && turmaMatchesStudentAge(turma, age)));
+    const selectedOffices = new Set(selectedTurmas.map((turma) => turma.oficinaId));
+    const missingTurmaOffice = officesWithAvailableTurmas.find((officeId) => !selectedOffices.has(officeId));
+    if (missingTurmaOffice) {
+      renderStudentTurmaPicker(data.turmaIds);
+      setFeedback(feedback, "Selecione uma turma para cada oficina com turma disponível.", "error");
+      return;
+    }
     if (data.cpf && !isValidCpf(data.cpf)) {
       setFeedback(feedback, "Informe um CPF válido.", "error");
       return;
@@ -2795,7 +5134,7 @@ function setupEvents() {
     data.bolsistaIds = selectedValues(form.elements.bolsistaIds);
     data.oficinaId = data.oficinaId || "";
     if (!data.titulo || !data.data) {
-      setFeedback(feedback, "Informe titulo e data do evento.", "error");
+      setFeedback(feedback, "Informe título e data do evento.", "error");
       return;
     }
     const id = data.id;
@@ -2819,6 +5158,7 @@ function init() {
   const cleanedCredentialUrl = sanitizeCredentialUrl();
   applyLogoPalette();
   setupTheme();
+  setupAdminNavIcons();
   setupAdminPages();
   populateSelects();
   setupPhoneMasks();
@@ -2834,7 +5174,7 @@ function init() {
   checkSession();
   const cleanedKeys = sessionStorage.getItem("cj-admin-url-cleaned");
   if (cleanedCredentialUrl || cleanedKeys) {
-    setFeedback(loginFeedback, "Por seguranca, usuario e codigo nao podem ficar na URL. Digite o acesso diretamente neste formulario.", "error");
+    setFeedback(loginFeedback, "Por segurança, usuário e código não podem ficar na URL. Digite o acesso diretamente neste formulário.", "error");
     sessionStorage.removeItem("cj-admin-url-cleaned");
   }
 }

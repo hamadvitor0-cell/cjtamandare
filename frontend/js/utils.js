@@ -1,4 +1,4 @@
-export function createElement(tag, options = {}) {
+export function createElement(tag, options = {}, children = []) {
   const node = document.createElement(tag);
   if (options.className) node.className = options.className;
   if (options.text !== undefined) node.textContent = options.text;
@@ -7,6 +7,8 @@ export function createElement(tag, options = {}) {
       if (value !== undefined && value !== null) node.setAttribute(key, value);
     });
   }
+  const list = Array.isArray(children) ? children : [children];
+  list.filter(Boolean).forEach((child) => node.append(child));
   return node;
 }
 

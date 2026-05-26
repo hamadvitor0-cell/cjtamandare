@@ -25,20 +25,20 @@ async function update(req, res) {
   }
 
   const item = await Galeria.update(req.validated.params.id, req.validated.body, req.file);
-  if (!item) return res.status(404).json({ message: "Imagem nao encontrada." });
+  if (!item) return res.status(404).json({ message: "Imagem não encontrada." });
   return res.json({ message: "Imagem atualizada com sucesso.", item });
 }
 
 async function remove(req, res) {
   const removed = await Galeria.remove(req.validated.params.id);
-  if (!removed) return res.status(404).json({ message: "Imagem nao encontrada." });
+  if (!removed) return res.status(404).json({ message: "Imagem não encontrada." });
   return res.status(204).send();
 }
 
 async function image(req, res) {
   const file = await Galeria.findImage(req.validated.params.id);
   if (!file?.fileContent) {
-    return res.status(404).json({ message: "Imagem nao encontrada." });
+    return res.status(404).json({ message: "Imagem não encontrada." });
   }
 
   res.setHeader("Content-Type", file.mimeType);

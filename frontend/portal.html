@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Portal do Aluno | Centro da Juventude Almirante Tamandaré</title>
+    <meta name="description" content="Portal do aluno do Centro da Juventude para turmas, frequência, murais, notificações e suporte.">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="theme-color" content="#0b4f91">
+    <link rel="icon" href="/img/logo.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css?v=20260525-perf1">
+    <script src="/js/theme.js?v=20260513-8" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Ir para o portal</a>
+
+    <header class="site-header" data-header>
+      <nav class="nav-shell" aria-label="Navegação principal">
+        <a class="brand" href="/" aria-label="Centro da Juventude Almirante Tamandaré">
+          <img src="/img/logo.jpg" alt="Logo oficial do Centro da Juventude Almirante Tamandaré" width="54" height="54" data-logo>
+          <span>
+            <strong>Centro da Juventude</strong>
+            <small>Portal do aluno</small>
+          </span>
+        </a>
+
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="menu-principal" data-menu-toggle>
+          <span class="sr-only">Abrir menu</span>
+          <span aria-hidden="true"></span>
+        </button>
+
+        <div class="nav-links" id="menu-principal" data-menu>
+          <a href="/">Site</a>
+          <a href="#portal-aluno">Entrar</a>
+          <a href="#duvidas">FAQ</a>
+          <a href="/admin.html" class="nav-admin">ADM</a>
+          <button class="theme-toggle" type="button" aria-label="Alternar modo escuro" data-theme-toggle>
+            <span aria-hidden="true">●</span>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main id="conteudo">
+      <section class="section-block student-portal portal-page-hero" id="portal-aluno" aria-labelledby="portal-aluno-titulo">
+        <div class="container portal-layout">
+          <div class="section-heading reveal">
+            <h1 id="portal-aluno-titulo">Portal do aluno e suporte</h1>
+            <p>Acesse com CPF e matrícula para ver turmas, frequência, próximas aulas, murais, notificações e histórico de chamados.</p>
+            <div class="notice-box">
+              <strong>Antes de abrir um ticket</strong>
+              <span>Leia o FAQ desta página. O chamado só deve ser aberto quando a dúvida não estiver respondida. Todo ticket é excluído automaticamente após 30 dias, incluindo o histórico.</span>
+            </div>
+          </div>
+          <form class="portal-login reveal" data-student-portal-login novalidate>
+            <label>
+              <span>CPF do aluno cadastrado</span>
+              <input name="cpf" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" data-cpf-mask required>
+            </label>
+            <label>
+              <span>Matrícula do aluno</span>
+              <input name="matricula" type="text" autocomplete="off" placeholder="CJ-2026-0001" maxlength="18" required>
+            </label>
+            <button class="button button-primary" type="submit">Entrar no portal</button>
+            <p class="form-feedback" role="status" aria-live="polite" data-student-portal-feedback></p>
+          </form>
+        </div>
+        <div class="container portal-dashboard" data-student-portal-dashboard hidden></div>
+      </section>
+
+      <section class="section-block faq portal-page-faq" id="duvidas" aria-labelledby="duvidas-titulo">
+        <div class="container section-heading reveal">
+          <h2 id="duvidas-titulo">FAQ antes do suporte</h2>
+          <p>Confira as dúvidas frequentes sobre matrícula, documentos, vagas, portal e atendimento antes de abrir um ticket.</p>
+        </div>
+        <div class="container faq-grid reveal" data-faq-grid aria-live="polite">
+          <p class="form-feedback">Carregando dúvidas frequentes...</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <a class="brand footer-brand" href="/">
+          <img src="/img/logo.jpg" alt="Logo oficial do Centro da Juventude" width="54" height="54">
+          <span>
+            <strong>Centro da Juventude</strong>
+            <small>Almirante Tamandaré</small>
+          </span>
+        </a>
+        <nav aria-label="Links rápidos">
+          <a href="/">Site principal</a>
+          <a href="#portal-aluno">Portal</a>
+          <a href="#duvidas">FAQ</a>
+          <a href="/admin.html">ADM</a>
+        </nav>
+        <developer-credit></developer-credit>
+        <p>© <span data-year></span> Centro da Juventude Almirante Tamandaré. Portal institucional seguro.</p>
+      </div>
+    </footer>
+
+    <div class="toast-region" aria-live="polite" aria-atomic="true" data-toast-region></div>
+
+    <script src="/js/runtime-config.js?v=20260508-5" defer></script>
+    <script src="/js/footer-credit.js?v=20260524-2" defer></script>
+    <script type="module" src="/js/main.js?v=20260525-perf1"></script>
+    <script src="/js/vlibras.js?v=20260513-8" defer></script>
+  </body>
+</html>

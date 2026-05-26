@@ -4,18 +4,17 @@ const Admin = require("../models/admin.model");
 const Audit = require("../models/audit.model");
 const config = require("../config/env");
 const logger = require("../utils/logger");
+const { credentialFingerprint } = require("../utils/security-key");
 
 const tokenMaxAgeMs = 2 * 60 * 60 * 1000;
+const studentTokenMaxAgeMs = 2 * 60 * 60 * 1000;
 const dummyRegistrationCodeHash = bcrypt.hashSync("000000", 12);
 
 function signToken(admin) {
   return jwt.sign(
     {
       sub: admin.id,
-      email: admin.email,
-      role: admin.role,
-      name: admin.name,
-      username: admin.username
+      ver: Number(admin.token_version || 0)
     },
     config.jwtSecret,
     {
@@ -33,6 +32,35 @@ function verifyToken(token) {
   });
 }
 
+function signStudentToken(student) {
+  return jwt.sign(
+    {
+      sub: student.id,
+      role: "student",
+      ver: Number(student.tokenVersion || student.token_version || 0)
+    },
+    config.jwtSecret,
+    {
+      expiresIn: "2h",
+      issuer: "centro-da-juventude-api",
+      audience: "centro-da-juventude-student"
+    }
+  );
+}
+
+function verifyStudentToken(token) {
+  const payload = jwt.verify(token, config.jwtSecret, {
+    issuer: "centro-da-juventude-api",
+    audience: "centro-da-juventude-student"
+  });
+  if (payload.role !== "student") {
+    const error = new Error("Sessão inválida.");
+    error.statusCode = 401;
+    throw error;
+  }
+  return payload;
+}
+
 async function login({ username, registrationCode, ip }) {
   const identifier = username;
   const code = String(registrationCode || "").replace(/\D/g, "").slice(0, 6);
@@ -43,7 +71,7 @@ async function login({ username, registrationCode, ip }) {
   const valid = Boolean(admin && admin.active && codeLooksValid && secretMatches);
 
   if (!valid) {
-    logger.warn("Tentativa de login invalida", { username: identifier, ip });
+    logger.warn("Tentativa de login invalida", { credentialHash: credentialFingerprint("admin-auth", identifier), ip });
     const error = new Error("Credenciais inválidas.");
     error.statusCode = 401;
     throw error;
@@ -61,7 +89,7 @@ async function login({ username, registrationCode, ip }) {
     entityLabel: admin.name,
     ip
   }).catch(() => {});
-  logger.info("Login administrativo realizado", { username: admin.username, ip });
+  logger.info("Login administrativo realizado", { adminId: admin.id, ip });
 
   return {
     token: signToken(admin),
@@ -77,6 +105,10 @@ async function login({ username, registrationCode, ip }) {
 
 module.exports = {
   login,
+  signToken,
   verifyToken,
-  tokenMaxAgeMs
+  signStudentToken,
+  verifyStudentToken,
+  tokenMaxAgeMs,
+  studentTokenMaxAgeMs
 };

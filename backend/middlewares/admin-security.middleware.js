@@ -77,7 +77,7 @@ function loginHoneypot(req, res, next) {
   });
 
   return delayResponse(res, 401, {
-    message: "Credenciais invalidas."
+    message: "Credenciais inválidas."
   });
 }
 

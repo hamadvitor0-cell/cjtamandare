@@ -1,6 +1,5 @@
 const config = require("../config/env");
 const Oficina = require("../models/oficina.model");
-const InscricaoService = require("./inscricao.service");
 const { isValidCpf, normalizeCpf } = require("../utils/cpf");
 
 const contactText = [
@@ -56,37 +55,6 @@ async function workshopSummaries(filter = "") {
     }));
 }
 
-function statusToText(status) {
-  if (!status?.encontrado) {
-    return [
-      "N\u00e3o encontrei inscri\u00e7\u00e3o para este CPF.",
-      "",
-      "Confira se os n\u00fameros foram digitados corretamente.",
-      "Se o problema continuar, fale com a equipe pelo WhatsApp: (41) 3657-2117."
-    ].join("\n");
-  }
-
-  const oficinas = (status.oficinas || [])
-    .map((item) => `${item.oficina}: ${item.situacao}`)
-    .join("\n\u2022 ");
-  const frequencia = status.frequencia || {};
-  const aulas = (frequencia.aulasUltimos30Dias || [])
-    .slice(0, 6)
-    .map((call) => `${String(call.data || "").slice(0, 10)} - ${call.oficina}: ${call.status}`)
-    .join("\n\u2022 ");
-  return [
-    `Encontrei o cadastro de ${status.nomeParcial || "uma pessoa"}.`,
-    "",
-    `Situa\u00e7\u00e3o geral: ${status.situacao}.`,
-    oficinas ? `Oficinas:\n\u2022 ${oficinas}` : "",
-    status.documentosPendentes ? "Documentos: h\u00e1 pend\u00eancias ou itens ainda n\u00e3o conferidos." : "Documentos: n\u00e3o h\u00e1 pend\u00eancias marcadas.",
-    `Faltas nos \u00faltimos 30 dias: ${Number(frequencia.faltasUltimos30Dias || 0)}.`,
-    aulas ? `Aulas registradas nos \u00faltimos 30 dias:\n\u2022 ${aulas}` : "Aulas registradas nos \u00faltimos 30 dias: nenhuma encontrada.",
-    "",
-    "Para corrigir informa\u00e7\u00f5es, fale com a equipe pelo WhatsApp: (41) 3657-2117."
-  ].filter(Boolean).join("\n");
-}
-
 async function fallbackChat({ messages, cpf }) {
   const normalized = normalizeMessages(messages);
   const last = lastUserMessage(normalized);
@@ -94,19 +62,22 @@ async function fallbackChat({ messages, cpf }) {
   const messageCpf = cpf || extractCpf(last);
 
   if (messageCpf) {
-    const status = await InscricaoService.publicStatusByCpf(messageCpf);
     return {
-      message: statusToText(status),
+      message: [
+        "Para proteger os dados do aluno, a consulta por CPF agora deve ser feita pelo Portal do Aluno.",
+        "",
+        "Acesse o Portal do Aluno e informe CPF junto com a matrícula.",
+        "Se não conseguir acessar, fale com a equipe pelo WhatsApp: (41) 3657-2117."
+      ].join("\n"),
       aiEnabled: false,
-      fallback: true,
-      status
+      fallback: true
     };
   }
 
   if (lower.includes("falta") || lower.includes("frequ") || lower.includes("presen") || lower.includes("aula") || lower.includes("chamada") || /(status|acompanhar|cpf|inscri)/i.test(lower)) {
     return {
       message: [
-        "Para consultar andamento, faltas e aulas recentes, envie o CPF aqui no chat ou use o campo de acompanhamento.",
+        "Para consultar andamento, faltas e aulas recentes, use o Portal do Aluno com CPF e matrícula.",
         "",
         "Por seguran\u00e7a, eu mostro apenas:",
         "\u2022 oficinas vinculadas",
@@ -282,12 +253,12 @@ async function chat({ messages, cpf }) {
           }),
           execute: async ({ busca }) => workshopSummaries(busca)
         }),
-        consultarStatusCpf: tool({
-          description: "Consulta status p\u00fablico e m\u00ednimo de uma inscri\u00e7\u00e3o por CPF.",
-          inputSchema: z.object({
-            cpf: z.string().describe("CPF com ou sem mascara.")
-          }),
-          execute: async ({ cpf: inputCpf }) => InscricaoService.publicStatusByCpf(inputCpf)
+        orientarConsultaPortal: tool({
+          description: "Orienta a pessoa a consultar dados pessoais somente pelo Portal do Aluno.",
+          inputSchema: z.object({}),
+          execute: async () => ({
+            message: "Por segurança, dados de matrícula, frequência e chamados só podem ser consultados no Portal do Aluno com CPF e matrícula."
+          })
         })
       });
       return agent.generate({
@@ -362,9 +333,48 @@ async function adminStudentAssist({ student }) {
   }
 }
 
+function adminMessageAssist({ tipo, oficina = "", data = "", horario = "", observacoes = "" }) {
+  const officeText = oficina ? ` da turma ${oficina}` : "";
+  const dateText = data ? ` em ${data}` : "";
+  const timeText = horario ? `, no horário ${horario}` : "";
+  const noteText = observacoes ? `\n\nObservação: ${observacoes}` : "";
+  const templates = {
+    cancelamento: {
+      titulo: `Cancelamento de aula${officeText}`,
+      mensagem: `Informamos que a aula${officeText}${dateText}${timeText} foi cancelada. A equipe do Centro da Juventude avisará sobre reposição ou nova orientação assim que possível.${noteText}`
+    },
+    inicio_turma: {
+      titulo: `Início de turma${officeText}`,
+      mensagem: `A turma${officeText} terá início${dateText}${timeText}. Pedimos que os alunos cheguem com antecedência e acompanhem os próximos avisos pela plataforma do CJ.${noteText}`
+    },
+    encerramento_turma: {
+      titulo: `Encerramento de turma${officeText}`,
+      mensagem: `Comunicamos o encerramento da turma${officeText}${dateText}. Agradecemos a participação dos alunos e orientamos que acompanhem novos ciclos e oportunidades nos canais oficiais do CJ.${noteText}`
+    },
+    alteracao_horario: {
+      titulo: `Alteração de horário${officeText}`,
+      mensagem: `Atenção: houve alteração no horário da turma${officeText}. Novo horário: ${horario || "a confirmar pela equipe"}.${data ? ` A alteração vale a partir de ${data}.` : ""}${noteText}`
+    },
+    comunicado_geral: {
+      titulo: "Comunicado geral do CJ",
+      mensagem: `O Centro da Juventude informa um comunicado importante para alunos e responsáveis. Pedimos que todos acompanhem as orientações e procurem a equipe em caso de dúvida.${noteText}`
+    },
+    evento: {
+      titulo: `Aviso de evento${dateText}`,
+      mensagem: `O Centro da Juventude realizará um evento${dateText}${timeText}. A participação dos alunos será orientada pela equipe e novas informações serão divulgadas nos canais oficiais.${noteText}`
+    }
+  };
+  return {
+    aiEnabled: false,
+    fallback: true,
+    ...templates[tipo]
+  };
+}
+
 module.exports = {
   chat,
   adminStudentAssist,
+  adminMessageAssist,
   fallbackChat,
   baseAdminAssist
 };

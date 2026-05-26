@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS oficinas (
   capacidade INTEGER NOT NULL DEFAULT 30 CHECK (capacidade BETWEEN 1 AND 10000),
   imagem_url TEXT NOT NULL DEFAULT '/img/oficinas.png',
   initials TEXT NOT NULL CHECK (char_length(initials) BETWEEN 1 AND 4),
+  turmas JSONB NOT NULL DEFAULT '[]'::jsonb,
   ativo BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -67,22 +68,25 @@ CREATE TABLE IF NOT EXISTS alunos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nome TEXT NOT NULL CHECK (char_length(nome) BETWEEN 3 AND 120),
   cpf TEXT CHECK (cpf IS NULL OR cpf ~ '^[0-9]{11}$'),
-  idade INTEGER CHECK (idade IS NULL OR idade BETWEEN 0 AND 120),
-  data_nascimento DATE,
+  matricula TEXT,
+  idade INTEGER CHECK (idade IS NULL OR idade BETWEEN 0 AND 99),
   telefone TEXT CHECK (telefone IS NULL OR char_length(telefone) <= 20),
   responsavel TEXT CHECK (responsavel IS NULL OR char_length(responsavel) <= 120),
-  contato_responsavel TEXT CHECK (contato_responsavel IS NULL OR char_length(contato_responsavel) <= 40),
   email TEXT CHECK (email IS NULL OR char_length(email) <= 160),
-  bairro TEXT CHECK (bairro IS NULL OR char_length(bairro) <= 120),
   oficina_id UUID REFERENCES oficinas(id) ON DELETE SET NULL,
-  status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo')),
-  documentos_pendentes BOOLEAN NOT NULL DEFAULT FALSE,
+  data_nascimento DATE,
+  bairro TEXT CHECK (bairro IS NULL OR char_length(bairro) <= 120),
+  turmas TEXT[] NOT NULL DEFAULT '{}',
   documentos_links TEXT[] NOT NULL DEFAULT '{}',
-  condicao_saude TEXT CHECK (condicao_saude IS NULL OR char_length(condicao_saude) <= 500),
-  ficha_alerta TEXT CHECK (ficha_alerta IS NULL OR char_length(ficha_alerta) <= 500),
-  import_source TEXT CHECK (import_source IS NULL OR char_length(import_source) <= 80),
-  import_row_number INTEGER,
-  import_row_hash TEXT CHECK (import_row_hash IS NULL OR char_length(import_row_hash) <= 80),
+  possui_deficiencia BOOLEAN NOT NULL DEFAULT FALSE,
+  deficiencia_descricao TEXT CHECK (deficiencia_descricao IS NULL OR char_length(deficiencia_descricao) <= 500),
+  origem TEXT CHECK (origem IS NULL OR char_length(origem) <= 80),
+  status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo')),
+  token_version INTEGER NOT NULL DEFAULT 0,
+  first_access_completed_at TIMESTAMPTZ,
+  access_guidance_sent_at TIMESTAMPTZ,
+  access_guidance_sent_by UUID REFERENCES admins(id) ON DELETE SET NULL,
+  documentos_pendentes BOOLEAN NOT NULL DEFAULT FALSE,
   advertencias TEXT CHECK (advertencias IS NULL OR char_length(advertencias) <= 1000),
   historico_oficinas TEXT CHECK (historico_oficinas IS NULL OR char_length(historico_oficinas) <= 1000),
   observacoes TEXT CHECK (observacoes IS NULL OR char_length(observacoes) <= 500),
@@ -93,6 +97,7 @@ CREATE TABLE IF NOT EXISTS alunos (
 ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS dias_semana TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS periodo TEXT NOT NULL DEFAULT 'a definir';
 ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS capacidade INTEGER NOT NULL DEFAULT 30;
+ALTER TABLE oficinas ADD COLUMN IF NOT EXISTS turmas JSONB NOT NULL DEFAULT '[]'::jsonb;
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -102,15 +107,10 @@ BEGIN
   END IF;
 END $$;
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS cpf TEXT;
-ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS data_nascimento DATE;
-ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS bairro TEXT;
-ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS contato_responsavel TEXT;
-ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS possui_doenca BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS condicao_saude TEXT;
-ALTER TABLE inscricoes DROP CONSTRAINT IF EXISTS inscricoes_idade_check;
-ALTER TABLE inscricoes ADD CONSTRAINT inscricoes_idade_check CHECK (idade BETWEEN 0 AND 120);
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficinas TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS oficina_detalhes JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS possui_deficiencia BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS deficiencia_descricao TEXT;
 UPDATE inscricoes SET oficinas = ARRAY[oficina] WHERE oficinas = '{}' AND oficina IS NOT NULL;
 UPDATE inscricoes
 SET oficina_detalhes = (
@@ -136,21 +136,27 @@ ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS mime_type TEXT;
 ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS size_bytes INTEGER;
 ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS file_content BYTEA;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS cpf TEXT;
-ALTER TABLE alunos ADD COLUMN IF NOT EXISTS data_nascimento DATE;
-ALTER TABLE alunos ADD COLUMN IF NOT EXISTS bairro TEXT;
-ALTER TABLE alunos ADD COLUMN IF NOT EXISTS contato_responsavel TEXT;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS matricula TEXT;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS oficina_id UUID REFERENCES oficinas(id) ON DELETE SET NULL;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS documentos_pendentes BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE alunos ADD COLUMN IF NOT EXISTS documentos_links TEXT[] NOT NULL DEFAULT '{}';
-ALTER TABLE alunos ADD COLUMN IF NOT EXISTS condicao_saude TEXT;
-ALTER TABLE alunos ADD COLUMN IF NOT EXISTS ficha_alerta TEXT;
-ALTER TABLE alunos ADD COLUMN IF NOT EXISTS import_source TEXT;
-ALTER TABLE alunos ADD COLUMN IF NOT EXISTS import_row_number INTEGER;
-ALTER TABLE alunos ADD COLUMN IF NOT EXISTS import_row_hash TEXT;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS advertencias TEXT;
 ALTER TABLE alunos ADD COLUMN IF NOT EXISTS historico_oficinas TEXT;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS data_nascimento DATE;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS bairro TEXT;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS turmas TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS documentos_links TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS possui_deficiencia BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS deficiencia_descricao TEXT;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS origem TEXT;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS first_access_completed_at TIMESTAMPTZ;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS access_guidance_sent_at TIMESTAMPTZ;
+ALTER TABLE alunos ADD COLUMN IF NOT EXISTS access_guidance_sent_by UUID REFERENCES admins(id) ON DELETE SET NULL;
 ALTER TABLE alunos DROP CONSTRAINT IF EXISTS alunos_idade_check;
-ALTER TABLE alunos ADD CONSTRAINT alunos_idade_check CHECK (idade IS NULL OR idade BETWEEN 0 AND 120);
+ALTER TABLE alunos ADD CONSTRAINT alunos_idade_check CHECK (idade IS NULL OR idade BETWEEN 0 AND 99);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_alunos_matricula_unique ON alunos (matricula) WHERE matricula IS NOT NULL AND matricula <> '';
+ALTER TABLE inscricoes DROP CONSTRAINT IF EXISTS inscricoes_idade_check;
+ALTER TABLE inscricoes ADD CONSTRAINT inscricoes_idade_check CHECK (idade BETWEEN 0 AND 99);
 ALTER TABLE inscricao_documentos ADD COLUMN IF NOT EXISTS file_content BYTEA;
 
 CREATE TABLE IF NOT EXISTS aluno_oficinas (
@@ -160,15 +166,43 @@ CREATE TABLE IF NOT EXISTS aluno_oficinas (
   PRIMARY KEY (aluno_id, oficina_id)
 );
 
+CREATE TABLE IF NOT EXISTS aluno_oficina_cancelamentos (
+  aluno_id UUID NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
+  oficina_id UUID NOT NULL REFERENCES oficinas(id) ON DELETE CASCADE,
+  cancelled_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (aluno_id, oficina_id)
+);
+
+CREATE TABLE IF NOT EXISTS student_access_guidance_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  aluno_id UUID REFERENCES alunos(id) ON DELETE CASCADE,
+  admin_id UUID REFERENCES admins(id) ON DELETE SET NULL,
+  action_type TEXT NOT NULL CHECK (action_type IN (
+    'copied_access_message',
+    'opened_access_whatsapp',
+    'marked_access_guidance_sent',
+    'unmarked_access_guidance_sent',
+    'generated_access_guidance_pdf'
+  )),
+  method TEXT CHECK (method IS NULL OR method IN ('whatsapp_manual', 'presencial', 'telefone', 'outro')),
+  oficina_id UUID REFERENCES oficinas(id) ON DELETE SET NULL,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS chamadas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   oficina_id UUID NOT NULL REFERENCES oficinas(id) ON DELETE CASCADE,
+  turma TEXT NOT NULL DEFAULT '',
   data_chamada DATE NOT NULL,
   observacoes TEXT CHECK (observacoes IS NULL OR char_length(observacoes) <= 500),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (oficina_id, data_chamada)
+  UNIQUE (oficina_id, turma, data_chamada)
 );
+ALTER TABLE chamadas ADD COLUMN IF NOT EXISTS turma TEXT NOT NULL DEFAULT '';
+ALTER TABLE chamadas DROP CONSTRAINT IF EXISTS chamadas_oficina_id_data_chamada_key;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_chamadas_oficina_turma_data_unique ON chamadas (oficina_id, turma, data_chamada);
 
 CREATE TABLE IF NOT EXISTS presencas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -180,9 +214,6 @@ CREATE TABLE IF NOT EXISTS presencas (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (chamada_id, aluno_id)
 );
-
-ALTER TABLE chamadas ADD COLUMN IF NOT EXISTS observacoes TEXT;
-ALTER TABLE presencas ADD COLUMN IF NOT EXISTS observacao TEXT;
 
 CREATE TABLE IF NOT EXISTS bolsistas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -210,7 +241,7 @@ CREATE TABLE IF NOT EXISTS bolsista_oficinas (
 CREATE TABLE IF NOT EXISTS calendario_eventos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   titulo TEXT NOT NULL CHECK (char_length(titulo) BETWEEN 2 AND 120),
-  tipo TEXT NOT NULL CHECK (tipo IN ('reuniao', 'passeio', 'evento', 'formacao', 'outro')),
+  tipo TEXT NOT NULL CHECK (tipo IN ('aula', 'evento', 'reuniao', 'passeio', 'cancelamento', 'comunicado', 'formacao', 'outro')),
   data_evento DATE NOT NULL,
   horario_inicio TEXT CHECK (horario_inicio IS NULL OR horario_inicio ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
   horario_fim TEXT CHECK (horario_fim IS NULL OR horario_fim ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
@@ -237,6 +268,7 @@ CREATE TABLE IF NOT EXISTS admins (
   registration_code_hash TEXT,
   role TEXT NOT NULL DEFAULT 'admin',
   active BOOLEAN NOT NULL DEFAULT TRUE,
+  token_version INTEGER NOT NULL DEFAULT 0,
   last_login_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -262,8 +294,9 @@ ALTER TABLE admins ADD COLUMN IF NOT EXISTS registration_code_hash TEXT;
 ALTER TABLE admins ALTER COLUMN email DROP NOT NULL;
 ALTER TABLE admins ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE admins ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+ALTER TABLE admins ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE admins DROP CONSTRAINT IF EXISTS admins_role_check;
-ALTER TABLE admins ADD CONSTRAINT admins_role_check CHECK (role IN ('master', 'admin'));
+ALTER TABLE admins ADD CONSTRAINT admins_role_check CHECK (role IN ('master', 'admin', 'chamadas'));
 
 CREATE TABLE IF NOT EXISTS admin_audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -271,13 +304,18 @@ CREATE TABLE IF NOT EXISTS admin_audit_logs (
   admin_name TEXT NOT NULL,
   admin_email TEXT,
   admin_role TEXT,
-  action TEXT NOT NULL CHECK (action IN ('login', 'create', 'update', 'delete')),
+  action TEXT NOT NULL CHECK (action IN ('login', 'create', 'update', 'delete', 'send', 'export')),
   entity_type TEXT NOT NULL,
   entity_id TEXT,
   entity_label TEXT,
   metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
   ip TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS security_migrations (
+  id TEXT PRIMARY KEY,
+  applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE bolsistas ADD COLUMN IF NOT EXISTS dias_semana TEXT[] NOT NULL DEFAULT '{}';
@@ -303,11 +341,13 @@ CREATE INDEX IF NOT EXISTS idx_inscricao_documentos_inscricao ON inscricao_docum
 CREATE INDEX IF NOT EXISTS idx_inscricoes_cpf ON inscricoes (cpf);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_alunos_cpf_unique ON alunos (cpf) WHERE cpf IS NOT NULL AND cpf <> '';
 CREATE INDEX IF NOT EXISTS idx_alunos_oficina ON alunos (oficina_id);
+CREATE INDEX IF NOT EXISTS idx_alunos_status_created ON alunos (status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_alunos_nome_lower ON alunos (LOWER(nome));
-CREATE INDEX IF NOT EXISTS idx_alunos_bairro_lower ON alunos (LOWER(COALESCE(bairro, '')));
-CREATE INDEX IF NOT EXISTS idx_alunos_import_source_row ON alunos (import_source, import_row_number);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_alunos_import_row_hash_unique ON alunos (import_row_hash) WHERE import_row_hash IS NOT NULL AND import_row_hash <> '';
 CREATE INDEX IF NOT EXISTS idx_aluno_oficinas_oficina ON aluno_oficinas (oficina_id);
+CREATE INDEX IF NOT EXISTS idx_aluno_oficina_cancelamentos_oficina ON aluno_oficina_cancelamentos (oficina_id, cancelled_at DESC);
+CREATE INDEX IF NOT EXISTS idx_access_guidance_events_aluno ON student_access_guidance_events (aluno_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_access_guidance_events_admin ON student_access_guidance_events (admin_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_alunos_guidance_status ON alunos (first_access_completed_at, access_guidance_sent_at) WHERE status = 'ativo';
 CREATE INDEX IF NOT EXISTS idx_chamadas_oficina_data ON chamadas (oficina_id, data_chamada DESC);
 CREATE INDEX IF NOT EXISTS idx_presencas_chamada ON presencas (chamada_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_bolsistas_cpf_unique ON bolsistas (cpf) WHERE cpf IS NOT NULL AND cpf <> '';
@@ -315,6 +355,8 @@ CREATE INDEX IF NOT EXISTS idx_bolsistas_status ON bolsistas (status);
 CREATE INDEX IF NOT EXISTS idx_bolsista_oficinas_oficina ON bolsista_oficinas (oficina_id);
 CREATE INDEX IF NOT EXISTS idx_calendario_eventos_data ON calendario_eventos (data_evento);
 CREATE INDEX IF NOT EXISTS idx_calendario_eventos_oficina ON calendario_eventos (oficina_id);
+ALTER TABLE calendario_eventos DROP CONSTRAINT IF EXISTS calendario_eventos_tipo_check;
+ALTER TABLE calendario_eventos ADD CONSTRAINT calendario_eventos_tipo_check CHECK (tipo IN ('aula', 'evento', 'reuniao', 'passeio', 'cancelamento', 'comunicado', 'formacao', 'outro'));
 CREATE INDEX IF NOT EXISTS idx_calendario_evento_bolsistas_bolsista ON calendario_evento_bolsistas (bolsista_id);
 CREATE INDEX IF NOT EXISTS idx_admins_email ON admins (email);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_username ON admins (username) WHERE username IS NOT NULL AND username <> '';
@@ -383,3 +425,14 @@ CREATE TRIGGER trg_calendario_eventos_updated_at
 BEFORE UPDATE ON calendario_eventos
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
+
+CREATE TABLE IF NOT EXISTS security_rate_limits (
+  key_hash TEXT NOT NULL,
+  window_start BIGINT NOT NULL,
+  counter INTEGER NOT NULL DEFAULT 0,
+  expires_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (key_hash, window_start)
+);
+
+CREATE INDEX IF NOT EXISTS idx_security_rate_limits_expires_at
+  ON security_rate_limits (expires_at);
