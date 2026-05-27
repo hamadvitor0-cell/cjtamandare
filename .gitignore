@@ -64,6 +64,3 @@ dumps/
 # Sistema operacional
 Thumbs.db
 .DS_Store
-
-backend/data/*.json
-!backend/data/.gitkeep
